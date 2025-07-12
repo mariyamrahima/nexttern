@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nexttern Internship Portal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+ 
+
+  <style>
+    body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+  }
+
+  .navbar {
+    background-color: white;
+    padding: 1rem 3rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 999;
+    transition: top 0.4s;
+  }
+
+  .navbar-brand {
+    font-weight: bold;
+    color: #035946;
+    font-size: 28px;
+  }
+
+  .nav-link {
+    margin-right: 20px;
+    color: #2e3944 !important;
+    font-weight: 500;
+  }
+
+ .btn-login{
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 6px;
+      transition: 0.3s ease;
+    }
+
+    .btn-login {
+      border: 2px solid #035946;
+      color: #035946;
+      background: transparent;
+    }
+
+    
+
+    .btn-login:hover {
+      transform: scale(1.05);
+    }
+
+    .carousel-item {
+      height: 100vh;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    /* REMOVE or comment this block */
+
+
+    
+      .carousel-caption {
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5); /* Add this */
+}
+    
+
+    .carousel-caption h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      animation: fadeInDown 1s ease-in-out;
+    }
+
+    .carousel-caption p {
+      font-size: 1.25rem;
+      margin-bottom: 20px;
+      animation: fadeInUp 1s ease-in-out;
+    }
+
+    .carousel-caption .btn {
+      padding: 12px 24px;
+      margin-left: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 6px;
+      transition: transform 0.3s;
+    }
+
+    .carousel-caption .btn:hover {
+      transform: scale(1.05);
+    }
+
+    .btn-find {
+      background-color: #035946;
+      color: white;
+      border: none;
+    }
+
+    .btn-post {
+      border: 2px solid #035946;
+      color: #035946;
+      background: transparent;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+      background-color: rgba(3,89,70,0.8);
+      border-radius: 50%;
+      padding: 20px;
+    }
+/* Feature Card Styling and Animation */
+.feature-card {
+  background-color: #e6f2ef; /* Keep your original background */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform: scale(1);
+}
+
+/* Bulging effect on hover */
+.feature-card:hover {
+  transform: scale(1.07);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+.impact-section {
+  background-color: #f7f7f2; /* subtle light teal */
+  border-radius: 16px;
+}
+
+.impact-section h2 {
+  color: #213123;
+}
+
+.impact-count {
+  font-size: 2rem;
+  font-weight: 700;
+  transition: transform 0.3s ease;
+}
+
+.impact-count:hover {
+  transform: scale(1.1);
+}
+
+.text-teal {
+  color: #035946 !important; /* Teal shade used in your branding */
+}
+.featured-companies {
+  background-color: #f5fbfa;
+  color: #212a31;
+}
+
+.featured-companies i {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.featured-companies i:hover {
+  transform: scale(1.2);
+  color: #035946;
+}
+
+.featured-companies p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #2e3944;
+}
+.marquee-container {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 25s linear infinite;
+  gap: 60px;
+}
+
+.company-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120px;
+  color: #2e3944;
+  font-weight: 500;
+}
+
+.company-item i {
+  color: #035946;
+  margin-bottom: 8px;
+}
+
+/* Animation keyframes */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.success-stories {
+  background-color: #f9f9f9;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  color: #035946; /* matches Nexttern theme */
+  margin-bottom: 40px;
+  font-weight: bold;
+  font-family: 'Poppins', sans-serif;
+}
+
+.card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.story-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.story-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 15px;
+}
+
+.story-title {
+  font-size: 1.3rem;
+  color: #2e3944;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.story-desc {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* CTA Section */
+.cta-section {
+  background-color: #e6f4f1;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.cta-heading {
+  font-size: 2.4rem;
+  color: #035946;
+  font-weight: bold;
+  margin-bottom: 15px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.cta-desc {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 30px;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.cta-btn {
+  padding: 12px 25px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.cta-btn.student {
+  background-color: #035946;
+  color: #fff;
+}
+
+.cta-btn.student:hover {
+  background-color: #023c30;
+}
+
+.cta-btn.company {
+  background-color: transparent;
+  color: #035946;
+  border: 2px solid #035946;
+}
+
+.cta-btn.company:hover {
+  background-color: #035946;
+  color: #fff;
+}
+
+/* Footer */
+.footer {
+  background-color: #000;
+  color: #ccc;
+  padding: 60px 20px 30px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.footer-container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  max-width: 1100px;
+  margin: 0 auto;
+  gap: 30px;
+}
+
+.footer-column h4 {
+  color: #fff;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.footer-column ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-column ul li {
+  margin-bottom: 10px;
+}
+
+.footer-column ul li a {
+  color: #ccc;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-column ul li a:hover {
+  color: #fff;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 40px;
+  border-top: 1px solid #333;
+  padding-top: 20px;
+  font-size: 0.9rem;
+  color: #777;
+}
+/* Footer Base */
+.footer {
+  background-color: #000;
+  color: #ccc;
+  padding: 60px 20px 30px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.footer-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: auto;
+  gap: 40px;
+}
+
+.footer-column {
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.footer-column h4 {
+  color: #fff;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.footer-column ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-column ul li {
+  margin-bottom: 10px;
+}
+
+.footer-column ul li a {
+  color: #ccc;
+  text-decoration: none;
+  transition: 0.3s ease;
+}
+
+.footer-column ul li a:hover {
+  color: #fff;
+}
+
+.footer-column p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.footer-logo {
+  width: 60px;
+  margin-bottom: 10px;
+}
+
+.brand h3 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+/* Subscribe Form */
+.subscribe-form {
+  display: flex;
+  flex-wrap: nowrap;
+  margin-top: 10px;
+}
+
+.subscribe-form input[type="email"] {
+  padding: 10px;
+  border: none;
+  border-radius: 20px 0 0 20px;
+  outline: none;
+  width: 60%;
+}
+
+.subscribe-form button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #035946;
+  color: #fff;
+  border-radius: 0 20px 20px 0;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.subscribe-form button:hover {
+  background-color: #023c30;
+}
+
+/* Contact Info */
+.contact-info {
+  margin-top: 20px;
+}
+
+.contact-info p {
+  margin: 5px 0;
+  color: #ccc;
+  font-size: 0.95rem;
+}
+
+.contact-info i {
+  margin-right: 8px;
+}
+
+/* Social Icons */
+.footer-social {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.footer-social a {
+  color: #ccc;
+  margin: 0 10px;
+  font-size: 1.3rem;
+  transition: 0.3s;
+}
+
+.footer-social a:hover {
+  color: #fff;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+  text-align: center;
+  border-top: 1px solid #333;
+  padding-top: 20px;
+  font-size: 0.9rem;
+  color: #777;
+  margin-top: 20px;
+}
+
+.login-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav id="navbar" class="navbar navbar-expand-lg navbar-light">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">Nexttern</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Internships</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Companies</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">About Us</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+      </ul>
+      <button class="btn btn-login ms-3" onclick="window.location.href='login.html'">Login</button>
+    </div>
+  </div>
+</nav>
+
+<!-- Carousel -->
+<div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+  <div class="carousel-inner">
+    <!-- Landing Slide -->
+    <div class="carousel-item active" style="background-image: url('front2.jpeg');">
+      <div class="carousel-caption text-center">
+        <h1>Nexttern - Find the Next Internship</h1>
+        <p>Your Gateway to a Successful Career Start</p>
+        <p>Welcome to Nexttern, your go-to platform for discovering exciting internship opportunities.<br>
+        We connect students with companies to create meaningful experiences that align with academic and career aspirations.</p>
+        <a href="#" class="btn btn-find">Explore Internships</a>
+      </div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="carousel-item" style="background-image: url('student.jpeg');">
+      <div class="carousel-caption text-end">
+        <h1>Your Gateway to Professional Growth</h1>
+        <p>Connect with top companies, build your skills,<br> and launch your career with meaningful internship opportunities <br>tailored to your academic background.</p>
+        <a href="#" class="btn btn-find">Find Internships</a>
+        <a href="#" class="btn btn-post">Learn More</a>
+      </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="carousel-item" style="background-image: url('company2.jpeg');">
+      <div class="carousel-caption text-end">
+        <h1>Post Internships Easily</h1>
+        <p>Companies can find the right talent by posting internships and <br> managing applicants seamlessly through our platform.</p>
+        <a href="#" class="btn btn-find">Post Internships</a>
+        <a href="#" class="btn btn-post">Register</a>
+      </div>
+    </div>
+  </div>
+
+  <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+  </button>
+</div>
+<!-- Why Choose Nexttern Section -->
+<section class="py-5" style="background-color: #ffffff;">
+  <div class="container text-center">
+    <h2 class="fw-bold mb-3 text-dark">Why Choose Nexttern</h2>
+    <p class="text-secondary mb-5">
+      Our platform provides everything you need to find the perfect internship or discover talented interns for your company.
+    </p>
+    <div class="row g-4">
+
+      <!-- Card 1 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card p-4 h-100 rounded-4 text-start shadow-sm">
+          <div class="mb-3"><i class="fas fa-desktop fa-2x text-teal"></i></div>
+          <h5 class="fw-semibold text-dark">Easy Application Process</h5>
+          <p class="text-secondary">Apply to multiple internships with just a few clicks using your saved profile and resume.</p>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card p-4 h-100 rounded-4 text-start shadow-sm">
+          <div class="mb-3"><i class="fas fa-shield-alt fa-2x text-teal"></i></div>
+          <h5 class="fw-semibold text-dark">Verified Companies</h5>
+          <p class="text-secondary">All companies on our platform are verified to ensure legitimate and quality internship opportunities.</p>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card p-4 h-100 rounded-4 text-start shadow-sm">
+          <div class="mb-3"><i class="fas fa-file-alt fa-2x text-teal"></i></div>
+          <h5 class="fw-semibold text-dark">Resume Builder</h5>
+          <p class="text-secondary">Create a professional resume with our easy-to-use builder to stand out to potential employers.</p>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card p-4 h-100 rounded-4 text-start shadow-sm">
+          <div class="mb-3"><i class="fas fa-chart-line fa-2x text-teal"></i></div>
+          <h5 class="fw-semibold text-dark">Analytics Dashboard</h5>
+          <p class="text-secondary">Track your application status and performance with detailed analytics and insights.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Making an Impact Section -->
+<section class="impact-section py-5 text-center">
+  <div class="container">
+    <h2 class="fw-bold mb-3">Making an Impact</h2>
+    <p class="text-muted mb-5">Join thousands of students and companies already benefiting from our platform.</p>
+    <div class="row gy-4">
+
+      <div class="col-md-3">
+        <h3 class="impact-count text-success" data-count="10000">0</h3>
+        <p class="text-dark">Active Students</p>
+      </div>
+
+      <div class="col-md-3">
+        <h3 class="impact-count text-success" data-count="500">0</h3>
+        <p class="text-dark">Partner Companies</p>
+      </div>
+
+      <div class="col-md-3">
+        <h3 class="impact-count text-success" data-count="2500">0</h3>
+        <p class="text-dark">Available Internships</p>
+      </div>
+
+      <div class="col-md-3">
+        <h3 class="impact-count text-success" data-count="8000">0</h3>
+        <p class="text-dark">Successful Placements</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+<!-- Featured Companies -->
+<section class="featured-companies py-5 text-center">
+  <div class="container">
+    <h2 class="fw-bold mb-4">Featured Companies</h2>
+    <p class="text-muted mb-4">Join these leading companies in finding talented interns for your organization.</p>
+
+    <div class="marquee-container">
+      <div class="marquee-track">
+        <div class="company-item"><i class="fab fa-microsoft fa-2x"></i><p>Microsoft</p></div>
+        <div class="company-item"><i class="fab fa-google fa-2x"></i><p>Google</p></div>
+        <div class="company-item"><i class="fab fa-amazon fa-2x"></i><p>Amazon</p></div>
+        <div class="company-item"><i class="fab fa-apple fa-2x"></i><p>Apple</p></div>
+        <div class="company-item"><i class="fab fa-facebook fa-2x"></i><p>Meta</p></div>
+        <div class="company-item"><i class="fab fa-neos fa-2x"></i><p>Netflix</p></div>
+        <div class="company-item"><i class="fab fa-spotify fa-2x"></i><p>Spotify</p></div>
+
+        <!-- Repeat to ensure smooth loop -->
+        <div class="company-item"><i class="fab fa-microsoft fa-2x"></i><p>Microsoft</p></div>
+        <div class="company-item"><i class="fab fa-google fa-2x"></i><p>Google</p></div>
+        <div class="company-item"><i class="fab fa-amazon fa-2x"></i><p>Amazon</p></div>
+        <div class="company-item"><i class="fab fa-apple fa-2x"></i><p>Apple</p></div>
+        <div class="company-item"><i class="fab fa-facebook fa-2x"></i><p>Meta</p></div>
+        <div class="company-item"><i class="fab fa-neos fa-2x"></i><p>Netflix</p></div>
+        <div class="company-item"><i class="fab fa-spotify fa-2x"></i><p>Spotify</p></div>
+      </div>
+    </div>
+
+    <a href="#" class="btn btn-outline-success px-4 mt-4">Join as Company</a>
+  </div>
+</section>
+<section class="success-stories">
+  <h2 class="section-title">Student Success Stories</h2>
+  <div class="card-container">
+    <div class="story-card">
+      <img src="success1.jpg" alt="Success Story 1" class="story-img">
+      <h3 class="story-title">Aditi Sharma</h3>
+      <p class="story-desc">From intern to full-time software engineer at a top MNC through Nexttern’s internship match!</p>
+    </div>
+    <div class="story-card">
+      <img src="success2.jpg" alt="Success Story 2" class="story-img">
+      <h3 class="story-title">Rahul Verma</h3>
+      <p class="story-desc">Discovered his passion for data analytics and landed a role at a startup after a hands-on internship.</p>
+    </div>
+    <div class="story-card">
+      <img src="success3.jpg" alt="Success Story 3" class="story-img">
+      <h3 class="story-title">Neha Kulkarni</h3>
+      <p class="story-desc">Turned classroom learning into real-world impact with Nexttern’s UX design internship program.</p>
+    </div>
+  </div>
+</section>
+<!-- Call to Action Section -->
+<section class="cta-section">
+  <h2 class="cta-heading">Ready to Start Your Journey?</h2>
+  <p class="cta-desc">Whether you're a student looking for an internship or a company seeking talented interns, Nexttern is your gateway to connect and grow.</p>
+  <div class="cta-buttons">
+    <a href="register_student.html" class="cta-btn student">Register as Student</a>
+    <a href="register_company.html" class="cta-btn company">Register as Company</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-container">
+    <!-- Logo and About -->
+    <div class="footer-column brand">
+      <img src="logo.png" alt="Nexttern Logo" class="footer-logo">
+      <h3>Nexttern</h3>
+      <p>Your bridge to internships and industrial growth. Empowering students and companies alike.</p>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="footer-column">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Internships</a></li>
+        <li><a href="#">Post Internship</a></li>
+        <li><a href="#">About Us</a></li>
+      </ul>
+    </div>
+
+    <!-- Resources -->
+    <div class="footer-column">
+      <h4>Resources</h4>
+      <ul>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">FAQs</a></li>
+        <li><a href="#">Guidelines</a></li>
+        <li><a href="#">Help Center</a></li>
+      </ul>
+    </div>
+
+    <!-- Subscribe -->
+    <div class="footer-column">
+      <h4>Subscribe</h4>
+      <p>Get updates and internship alerts in your inbox.</p>
+      <form class="subscribe-form">
+        <input type="email" placeholder="Enter your email" required>
+        <button type="submit">Subscribe</button>
+      </form>
+      <div class="contact-info">
+        <h4>Contact Us</h4>
+        <p><i class="fas fa-envelope"></i> support@nexttern.com</p>
+        <p><i class="fas fa-phone-alt"></i> +91 98765 43210</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-social">
+    <a href="#"><i class="fab fa-linkedin"></i></a>
+    <a href="#"><i class="fab fa-instagram"></i></a>
+    <a href="#"><i class="fab fa-twitter"></i></a>
+    <a href="#"><i class="fab fa-facebook"></i></a>
+  </div>
+
+  <div class="footer-bottom">
+    <p>©️ 2025 Nexttern. All Rights Reserved.</p>
+  </div>
+</footer>
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const counters = document.querySelectorAll('.impact-count');
+  let hasAnimated = false;
+
+  const animateCounts = () => {
+    counters.forEach(counter => {
+      const updateCount = () => {
+        const target = +counter.getAttribute('data-count');
+        const current = +counter.innerText.replace(/,/g, '');
+        const increment = Math.ceil(target / 100);
+
+        if (current < target) {
+          counter.innerText = new Intl.NumberFormat().format(current + increment);
+          setTimeout(updateCount, 30);
+        } else {
+          counter.innerText = new Intl.NumberFormat().format(target) + "+";
+        }
+      };
+      updateCount();
+    });
+  };
+
+  const sectionObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !hasAnimated) {
+        animateCounts();
+        hasAnimated = true;
+      }
+    });
+  }, {
+    threshold: 0.5
+  });
+
+  const impactSection = document.querySelector('.impact-section');
+  if (impactSection) {
+    sectionObserver.observe(impactSection);
+  }
+</script>
+
+</script>
+<script>
+function loadLoginModal() {
+  fetch("login.html")
+    .then(response => response.text())
+    .then(html => {
+      document.getElementById("login-container").innerHTML = html;
+      document.getElementById("loginModal").style.display = "flex";
+    });
+}
+
+// Optional: hide modal when clicking outside
+window.onclick = function(e) {
+  const modal = document.getElementById("loginModal");
+  if (modal && e.target === modal) {
+    modal.style.display = "none";
+  }
+}
+</script>
+<script>
+  function openLoginModal() {
+    window.location.href = "login.html";
+  }
+</script>
+<script>
+  let lastScrollTop = 0;
+  const navbar = document.getElementById("navbar");
+
+  window.addEventListener("scroll", function () {
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+
+    if (currentScroll > lastScrollTop) {
+      // Scrolling down
+      navbar.style.top = "-100px";
+    } else {
+      // Scrolling up
+      navbar.style.top = "0";
+    }
+
+    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll; // For mobile bounce
+  });
+</script>
+</body>
+</html>

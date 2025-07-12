@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nexttern | Home</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .carousel {
+      margin-top: 56px; /* If navbar exists */
+    }
+
+    .carousel-item {
+      height: 90vh;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .carousel-caption {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(8px);
+      padding: 30px;
+      border-radius: 12px;
+      color: #035946;
+    }
+
+    .carousel-caption h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+
+    .carousel-caption p {
+      font-size: 1.2rem;
+    }
+
+    .carousel-caption a {
+      margin-top: 15px;
+      display: inline-block;
+    }
+
+    .btn-main {
+      background-color: #035946;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .btn-main:hover {
+      background-color: #023c30;
+    }
+    .impact-section {
+      position: relative;
+      padding: 100px 20px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      margin: 40px auto;
+      max-width: 1200px;
+      text-align: center;
+    }
+
+    .impact-section::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      left: -50px;
+      width: 200px;
+      height: 200px;
+      background: rgba(3, 89, 70, 0.1);
+      border-radius: 50%;
+      z-index: -1;
+      animation: blobMove 10s infinite linear;
+    }
+
+    .impact-section::after {
+      content: '';
+      position: absolute;
+      bottom: -50px;
+      right: -50px;
+      width: 200px;
+      height: 200px;
+      background: rgba(3, 89, 70, 0.1);
+      border-radius: 50%;
+      z-index: -1;
+      animation: blobMoveReverse 10s infinite linear;
+    }
+
+    @keyframes blobMove {
+      0% { transform: translate(0, 0); }
+      50% { transform: translate(20px, 20px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    @keyframes blobMoveReverse {
+      0% { transform: translate(0, 0); }
+      50% { transform: translate(-20px, -20px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .impact-section h2 {
+      font-size: 2.4rem;
+      color: #035946;
+      margin-bottom: 30px;
+    }
+
+    .impact-count {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2e3944;
+      margin: 10px 0;
+      transition: transform 0.3s;
+    }
+
+    .impact-count:hover {
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+
+<nav id="navbar" class="navbar navbar-expand-lg navbar-light">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">Nexttern</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Internships</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Companies</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">About Us</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+      </ul>
+      <button class="btn btn-login ms-3" onclick="window.location.href='login.html'">Login</button>
+    </div>
+  </div>
+</nav>
+
+<<!-- Carousel Start -->
+<div id="nextternCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+  <div class="carousel-inner">
+
+    <!-- Slide 1 -->
+    <div class="carousel-item active" style="background-image: url('slide1.jpg');">
+      <div class="d-flex h-100 justify-content-center align-items-center">
+        <div class="carousel-caption text-center">
+          <h2>Welcome to Nexttern</h2>
+          <p>Your internship gateway to real industry experience.</p>
+          <a href="#" class="btn-main">Explore Opportunities</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="carousel-item" style="background-image: url('slide2.jpg');">
+      <div class="d-flex h-100 justify-content-center align-items-center">
+        <div class="carousel-caption text-center">
+          <h2>For Students & Graduates</h2>
+          <p>Build your career with the right mentorship & exposure.</p>
+          <a href="#" class="btn-main">Join as Student</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="carousel-item" style="background-image: url('slide3.jpg');">
+      <div class="d-flex h-100 justify-content-center align-items-center">
+        <div class="carousel-caption text-center">
+          <h2>For Companies</h2>
+          <p>Find enthusiastic, trained, and qualified interns easily.</p>
+          <a href="#" class="btn-main">Register as Company</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Controls -->
+  <button class="carousel-control-prev" type="button" data-bs-target="#nextternCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#nextternCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+  </button>
+</div>
+
+<section class="impact-section">
+  <h2>Making an Impact</h2>
+  <div class="row justify-content-center">
+    <div class="col-md-3">
+      <div class="impact-count" data-count="10000">10,000+</div>
+      <p>Active Students</p>
+    </div>
+    <div class="col-md-3">
+      <div class="impact-count" data-count="500">500+</div>
+      <p>Partner Companies</p>
+    </div>
+    <div class="col-md-3">
+      <div class="impact-count" data-count="8000">8,000+</div>
+      <p>Successful Internships</p>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company Register | Nexttern</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5fbfa;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .form-container {
+      width: 800px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 30px 40px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      justify-content: space-between;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab.active {
+      font-weight: bold;
+      border-color: #035946;
+      color: #035946;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .btn {
+      background-color: #035946;
+      color: #fff;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .btn:hover {
+      background-color: #024437;
+    }
+  </style>
+</head>
+<body>
+
+<div class="form-container">
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(0)">1. Company Info</div>
+    <div class="tab" onclick="showTab(1)">2. Contact</div>
+    <div class="tab" onclick="showTab(2)">3. Payment</div>
+  </div>
+
+  <form id="companyRegForm">
+    <div class="tab-content active">
+      <div class="form-group">
+        <label>Company Name *</label>
+        <input type="text" required>
+      </div>
+      <div class="form-group">
+        <label>Industry Type *</label>
+        <select required>
+          <option value="">Select</option>
+          <option>IT</option>
+          <option>Finance</option>
+          <option>Marketing</option>
+          <option>Education</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Company Size *</label>
+        <select required>
+          <option value="">Select</option>
+          <option>1-10</option>
+          <option>11-50</option>
+          <option>51-200</option>
+          <option>200+</option>
+        </select>
+      </div>
+      <button type="button" class="btn" onclick="nextTab()">Next</button>
+    </div>
+
+    <div class="tab-content">
+      <div class="form-group">
+        <label>Official Email *</label>
+        <input type="email" required>
+      </div>
+      <div class="form-group">
+        <label>Phone Number *</label>
+        <input type="text" required>
+      </div>
+      <div class="form-group">
+        <label>Company Website (optional)</label>
+        <input type="url">
+      </div>
+      <button type="button" class="btn" onclick="nextTab()">Next</button>
+    </div>
+
+    <div class="tab-content">
+      <div class="form-group">
+        <label>Registration Fee</label>
+        <input type="text" value="₹999" readonly>
+      </div>
+      <div class="form-group">
+        <label>Create Password *</label>
+        <input type="password" required>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password *</label>
+        <input type="password" required>
+      </div>
+      <button type="submit" class="btn">Register</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  let currentTab = 0;
+  function showTab(index) {
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    tabs

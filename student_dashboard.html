@@ -1,0 +1,102 @@
+<?php
+session_start();
+
+// Redirect if student not logged in
+if (!isset($_SESSION['nxst_id'])) {
+  header("Location: register.html");
+  exit;
+}
+
+$student_id = $_SESSION['nxst_id'];
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard | Nexttern</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5fbfa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .dashboard-box {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      width: 600px;
+      max-width: 90%;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      animation: bounceIn 0.8s ease-out;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0.9); opacity: 0; }
+      60% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    h2 {
+      color: #035946;
+      margin-bottom: 20px;
+      font-size: 26px;
+    }
+
+    p {
+      font-size: 18px;
+      color: #2e3944;
+      margin-bottom: 30px;
+    }
+
+    .student-id {
+      font-size: 22px;
+      font-weight: bold;
+      color: #035946;
+      margin-bottom: 40px;
+    }
+
+    .logout-btn {
+      padding: 12px 30px;
+      background-color: #035946;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background-color: #024437;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-box">
+    <h2>Welcome to Your Dashboard</h2>
+    <p>You have successfully registered on Nexttern.</p>
+    <div class="student-id">Your Student ID: <?php echo htmlspecialchars($student_id); ?></div>
+
+    <form action="logout.php" method="post">
+      <button type="submit" class="logout-btn">Logout</button>
+    </form>
+  </div>
+
+</body>
+</html>
