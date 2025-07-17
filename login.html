@@ -319,11 +319,6 @@
 <div class="blob blob3"></div>
 <div class="blob blob4"></div>
 
-<!-- Success popup -->
-<div id="successPopup" class="success-popup" style="display: none;">
-  ✅ Login Successful!
-</div>
-
 <!-- Login container -->
 <div class="container">
   <div class="login-box">
@@ -343,14 +338,15 @@
         <p>Access your dashboard</p>
       </div>
 
-      <form id="loginForm" onsubmit="return validateLogin(event)">
+      <!-- ✅ Regular PHP Form (No JS or AJAX) -->
+      <form action="login.php" method="POST">
         <div class="form-group">
-          <input type="email" id="email" placeholder=" " required>
-<label for="email">Email Address</label>
-</div>
+          <input type="email" name="email" placeholder=" " required>
+          <label for="email">Email Address</label>
+        </div>
 
         <div class="form-group input-icon">
-          <input type="password" id="password" placeholder=" " required>
+          <input type="password" name="password" id="password" placeholder=" " required>
           <label for="password">Password</label>
           <span class="toggle-icon" onclick="toggleVisibility('password', this)">👁️</span>
         </div>
@@ -373,53 +369,23 @@
     input.type = input.type === "password" ? "text" : "password";
     icon.textContent = input.type === "password" ? "👁️" : "👁️‍🗨️";
   }
-
-  document.getElementById("loginForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-
-    if (!email || !password) {
-      alert("Please enter both email and password.");
-      return;
-    }
-
-    fetch("login.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: new URLSearchParams({
-        email: email,
-        password: password
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const popup = document.getElementById("successPopup");
-          popup.style.display = "flex";
-
-          const closeOnClick = () => {
-            popup.style.display = "none";
-            document.removeEventListener("click", closeOnClick);
-          };
-
-          document.addEventListener("click", closeOnClick);
-
-          setTimeout(() => {
-            window.location.href = "student_dashboard.php?sid=" + data.student_id;
-          }, 2000);
-        } else {
-          alert(data.message);
-        }
-      })
-      .catch(err => {
-        console.error("AJAX failed:", err);
-        alert("Something went wrong. Please try again.");
-      });
-  });
 </script>
+
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
