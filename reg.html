@@ -125,6 +125,8 @@ body {
   cursor: pointer;
   font-size: 18px;
   color: #666;
+  width: 24px;
+  height: 24px;
 }
 .blob {
   position: absolute;
@@ -234,17 +236,28 @@ body {
         <div class="form-group">
           <input type="password" name="password" id="password" placeholder=" " required>
           <label>Create Password *</label>
-          <span class="toggle-icon" onclick="toggleVisibility('password', this)">👁️</span>
+          <span class="toggle-icon" onclick="toggleVisibility('password', this)">
+            <!-- Eye Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
         </div>
         <div class="form-group">
           <input type="password" name="confirm_password" id="confirm_password" placeholder=" " required>
           <label>Confirm Password *</label>
-          <span class="toggle-icon" onclick="toggleVisibility('confirm_password', this)">👁️</span>
+          <span class="toggle-icon" onclick="toggleVisibility('confirm_password', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
           <div class="error-text" id="passwordError"></div>
         </div>
         <button type="submit" class="submit-btn">Register</button>
         <div class="footer-link">
-          <a href="registercompany.html">Register as a Company</a> | <a href="login.html">Already have an account Login</a>
+          <a href="registercompany.html">Register as a Company</a> | <a href="login.html">Login</a>
         </div>
       </div>
     </form>
@@ -257,12 +270,13 @@ flatpickr("#dob", { dateFormat: "d/m/Y", allowInput: true });
 
 function toggleVisibility(id, icon) {
   const input = document.getElementById(id);
+  const svg = icon.querySelector('svg');
   if (input.type === "password") {
     input.type = "text";
-    icon.textContent = "🙈";
+    svg.innerHTML = '<path d="M17.94 17.94L6.06 6.06"/><path d="M1 12s4-7 11-7c1.93 0 3.68.56 5.2 1.53M21.5 14.5c-.9 1.43-2.06 2.61-3.4 3.4"/>'; // Eye-off
   } else {
     input.type = "password";
-    icon.textContent = "👁️";
+    svg.innerHTML = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>'; // Eye
   }
 }
 
@@ -283,12 +297,21 @@ document.getElementById("registerForm").addEventListener("submit", function(e) {
   phoneError.textContent = "";
   passwordError.textContent = "";
 
- if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
-  emailError.textContent = "Only Gmail addresses are allowed (e.g., example@gmail.com)";
+ const allowedDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"];
+const emailParts = email.split("@");
+if (emailParts.length !== 2) {
+  emailError.textContent = "Invalid email address";
   shakeField("email");
   valid = false;
+} else {
+  const domain = emailParts[1].toLowerCase();
+  if (!allowedDomains.includes(domain)) {
+    emailError.textContent = "Email must be Gmail, Yahoo, Outlook, or Hotmail";
+    shakeField("email");
+    valid = false;
+  }
 }
-
+  }
   if (phone && !/^\d{10}$/.test(phone)) {
     phoneError.textContent = "Phone must be 10 digits";
     shakeField("contact");

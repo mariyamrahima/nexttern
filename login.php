@@ -1,37 +1,44 @@
 <?php
 session_start();
+header('Content-Type: application/json');
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $conn = new mysqli("localhost", "root", "", "nexttern_db");
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    echo json_encode(["success" => false, "message" => "Database connection failed"]);
+    exit;
 }
 
-if (!isset($_POST['email']) || !isset($_POST['password'])) {
-    die("Both fields are required.");
+$email = trim($_POST['email'] ?? '');
+$password = trim($_POST['password'] ?? '');
+
+if ($email === '' || $password === '') {
+    echo json_encode(["success" => false, "message" => "Please fill all fields"]);
+    exit;
 }
 
-$email = $_POST['email'];
-$password = $_POST['password'];
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo json_encode(["success" => false, "message" => "Invalid email format"]);
+    exit;
+}
 
-$stmt = $conn->prepare("SELECT student_id, first_name, password FROM students WHERE email = ?");
+$stmt = $conn->prepare("SELECT * FROM students WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    die("Invalid email or password.");
+    echo json_encode(["success" => false, "message" => "Email not registered"]);
+    exit;
 }
 
-$row = $result->fetch_assoc();
-
-if (!password_verify($password, $row['password'])) {
-    die("Invalid email or password.");
+$user = $result->fetch_assoc();
+if (password_verify($password, $user['password'])) {
+    $_SESSION['email'] = $user['email'];
+    $_SESSION['student_id'] = $user['student_id'];
+    echo json_encode(["success" => true, "message" => "Login successful"]);
+} else {
+    echo json_encode(["success" => false, "message" => "Incorrect password"]);
 }
-
-// Success
-$_SESSION['email'] = $email;
-$_SESSION['student_id'] = $row['student_id'];
-$_SESSION['first_name'] = $row['first_name'];
-
-header("Location: student_dashboard.php");
-exit;
 ?>
