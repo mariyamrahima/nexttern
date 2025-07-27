@@ -161,7 +161,12 @@ body {
   font-size: 13px;
   margin-top: 3px;
 }
-.shake { animation: shake 0.3s ease-in-out; }
+.shake { 
+  animation: shake 0.3s ease-in-out;
+}
+.error-border {
+  border-color: #b10000 !important;
+}
 @keyframes shake {
   0%,100%{transform:translateX(0);}
   20%,60%{transform:translateX(-8px);}
@@ -198,46 +203,50 @@ body {
       <p>Begin your internship journey with Nexttern.</p>
     </div>
 
-    <form id="registerForm">
+    <form id="registerForm" novalidate>
       <div class="form-grid">
         <div class="form-group">
-          <input type="text" name="first_name" placeholder=" " required>
+          <input type="text" name="first_name" id="first_name" placeholder=" ">
           <label>First Name *</label>
+          <div class="error-text" id="firstNameError"></div>
         </div>
         <div class="form-group">
-          <input type="text" name="last_name" placeholder=" " required>
+          <input type="text" name="last_name" id="last_name" placeholder=" ">
           <label>Last Name *</label>
+          <div class="error-text" id="lastNameError"></div>
         </div>
         <div class="form-group">
-          <input type="email" name="email" id="email" placeholder=" " required>
+          <input type="email" name="email" id="email" placeholder=" ">
           <label>Email *</label>
           <div class="error-text" id="emailError"></div>
         </div>
         <div class="form-group">
           <input type="text" name="contact" id="contact" placeholder=" ">
-          <label>Phone Number</label>
+          <label>Phone Number *</label>
           <div class="error-text" id="phoneError"></div>
         </div>
         <div class="form-group">
-          <select name="gender" required>
+          <select name="gender" id="gender">
             <option value="" disabled selected hidden></option>
             <option>Male</option>
             <option>Female</option>
             <option>Other</option>
           </select>
           <label>Gender *</label>
+          <div class="error-text" id="genderError"></div>
         </div>
         <div class="form-group">
           <input type="text" name="dob" id="dob" placeholder=" ">
           <label>DOB</label>
         </div>
         <div class="form-group">
-          <input type="password" name="password" id="password" placeholder=" " required>
+          <input type="password" name="password" id="password" placeholder=" ">
           <label>Create Password *</label>
           <span class="toggle-icon" onclick="toggleVisibility('password', this)">👁️</span>
+          <div class="error-text" id="passwordFieldError"></div>
         </div>
         <div class="form-group">
-          <input type="password" name="confirm_password" id="confirm_password" placeholder=" " required>
+          <input type="password" name="confirm_password" id="confirm_password" placeholder=" ">
           <label>Confirm Password *</label>
           <span class="toggle-icon" onclick="toggleVisibility('confirm_password', this)">👁️</span>
           <div class="error-text" id="passwordError"></div>
@@ -259,47 +268,116 @@ function toggleVisibility(id, icon) {
   const input = document.getElementById(id);
   if (input.type === "password") {
     input.type = "text";
-    icon.textContent = "🙈";
+    icon.textContent = "👁️‍🗨️";
   } else {
     input.type = "password";
     icon.textContent = "👁️";
   }
 }
+function validatePhone(phone) {
+  // Remove all non-digit characters
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  // Check length (international standard: 10 to 15 digits)
+  if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+    return false;
+  }
 
+  // Optional: accept common user formats
+  const phonePatterns = [
+    /^\d{10}$/, // 1234567890
+    /^\+\d{10,14}$/, // +1234567890 to +123456789012345
+    /^\d{3}-\d{3}-\d{4}$/, // 123-456-7890
+    /^\(\d{3}\)\s?\d{3}-\d{4}$/, // (123)456-7890 or (123) 456-7890
+    /^\d{3}\s\d{3}\s\d{4}$/ // 123 456 7890
+  ];
+
+  // Return true if matches any pattern or is clean digits between 10–15
+  return phonePatterns.some(pattern => pattern.test(phone)) || /^\d{10,15}$/.test(cleanPhone);
+}
 document.getElementById("registerForm").addEventListener("submit", function(e) {
   e.preventDefault();
   let valid = true;
 
+  // Clear all error messages and error borders first
+  const errorFields = ['firstNameError', 'lastNameError', 'emailError', 'phoneError', 'genderError', 'passwordFieldError', 'passwordError'];
+  const inputFields = ['first_name', 'last_name', 'email', 'contact', 'gender', 'password', 'confirm_password'];
+  
+  errorFields.forEach(field => {
+    document.getElementById(field).textContent = "";
+  });
+  
+  inputFields.forEach(field => {
+    document.getElementById(field).classList.remove('error-border');
+  });
+
+  // Get form values
+  const firstName = document.getElementById("first_name").value.trim();
+  const lastName = document.getElementById("last_name").value.trim();
   const email = document.getElementById("email").value.trim();
   const phone = document.getElementById("contact").value.trim();
+  const gender = document.getElementById("gender").value;
   const pass = document.getElementById("password").value;
   const confirmPass = document.getElementById("confirm_password").value;
 
-  const emailError = document.getElementById("emailError");
-  const phoneError = document.getElementById("phoneError");
-  const passwordError = document.getElementById("passwordError");
-
-  emailError.textContent = "";
-  phoneError.textContent = "";
-  passwordError.textContent = "";
-
- if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
-  emailError.textContent = "Only Gmail addresses are allowed (e.g., example@gmail.com)";
-  shakeField("email");
-  valid = false;
-}
-
-  if (phone && !/^\d{10}$/.test(phone)) {
-    phoneError.textContent = "Phone must be 10 digits";
-    shakeField("contact");
+  // Validate required fields
+  if (!firstName) {
+    document.getElementById("firstNameError").textContent = "This field is required";
+    shakeField("first_name");
     valid = false;
   }
-  if (pass !== confirmPass) {
-    passwordError.textContent = "Passwords do not match";
+
+  if (!lastName) {
+    document.getElementById("lastNameError").textContent = "This field is required";
+    shakeField("last_name");
+    valid = false;
+  }
+
+  if (!email) {
+    document.getElementById("emailError").textContent = "This field is required";
+    shakeField("email");
+    valid = false;
+  } else if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+    document.getElementById("emailError").textContent = "Only Gmail addresses are allowed (e.g., example@gmail.com)";
+    shakeField("email");
+    valid = false;
+  }
+
+  if (!gender) {
+    document.getElementById("genderError").textContent = "This field is required";
+    shakeField("gender");
+    valid = false;
+  }
+if (!pass) {
+    document.getElementById("passwordFieldError").textContent = "This field is required";
+    shakeField("password");
+    valid = false;
+  } else if (pass.length < 6) {
+    document.getElementById("passwordFieldError").textContent = "Password must be at least 6 characters long";
+    shakeField("password");
+    valid = false;
+  }
+
+  if (!confirmPass) {
+    document.getElementById("passwordError").textContent = "This field is required";
+    shakeField("confirm_password");
+    valid = false;
+  } else if (pass && pass !== confirmPass) {
+    document.getElementById("passwordError").textContent = "Passwords do not match";
     shakeField("password");
     shakeField("confirm_password");
     valid = false;
   }
+
+if (!phone) {
+  document.getElementById("phoneError").textContent = "This field is required";
+  shakeField("contact");
+  valid = false;
+} else if (!validatePhone(phone)) {
+  document.getElementById("phoneError").textContent = "Enter a valid phone number";
+  shakeField("contact");
+  valid = false;
+}
 
   if (!valid) return;
 
@@ -320,6 +398,7 @@ document.getElementById("registerForm").addEventListener("submit", function(e) {
 function shakeField(id) {
   const field = document.getElementById(id);
   field.classList.add("shake");
+  field.classList.add("error-border");
   setTimeout(() => field.classList.remove("shake"), 500);
 }
 </script>
