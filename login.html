@@ -5,51 +5,278 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Login | Nexttern</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI',sans-serif;background:#f5fbfa;height:100vh;overflow:hidden;}
-.container{display:flex;justify-content:center;align-items:center;height:100%;padding:20px;position:relative;}
-.login-box{display:flex;width:900px;max-width:95%;height:500px;background:rgba(255,255,255,0.2);backdrop-filter:blur(14px);
-border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden;z-index:1;border:1px solid rgba(255,255,255,0.3);animation:bounceIn 0.8s ease-out;}
-@keyframes bounceIn{0%{transform:scale(0.9);opacity:0;}60%{transform:scale(1.05);opacity:1;}100%{transform:scale(1);}}
-.login-left{flex:1;background:rgba(3,89,70,0.07);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#035946;}
-.login-left img{width:140px;height:140px;object-fit:cover;border-radius:50%;margin-bottom:20px;border:4px solid #03594655;}
-.login-left h2{font-size:26px;margin-bottom:10px;}
-.login-left p{font-size:14px;color:#2e3944;font-weight:500;}
-.login-right{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px;position:relative;}
-.form-header{text-align:center;margin-bottom:20px;}
-.form-header h2{font-size:24px;color:#035946;}
-.form-header p{font-size:14px;color:#555;}
-.form-group{position:relative;margin-bottom:22px;}
-.form-group input{width:100%;padding:14px 16px;border:1px solid #ccc;border-radius:25px;background-color:#fff;font-size:15px;outline:none;}
-.form-group label{position:absolute;top:50%;left:16px;transform:translateY(-50%);background:#fff;color:#999;font-size:14px;padding:0 6px;pointer-events:none;transition:0.2s ease;}
-.form-group input:focus+label,.form-group input:not(:placeholder-shown)+label{top:0;left:12px;font-size:12px;color:#035946;}
-.toggle-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;color:#666;}
-.submit-btn{background-color:#035946;color:white;border:none;padding:10px 30px;border-radius:25px;cursor:pointer;font-size:15px;width:150px;transition:all 0.4s ease;}
-.submit-btn:hover{background-color:#024437;transform:scale(1.05);}
-.footer-link{text-align:center;font-size:14px;margin-top:20px;}
-.footer-link a{color:#035946;text-decoration:none;}
-.error-box{color:#b10000;font-size:13px;margin-top:5px;}
-.shake{animation:shake 0.3s ease-in-out;}
-@keyframes shake{0%,100%{transform:translateX(0);}20%,80%{transform:translateX(-8px);}40%,60%{transform:translateX(8px);}}
-.popup{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ffbaba;color:#b10000;padding:10px 20px;border-radius:8px;display:none;font-weight:bold;z-index:999;}
-.blob{position:absolute;border-radius:50%;z-index:0;animation:moveBlob 20s infinite alternate ease-in-out;}
-.blob1{width:500px;height:500px;background:rgba(3,89,70,0.15);top:-100px;right:-150px;}
-.blob2{width:300px;height:300px;background:rgba(3,89,70,0.2);top:150px;right:-100px;animation-delay:2s;}
-.blob3{width:250px;height:250px;background:rgba(3,89,70,0.12);bottom:50px;left:-120px;animation-delay:4s;}
-.blob4{width:150px;height:150px;background:rgba(3,89,70,0.18);bottom:-60px;left:80px;animation-delay:1s;}
-@keyframes moveBlob{0%{transform:translate(0,0)scale(1);}50%{transform:translate(20px,-20px)scale(1.05);}100%{transform:translate(-20px,20px)scale(1);}}
-@media(max-width:768px){.login-box{flex-direction:column;height:auto;}.login-left,.login-right{width:100%;padding:30px;}.submit-btn{width:100%;}}
+/* Universal Box Sizing */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Body Styles */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f5fbfa;
+  height: 100vh;
+  overflow: hidden; /* Prevents scrollbars due to blobs */
+}
+
+/* Container for Centering */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 20px;
+  position: relative; /* For blob positioning */
+}
+
+/* Login Box Styling */
+.login-box {
+  display: flex;
+  width: 900px;
+  max-width: 95%;
+  height: 500px; /* Fixed height for consistent layout */
+  background: rgba(255, 255, 255, 0.2); /* Translucent background */
+  backdrop-filter: blur(14px); /* Glassmorphism effect */
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); /* Soft shadow */
+  overflow: hidden; /* Ensures content stays within rounded corners */
+  z-index: 1; /* Above blobs */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Light border */
+  animation: bounceIn 0.8s ease-out; /* Entry animation */
+}
+
+/* Entry Animation for Login Box */
+@keyframes bounceIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Left Section of Login Box (Branding) */
+.login-left {
+  flex: 1;
+  background: rgba(3, 89, 70, 0.07); /* Light green background */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #035946; /* Dark green text */
+  padding: 20px; /* Add some padding for smaller screens */
+}
+
+.login-left img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  border: 4px solid #03594655; /* Slightly transparent dark green border */
+}
+
+.login-left h2 {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.login-left p {
+  font-size: 14px;
+  color: #2e3944;
+  font-weight: 500;
+}
+
+/* Right Section of Login Box (Form) */
+.login-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+}
+
+/* Form Header */
+.form-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.form-header h2 {
+  font-size: 24px;
+  color: #035946;
+}
+
+.form-header p {
+  font-size: 14px;
+  color: #555;
+}
+
+/* Form Group (Input + Label + Error) */
+.form-group {
+  position: relative;
+  margin-bottom: 25px; /* Increased space for error messages */
+}
+
+.form-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #ccc; /* Default border */
+  border-radius: 25px;
+  background-color: #f7f7f7; /* Match registration form background */
+  font-size: 15px;
+  outline: none; /* Remove default outline on focus */
+  transition: border-color 0.3s ease; /* Smooth transition for border */
+}
+
+/* Floating Label Effect */
+.form-group label {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  background: #f7f7f7; /* Match input background for cutout effect */
+  color: #666; /* Match registration form label color */
+  font-size: 14px;
+  padding: 0 6px;
+  pointer-events: none; /* Allows clicks to pass through to input */
+  transition: 0.2s ease;
+}
+
+.form-group input:focus + label,
+.form-group input:not(:placeholder-shown) + label {
+  top: 0;
+  left: 12px;
+  font-size: 12px;
+  color: #035946;
+  background: #f5fbfa; /* Match registration form focused label background */
+}
+
+/* Password Toggle Icon */
+.toggle-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  cursor: pointer;
+  color: #666;
+}
+
+/* Submit Button */
+.submit-btn {
+  background-color: #035946;
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 15px;
+  width: 150px;
+  transition: all 0.4s ease;
+}
+
+.submit-btn:hover {
+  background-color: #024437;
+  transform: scale(1.05);
+}
+
+/* Footer Link */
+.footer-link {
+  text-align: center;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+.footer-link a {
+  color: #035946;
+  text-decoration: none;
+}
+
+/* Error Animations and Styling (Matched with Registration Form) */
+.shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.error-border {
+  /* THIS IS THE KEY CHANGE FOR BORDER THICKNESS CONSISTENCY */
+  border: 1px solid #b10000 !important; /* Forces 2px border and red color */
+}
+
+.error-text {
+  color: #b10000;
+  font-size: 13px;
+  margin-top: 3px;
+  padding-left: 12px;
+  display: block;
+  visibility: hidden;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+}
+
+.error-text.show {
+  visibility: visible;
+  height: auto;
+  opacity: 1;
+  margin-top: 3px;
+}
+
+/* Background Blobs */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  z-index: 0; /* Behind the login box */
+  animation: moveBlob 20s infinite alternate ease-in-out;
+}
+
+.blob1 { width: 500px; height: 500px; background: rgba(3, 89, 70, 0.15); top: -100px; right: -150px; }
+.blob2 { width: 300px; height: 300px; background: rgba(3, 89, 70, 0.2); top: 150px; right: -100px; animation-delay: 2s; }
+.blob3 { width: 250px; height: 250px; background: rgba(3, 89, 70, 0.12); bottom: 50px; left: -120px; animation-delay: 4s; }
+.blob4 { width: 150px; height: 150px; background: rgba(3, 89, 70, 0.18); bottom:-60px; left: 80px; animation-delay: 1s; }
+
+/* Blob Movement Animation */
+@keyframes moveBlob {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -20px) scale(1.05); }
+  100% { transform: translate(-20px, 20px) scale(1); }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .login-box {
+    flex-direction: column; /* Stack sections vertically */
+    height: auto; /* Auto height for stacked content */
+    max-height: 95vh; /* Prevent box from exceeding viewport on small devices */
+    overflow-y: auto; /* Allow scrolling if content overflows */
+  }
+  .login-left, .login-right {
+    width: 100%;
+    padding: 30px;
+  }
+  .submit-btn {
+    width: 100%; /* Full width button on small screens */
+  }
+  .login-left {
+    padding-top: 50px; /* Add some space above logo on mobile */
+    padding-bottom: 20px;
+  }
+}
 </style>
 </head>
 <body>
 
-<!-- Blobs -->
 <div class="blob blob1"></div>
 <div class="blob blob2"></div>
 <div class="blob blob3"></div>
 <div class="blob blob4"></div>
-
-<div class="popup" id="popup"></div>
 
 <div class="container">
   <div class="login-box">
@@ -63,16 +290,19 @@ border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden;z-index
         <h2>Login</h2>
         <p>Access your dashboard</p>
       </div>
-      <form id="loginForm">
+      <form id="loginForm" novalidate>
         <div class="form-group">
-          <input type="email" name="email" id="email" placeholder=" " required>
+          <input type="email" name="email" id="email" placeholder=" " autocomplete="email">
           <label for="email">Email Address</label>
+          <div class="error-text" id="emailError"></div>
         </div>
         <div class="form-group">
-          <input type="password" name="password" id="password" placeholder=" " required>
+          <input type="password" name="password" id="password" placeholder=" " autocomplete="current-password">
           <label for="password">Password</label>
+          <div class="error-text" id="passwordError"></div>
           <span class="toggle-icon" onclick="toggleVisibility('password',this)">👁️</span>
         </div>
+
         <div style="display:flex;justify-content:center;margin-top:10px;">
           <button type="submit" class="submit-btn">Login</button>
         </div>
@@ -85,60 +315,161 @@ border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden;z-index
 </div>
 
 <script>
-function toggleVisibility(id,icon){
-  const input=document.getElementById(id);
-  input.type=input.type==="password"?"text":"password";
-  icon.textContent=input.type==="password"?"👁️":"👁️‍🗨️";
+/**
+ * Toggles the visibility of a password input field.
+ * Changes input type between 'password' and 'text' and updates the eye icon.
+ * @param {string} id - The ID of the password input field.
+ * @param {HTMLElement} icon - The icon element that was clicked.
+ */
+function toggleVisibility(id, icon) {
+  const input = document.getElementById(id);
+  input.type = input.type === "password" ? "text" : "password";
+  icon.textContent = input.type === "password" ? "👁️" : "👁️‍🗨️"; // Change icon based on visibility
 }
 
-document.getElementById("loginForm").addEventListener("submit",function(e){
-  e.preventDefault();
-  document.querySelectorAll(".error-box").forEach(el=>el.remove());
-  let valid=true;
-  const email=document.getElementById("email");
-  const password=document.getElementById("password");
+/**
+ * Shows error message with shake animation and red border.
+ * @param {HTMLElement} input - The input field to apply error styling to.
+ * @param {HTMLElement} errorElement - The error message element.
+ * @param {string} message - The error message to display.
+ */
+function showError(input, errorElement, message) {
+  // Add error styling to input
+  input.classList.add('error-border', 'shake');
+  
+  // Show error message
+  errorElement.textContent = message;
+  errorElement.classList.add('show');
+  
+  // Remove shake animation after completion
+  setTimeout(() => {
+    input.classList.remove('shake');
+  }, 300); // Consistent timing with registration form
+}
 
-  const gmailRegex=/^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-  if(!gmailRegex.test(email.value.trim())){
-    showError(email,"Enter a valid Gmail address");
-    valid=false;
-  }
-  if(password.value.trim()===""){
-    showError(password,"Password is required");
-    valid=false;
-  }
+/**
+ * Clears error state from input and error message.
+ * @param {HTMLElement} input - The input field to clear error styling from.
+ * @param {HTMLElement} errorElement - The error message element to hide.
+ */
+function clearError(input, errorElement) {
+  input.classList.remove('error-border', 'shake');
+  errorElement.classList.remove('show');
+  errorElement.textContent = '';
+}
 
-  if(!valid) return;
+/**
+ * Clears all errors from the form.
+ */
+function clearAllErrors() {
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const emailError = document.getElementById('emailError');
+  const passwordError = document.getElementById('passwordError');
+  
+  clearError(emailInput, emailError);
+  clearError(passwordInput, passwordError);
+}
 
-  const formData=new FormData(this);
-  fetch("login.php",{method:"POST",body:formData})
-  .then(res=>res.json())
-  .then(data=>{
-    if(data.success){
-      window.location.href="student_dashboard.php";
-    }else{
-      if(data.field==="email"){showError(email,data.message);}
-      else if(data.field==="password"){showError(password,data.message);}
-      else{showPopup(data.message);}
-    }
-  }).catch(()=>showPopup("Server error"));
+/**
+ * Validates email format (Gmail only).
+ * @param {string} email - Email to validate.
+ * @returns {boolean} - True if valid Gmail format.
+ */
+function isValidGmailFormat(email) {
+  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+  return gmailRegex.test(email);
+}
+
+// Block default browser validation tooltips to use custom error messages
+document.addEventListener('DOMContentLoaded', function() {
+  const inputs = document.querySelectorAll('input');
+  inputs.forEach(input => {
+    input.addEventListener('invalid', function(e) {
+      e.preventDefault(); // Prevent default browser validation tooltip
+    });
+  });
 });
 
-function showError(input,msg){
-  input.classList.add("shake");
-  setTimeout(()=>input.classList.remove("shake"),400);
-  const box=document.createElement("div");
-  box.className="error-box";
-  box.textContent=msg;
-  input.parentNode.appendChild(box);
-}
+// Add event listener for form submission
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+  e.preventDefault(); // Prevent default form submission
 
-function showPopup(msg){
-  const p=document.getElementById("popup");
-  p.textContent=msg;
-  p.style.display="block";
-  setTimeout(()=>p.style.display="none",2500);
-}
+  // Get input elements and their corresponding error display elements
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const emailError = document.getElementById("emailError");
+  const passwordError = document.getElementById("passwordError");
+
+  // Clear all previous errors
+  clearAllErrors();
+
+  let valid = true; // Flag to track overall form validity
+  const emailVal = emailInput.value.trim();
+  const passVal = passwordInput.value.trim();
+
+  // Client-side Validations
+  if (emailVal === "") {
+    showError(emailInput, emailError, "Email field is required");
+    valid = false;
+  } else if (!isValidGmailFormat(emailVal)) {
+    showError(emailInput, emailError, "Enter a valid Gmail address (e.g., example@gmail.com)");
+    valid = false;
+  }
+
+  if (passVal === "") {
+    showError(passwordInput, passwordError, "Password field is required");
+    valid = false;
+  }
+
+  // If client-side validation fails, stop execution
+  if (!valid) {
+    // Scroll to the first invalid field for better UX
+    const firstInvalidField = document.querySelector('.error-border');
+    if (firstInvalidField) {
+        firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
+
+  // If all client-side validations pass, proceed with Fetch API call
+  const formData = new FormData(this); // 'this' refers to the form element
+
+  fetch("login.php", {
+    method: "POST",
+    body: formData // Send the form data
+  })
+  .then(res => {
+    // Check if the response is OK (status 200-299)
+    if (!res.ok) {
+        // If not, throw an error to be caught by the .catch block
+        throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    return res.json(); // Parse the JSON response
+  })
+  .then(data => {
+    if (data.success) {
+      // If login is successful, redirect to internship dashboard
+      window.location.href = "internship1.html";
+    } else {
+      // Handle server-side validation errors
+      if (data.field === "email") {
+        showError(emailInput, emailError, data.message || "This email is not registered");
+      } else if (data.field === "password") {
+        showError(passwordInput, passwordError, data.message || "Incorrect password");
+      } else {
+        // Generic error if 'field' is not specified by backend
+        showError(passwordInput, passwordError, data.message || "An unknown error occurred. Please try again.");
+      }
+    }
+  })
+  .catch(error => {
+    // Catch network errors or errors thrown from the .then block
+    console.error('Login error:', error);
+    // Display a user-friendly error message for network issues (show on password field)
+    showError(passwordInput, passwordError, "Could not connect to the server. Please check your internet connection and try again.");
+  });
+});
 </script>
 </body>
 </html>
