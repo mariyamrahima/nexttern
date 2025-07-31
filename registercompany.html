@@ -25,8 +25,6 @@
       display: flex;
       gap: 30px;
     }
-    
-    /* Left Sidebar Progress */
     .progress-sidebar {
       width: 280px;
       background: rgba(255, 255, 255, 0.15);
@@ -39,12 +37,10 @@
       position: relative;
       animation: slideInLeft 0.8s ease-out;
     }
-    
     @keyframes slideInLeft {
       0% { transform: translateX(-50px); opacity: 0; }
       100% { transform: translateX(0); opacity: 1; }
     }
-    
     .progress-title {
       color: #035946;
       font-size: 18px;
@@ -52,11 +48,9 @@
       margin-bottom: 30px;
       text-align: center;
     }
-    
     .progress-steps {
       position: relative;
     }
-    
     .progress-line {
       position: absolute;
       left: 24px;
@@ -66,7 +60,6 @@
       background: #e0e0e0;
       z-index: 1;
     }
-    
     .progress-line-fill {
       position: absolute;
       left: 0;
@@ -76,7 +69,6 @@
       transition: height 0.5s ease;
       border-radius: 1px;
     }
-    
     .progress-step {
       display: flex;
       align-items: center;
@@ -84,7 +76,6 @@
       position: relative;
       z-index: 2;
     }
-    
     .step-circle {
       width: 50px;
       height: 50px;
@@ -99,46 +90,37 @@
       margin-right: 15px;
       border: 3px solid transparent;
     }
-    
     .step-circle.active {
       background: #035946;
       color: white;
       border-color: rgba(3, 89, 70, 0.3);
       box-shadow: 0 0 20px rgba(3, 89, 70, 0.3);
     }
-    
     .step-circle.completed {
       background: #035946;
       color: white;
     }
-    
     .step-circle.completed::after {
       content: '✓';
       font-size: 20px;
     }
-    
     .step-info {
       flex: 1;
     }
-    
     .step-title {
       font-weight: 600;
       color: #333;
       font-size: 16px;
       margin-bottom: 4px;
     }
-    
     .step-description {
       font-size: 13px;
       color: #666;
       line-height: 1.4;
     }
-    
     .step-circle.active + .step-info .step-title {
       color: #035946;
     }
-    
-    /* Main Form Area */
     .register-box {
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(14px);
@@ -157,10 +139,20 @@
       60% { transform: scale(1.05); opacity: 1; }
       100% { transform: scale(1); }
     }
+
+    /* Shake animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .shake {
+      animation: shake 0.4s ease-in-out;
+    }
+
     .form-header { text-align: center; margin-bottom: 30px; }
     .form-header h2 { color: #035946; font-size: 28px; margin-bottom: 8px; }
     .form-header p { color: #666; font-size: 14px; }
-    
     .form-step { display: none; }
     .form-step.active { display: block; }
     .form-grid {
@@ -179,36 +171,28 @@
       outline: none;
       transition: border-color 0.3s ease;
     }
-    
-    /* Updated select styling to match input behavior */
     .form-group select {
       color: #333;
       cursor: pointer;
     }
-    
     .form-group select option {
       color: #333;
       background: white;
       padding: 10px;
     }
-    
-    /* Hide default select appearance for placeholder effect */
     .form-group select:invalid {
       color: transparent;
     }
-    
     .form-group input.error,
     .form-group select.error {
       border-color: #ff6b6b !important;
       box-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
     }
-    
     .form-group input.success,
     .form-group select.success {
       border-color: #4caf50 !important;
       box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
     }
-    
     .form-group label {
       position: absolute;
       top: 50%; left: 16px;
@@ -220,8 +204,6 @@
       color: #666;
       pointer-events: none;
     }
-    
-    /* Updated label positioning for both inputs and selects */
     .form-group input:focus + label,
     .form-group input:not(:placeholder-shown) + label,
     .form-group select:focus + label,
@@ -231,7 +213,6 @@
       color: #035946;
       background: #f5fbfa;
     }
-    
     .error-message {
       color: #ff6b6b;
       font-size: 12px;
@@ -239,11 +220,9 @@
       display: none;
       margin-left: 16px;
     }
-    
     .error-message.show {
       display: block;
     }
-    
     .success-message {
       color: #4caf50;
       font-size: 12px;
@@ -251,11 +230,9 @@
       display: none;
       margin-left: 16px;
     }
-    
     .success-message.show {
       display: block;
     }
-    
     .button-row {
       display: flex;
       justify-content: space-between;
@@ -289,7 +266,6 @@
       50% { transform: translate(20px, -20px) scale(1.05); }
       100% { transform: translate(-20px, 20px) scale(1); }
     }
-    
     @media (max-width: 968px) {
       .container {
         flex-direction: column;
@@ -316,7 +292,6 @@
         display: none;
       }
     }
-    
     @media (max-width: 768px) {
       .form-grid {
         grid-template-columns: 1fr;
@@ -325,6 +300,25 @@
         flex-direction: column;
         gap: 10px;
       }
+    }
+
+    /* Toggle password eye icon */
+    .toggle-password {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      user-select: none;
+      font-size: 18px;
+      color: #666;
+      transition: color 0.3s ease;
+    }
+    .toggle-password.active {
+      color: #035946;
+    }
+    .form-group.password-group {
+      position: relative;
     }
   </style>
 </head>
@@ -341,7 +335,6 @@
       <div class="progress-line">
         <div class="progress-line-fill" id="progressFill"></div>
       </div>
-      
       <div class="progress-step">
         <div class="step-circle active" id="stepCircle1">1</div>
         <div class="step-info">
@@ -349,7 +342,6 @@
           <div class="step-description">Basic information about your company</div>
         </div>
       </div>
-      
       <div class="progress-step">
         <div class="step-circle" id="stepCircle2">2</div>
         <div class="step-info">
@@ -357,7 +349,6 @@
           <div class="step-description">Primary contact person details</div>
         </div>
       </div>
-      
       <div class="progress-step">
         <div class="step-circle" id="stepCircle3">3</div>
         <div class="step-info">
@@ -374,8 +365,8 @@
       <h2>Register Your Company</h2>
       <p>Join our internship portal and connect with talented students</p>
     </div>
-    
-    <form id="companyForm">
+    <form id="companyForm" novalidate>
+      <!-- Step 1 -->
       <div class="form-step active" id="step1">
         <div class="form-grid">
           <div class="form-group">
@@ -407,10 +398,23 @@
           <div class="form-group">
             <select id="year_established" required>
               <option value="" disabled selected></option>
-              <!-- Years will be populated by JS -->
+              <!-- Years populated by JS -->
             </select>
             <label for="year_established">Year of Establishment *</label>
             <div class="error-message" id="year_established_error"></div>
+          </div>
+          <!-- Password Fields with toggle -->
+          <div class="form-group password-group">
+            <input type="password" id="password" placeholder=" " required minlength="8" autocomplete="new-password">
+            <label for="password">Create Password *</label>
+            <span class="toggle-password" data-target="password" title="Show/Hide Password">&#128065;</span>
+            <div class="error-message" id="password_error"></div>
+          </div>
+          <div class="form-group password-group">
+            <input type="password" id="confirm_password" placeholder=" " required autocomplete="new-password">
+            <label for="confirm_password">Confirm Password *</label>
+            <span class="toggle-password" data-target="confirm_password" title="Show/Hide Password">&#128065;</span>
+            <div class="error-message" id="confirm_password_error"></div>
           </div>
         </div>
         <div class="button-row">
@@ -419,6 +423,7 @@
         </div>
       </div>
 
+      <!-- Step 2 -->
       <div class="form-step" id="step2">
         <div class="form-grid">
           <div class="form-group">
@@ -444,6 +449,7 @@
         </div>
       </div>
 
+      <!-- Step 3: Payment & Confirmation -->
       <div class="form-step" id="step3">
         <div class="form-grid">
           <div class="form-group">
@@ -453,6 +459,31 @@
           <div class="form-group">
             <input type="text" id="transaction_id" placeholder=" " required readonly>
             <label for="transaction_id">Transaction ID *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="payment_amount" placeholder=" " required readonly value="500.00">
+            <label for="payment_amount">Amount (INR) *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="payment_date" placeholder=" " required readonly>
+            <label for="payment_date">Payment Date *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="payment_status" placeholder=" " required readonly value="Pending">
+            <label for="payment_status">Payment Status *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="invoice_number" placeholder=" ">
+            <label for="invoice_number">Invoice Number</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="gst_number" placeholder=" ">
+            <label for="gst_number">GST Number / Tax ID</label>
+          </div>
+          <div class="form-group">
+            <input type="email" id="billing_email" placeholder=" " required>
+            <label for="billing_email">Billing Email *</label>
+            <div class="error-message" id="billing_email_error"></div>
           </div>
         </div>
         <div class="button-row">
@@ -465,116 +496,121 @@
 </div>
 <script>
   let currentStep = 1;
-  
+
   // Validation functions
   function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
-  
+
   function validatePhone(phone) {
-    // Remove all non-digit characters
     const cleanPhone = phone.replace(/\D/g, '');
-    
-    // Check if it's a valid length (10 digits for most countries, can be 10-15 digits internationally)
     if (cleanPhone.length < 10 || cleanPhone.length > 15) {
       return false;
     }
-    
-    // Additional patterns for common formats
     const phonePatterns = [
-      /^\d{10}$/, // 1234567890
-      /^\+\d{10,14}$/, // +1234567890 to +123456789012345
-      /^\d{3}-\d{3}-\d{4}$/, // 123-456-7890
-      /^\(\d{3}\)\s?\d{3}-\d{4}$/, // (123) 456-7890 or (123)456-7890
-      /^\d{3}\s\d{3}\s\d{4}$/ // 123 456 7890
+      /^\d{10}$/,
+      /^\+\d{10,14}$/,
+      /^\d{3}-\d{3}-\d{4}$/,
+      /^\(\d{3}\)\s?\d{3}-\d{4}$/,
+      /^\d{3}\s\d{3}\s\d{4}$/
     ];
-    
     return phonePatterns.some(pattern => pattern.test(phone)) || /^\d{10,15}$/.test(cleanPhone);
   }
-  
+
+  function validatePassword(password) {
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password);
+  }
+
+  // Show error with shake effect only on email field
   function showError(inputId, message) {
     const input = document.getElementById(inputId);
+    const formGroup = input.closest('.form-group');
     const errorElement = document.getElementById(inputId + '_error');
     const successElement = document.getElementById(inputId + '_success');
-    
+
     input.classList.remove('success');
     input.classList.add('error');
-    
+
     if (errorElement) {
       errorElement.textContent = message;
       errorElement.classList.add('show');
     }
-    
     if (successElement) {
       successElement.classList.remove('show');
     }
+
+    // Shake animation only for company_email
+    if(inputId === 'company_email' && formGroup){
+      formGroup.classList.remove('shake');
+      void formGroup.offsetWidth; // trigger reflow
+      formGroup.classList.add('shake');
+      formGroup.addEventListener('animationend', () => {
+        formGroup.classList.remove('shake');
+      }, { once: true });
+    }
   }
-  
+
   function showSuccess(inputId, message = '') {
     const input = document.getElementById(inputId);
     const errorElement = document.getElementById(inputId + '_error');
     const successElement = document.getElementById(inputId + '_success');
-    
+
     input.classList.remove('error');
     input.classList.add('success');
-    
+
     if (errorElement) {
       errorElement.classList.remove('show');
     }
-    
     if (successElement && message) {
       successElement.textContent = message;
       successElement.classList.add('show');
     }
   }
-  
+
   function clearValidation(inputId) {
     const input = document.getElementById(inputId);
     const errorElement = document.getElementById(inputId + '_error');
     const successElement = document.getElementById(inputId + '_success');
-    
+
     input.classList.remove('error', 'success');
-    
+
     if (errorElement) {
       errorElement.classList.remove('show');
     }
-    
     if (successElement) {
       successElement.classList.remove('show');
     }
   }
-  
-  // Real-time validation
+
+  // Real-time validation listeners
   document.getElementById('company_email').addEventListener('input', function() {
     const email = this.value.trim();
     if (email === '') {
       clearValidation('company_email');
       return;
     }
-    
     if (validateEmail(email)) {
       showSuccess('company_email', 'Valid email format');
     } else {
+      // No shake in real time - only on submit
       showError('company_email', 'Please enter a valid email address');
     }
   });
-  
+
   document.getElementById('contact_phone').addEventListener('input', function() {
     const phone = this.value.trim();
     if (phone === '') {
       clearValidation('contact_phone');
       return;
     }
-    
     if (validatePhone(phone)) {
       showSuccess('contact_phone', 'Valid phone number');
     } else {
       showError('contact_phone', 'Please enter a valid phone number (10 digits)');
     }
   });
-  
-  // Updated validation for select elements
+
   document.getElementById('industry_type').addEventListener('change', function() {
     const value = this.value;
     if (!value) {
@@ -583,7 +619,7 @@
       showSuccess('industry_type');
     }
   });
-  
+
   document.getElementById('year_established').addEventListener('change', function() {
     const year = this.value;
     if (!year) {
@@ -592,22 +628,103 @@
       showSuccess('year_established');
     }
   });
-  
+
+  document.getElementById('billing_email').addEventListener('input', function() {
+    const email = this.value.trim();
+    if (email === '') {
+      clearValidation('billing_email');
+      return;
+    }
+    if (validateEmail(email)) {
+      showSuccess('billing_email', '');
+    } else {
+      showError('billing_email', 'Please enter a valid billing email address');
+    }
+  });
+
+  // Password validation listeners
+  document.getElementById('password').addEventListener('input', function() {
+    const pwd = this.value;
+    if (!pwd) {
+      clearValidation('password');
+      return;
+    }
+    if (!validatePassword(pwd)) {
+      showError('password', 'Min 8 chars, upper+lower, number, special char');
+    } else {
+      showSuccess('password');
+    }
+    const cpwd = document.getElementById('confirm_password').value;
+    if (cpwd) {
+      if (pwd !== cpwd) {
+        showError('confirm_password', "Passwords do not match");
+      } else if (validatePassword(pwd)) {
+        showSuccess('confirm_password');
+      }
+    }
+  });
+
+  document.getElementById('confirm_password').addEventListener('input', function() {
+    const pwd = document.getElementById('password').value;
+    const cpwd = this.value;
+    if (!cpwd) {
+      clearValidation('confirm_password');
+      return;
+    }
+    if (pwd !== cpwd) {
+      showError('confirm_password', "Passwords do not match");
+    } else if (pwd && validatePassword(pwd)) {
+      showSuccess('confirm_password');
+    }
+  });
+
+  // Toggle password show/hide
+  document.querySelectorAll('.toggle-password').forEach(toggle => {
+    toggle.addEventListener('click', function() {
+      const targetId = this.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        this.classList.add('active');
+      } else {
+        input.type = 'password';
+        this.classList.remove('active');
+      }
+    });
+  });
+
+  // Step validation function
   function validateStep(stepNum) {
     let isValid = true;
     const currentStepElement = document.getElementById(`step${stepNum}`);
     const inputs = currentStepElement.querySelectorAll('input[required]:not([readonly]), select[required]');
-    
+
     inputs.forEach(input => {
       const value = input.value.trim();
       const inputId = input.id;
-      
+
+      // Special billing email check on step3
+      if(inputId === "billing_email" && stepNum === 3) {
+        if (!value) {
+          showError(inputId, 'This field is required');
+          isValid = false;
+          return;
+        } else if (!validateEmail(value)) {
+          showError(inputId, 'Please enter a valid billing email address');
+          isValid = false;
+          return;
+        } else {
+          showSuccess(inputId);
+          return;
+        }
+      }
+
       if (!value) {
         showError(inputId, 'This field is required');
         isValid = false;
         return;
       }
-      
+
       switch(inputId) {
         case 'company_email':
           if (!validateEmail(value)) {
@@ -657,88 +774,139 @@
             showSuccess(inputId);
           }
           break;
+        case 'password':
+          if (!validatePassword(value)) {
+            showError(inputId, 'Min 8 chars, upper+lower, number, special char');
+            isValid = false;
+          } else {
+            showSuccess(inputId);
+          }
+          break;
+        case 'confirm_password':
+          const pwd = document.getElementById('password').value;
+          if (value !== pwd || !validatePassword(pwd)) {
+            showError(inputId, "Passwords do not match");
+            isValid = false;
+          } else {
+            showSuccess(inputId);
+          }
+          break;
         default:
           showSuccess(inputId);
       }
     });
-    
+
     return isValid;
   }
-  
+
+  // Progress bar update
   function updateProgressLine() {
     const progressFill = document.getElementById('progressFill');
     let height = '0%';
-    
-    if (currentStep === 2) {
-      height = '50%';
-    } else if (currentStep === 3) {
-      height = '100%';
-    }
-    
+    if (currentStep === 2) height = '50%';
+    else if (currentStep === 3) height = '100%';
     progressFill.style.height = height;
   }
-  
+
+  // Update circle states
   function updateStepCircles(step) {
-    // Reset all circles
-    for (let i = 1; i <= 3; i++) {
+    for(let i=1; i<=3; i++) {
       const circle = document.getElementById(`stepCircle${i}`);
       circle.classList.remove('active', 'completed');
       circle.innerHTML = i;
     }
-    
-    // Mark completed steps
-    for (let i = 1; i < step; i++) {
+    for(let i=1; i<step; i++) {
       const circle = document.getElementById(`stepCircle${i}`);
       circle.classList.add('completed');
       circle.innerHTML = '';
     }
-    
-    // Mark current active step
     const currentCircle = document.getElementById(`stepCircle${step}`);
     currentCircle.classList.add('active');
   }
 
+  // Next step button
   function nextStep(current) {
-    // Validate current step before proceeding
     if (!validateStep(current)) {
-      // Focus on first invalid input
       const firstError = document.querySelector(`#step${current} .error`);
-      if (firstError) {
-        firstError.focus();
+      if (firstError) firstError.focus();
+
+      if(current === 1){
+        // Shake only email field if email is invalid in step 1 (from validateStep & showError)
+        // So no need to shake whole step here
+      }
+      else {
+        // Shake whole step container on error for other steps if you want
+        const currentStepElement = document.getElementById(`step${current}`);
+        currentStepElement.classList.remove('shake');
+        void currentStepElement.offsetWidth;
+        currentStepElement.classList.add('shake');
+        currentStepElement.addEventListener('animationend', () => {
+          currentStepElement.classList.remove('shake');
+        }, { once: true });
       }
       return;
     }
-    
-    // Proceed to next step
     document.getElementById(`step${current}`).classList.remove('active');
     document.getElementById(`step${current + 1}`).classList.add('active');
-    
     currentStep = current + 1;
     updateStepCircles(currentStep);
     updateProgressLine();
   }
-  
+
+  // Previous step button
   function prevStep(current) {
     document.getElementById(`step${current}`).classList.remove('active');
     document.getElementById(`step${current - 1}`).classList.add('active');
-    
     currentStep = current - 1;
     updateStepCircles(currentStep);
     updateProgressLine();
   }
-  
+
+  // Razorpay payment function
   function payNow() {
+    // Validate billing email before payment (step3)
+    if (!validateStep(3)) {
+      const firstError = document.querySelector("#step3 .error");
+      if (firstError) firstError.focus();
+
+      const currentStepElement = document.getElementById(`step3`);
+      currentStepElement.classList.remove('shake');
+      void currentStepElement.offsetWidth;
+      currentStepElement.classList.add('shake');
+      currentStepElement.addEventListener('animationend', () => {
+        currentStepElement.classList.remove('shake');
+      }, { once: true });
+      return;
+    }
+
+    document.getElementById("payment_status").value = "Pending";
+    document.getElementById("payment_date").value = "";
+
+    const amountInPaise = 50000; // INR 50000 paise = INR 500
+
     const options = {
-      key: 'YOUR_RAZORPAY_KEY',
-      amount: 50000, // INR 500 in paise
+      key: 'YOUR_RAZORPAY_KEY', // Replace with your Razorpay key
+      amount: amountInPaise,
       currency: 'INR',
       name: 'Nexttern',
       description: 'Company Registration Fee',
       handler: function (response) {
-        document.getElementById("transaction_id").value = response.razorpay_payment_id;
+        document.getElementById("transaction_id").value = response.razorpay_payment_id || '';
+        document.getElementById("payment_status").value = "Success";
+        document.getElementById("payment_date").value = new Date().toLocaleString();
+
+        // Generate invoice number
+        document.getElementById("invoice_number").value = "INV" + Date.now();
+
         alert('Payment successful! Registration completed.');
-        // You can submit the form or redirect here
+        // Optionally, submit the form or redirect here
         // document.getElementById("companyForm").submit();
+      },
+      modal: {
+        ondismiss: function() {
+          // If payment popup closed without payment:
+          document.getElementById("payment_status").value = "Failed / Cancelled";
+        }
       },
       prefill: {
         name: document.getElementById("contact_name").value,
@@ -750,8 +918,8 @@
     const rzp = new Razorpay(options);
     rzp.open();
   }
-  
-  // Populate year dropdown
+
+  // Populate Year dropdown on DOM ready
   document.addEventListener('DOMContentLoaded', function() {
     const yearSelect = document.getElementById('year_established');
     const currentYear = new Date().getFullYear();
