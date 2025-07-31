@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Login | Nexttern</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 /* Universal Box Sizing */
 * {
@@ -14,11 +15,17 @@
 
 /* Body Styles */
 body {
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Roboto', sans-serif; /* Changed font-family */
   background: #f5fbfa;
   height: 100vh;
   overflow: hidden; /* Prevents scrollbars due to blobs */
 }
+
+/* Heading Font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif; /* Added for headings */
+}
+
 
 /* Container for Centering */
 .container {
@@ -186,11 +193,19 @@ body {
   text-align: center;
   font-size: 14px;
   margin-top: 20px;
+  color: #555; /* Added this color for consistency with the previous output */
 }
 
 .footer-link a {
   color: #035946;
   text-decoration: none;
+  font-weight: 500; /* Added font-weight */
+  transition: color 0.3s ease; /* Added transition */
+}
+
+.footer-link a:hover {
+  color: #024437; /* Darker green on hover */
+  text-decoration: underline; /* Underline on hover */
 }
 
 /* Error Animations and Styling (Matched with Registration Form) */
@@ -281,7 +296,7 @@ body {
 <div class="container">
   <div class="login-box">
     <div class="login-left">
-      <img src="logo.png" alt="Nexttern Logo">
+      <img src="logo2.jpeg" alt="Nexttern Logo">
       <h2>Welcome to Nexttern</h2>
       <p>Where Talent Meets Opportunity</p>
     </div>

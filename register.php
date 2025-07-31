@@ -21,8 +21,17 @@ $last_name  = $conn->real_escape_string($_POST['last_name']);
 $email      = $conn->real_escape_string($_POST['email']);
 $contact    = $conn->real_escape_string($_POST['contact']);
 $gender     = $conn->real_escape_string($_POST['gender']);
-$dob        = !empty($_POST['dob']) ? date('Y-m-d', strtotime($_POST['dob'])) : null;
-$password   = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
+// ✅ Correct DOB parsing from "d/m/Y" to "Y-m-d"
+$raw_dob = $_POST['dob'];
+$date_obj = DateTime::createFromFormat('d/m/Y', $raw_dob);
+if (!$date_obj) {
+    echo json_encode(["success" => false, "message" => "Invalid date format"]);
+    exit;
+}
+$dob = $date_obj->format('Y-m-d');
+
+$password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
 $check = $conn->query("SELECT 1 FROM students WHERE email = '$email'");
 if ($check && $check->num_rows > 0) {
