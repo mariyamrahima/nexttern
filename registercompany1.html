@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Company Registration | Nexttern</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -25,8 +24,6 @@
       display: flex;
       gap: 30px;
     }
-    
-    /* Left Sidebar Progress */
     .progress-sidebar {
       width: 280px;
       background: rgba(255, 255, 255, 0.15);
@@ -39,12 +36,10 @@
       position: relative;
       animation: slideInLeft 0.8s ease-out;
     }
-    
     @keyframes slideInLeft {
       0% { transform: translateX(-50px); opacity: 0; }
       100% { transform: translateX(0); opacity: 1; }
     }
-    
     .progress-title {
       color: #035946;
       font-size: 18px;
@@ -52,11 +47,9 @@
       margin-bottom: 30px;
       text-align: center;
     }
-    
     .progress-steps {
       position: relative;
     }
-    
     .progress-line {
       position: absolute;
       left: 24px;
@@ -66,7 +59,6 @@
       background: #e0e0e0;
       z-index: 1;
     }
-    
     .progress-line-fill {
       position: absolute;
       left: 0;
@@ -76,7 +68,6 @@
       transition: height 0.5s ease;
       border-radius: 1px;
     }
-    
     .progress-step {
       display: flex;
       align-items: center;
@@ -84,7 +75,6 @@
       position: relative;
       z-index: 2;
     }
-    
     .step-circle {
       width: 50px;
       height: 50px;
@@ -99,46 +89,37 @@
       margin-right: 15px;
       border: 3px solid transparent;
     }
-    
     .step-circle.active {
       background: #035946;
       color: white;
       border-color: rgba(3, 89, 70, 0.3);
       box-shadow: 0 0 20px rgba(3, 89, 70, 0.3);
     }
-    
     .step-circle.completed {
       background: #035946;
       color: white;
     }
-    
     .step-circle.completed::after {
       content: '✓';
       font-size: 20px;
     }
-    
     .step-info {
       flex: 1;
     }
-    
     .step-title {
       font-weight: 600;
       color: #333;
       font-size: 16px;
       margin-bottom: 4px;
     }
-    
     .step-description {
       font-size: 13px;
       color: #666;
       line-height: 1.4;
     }
-    
     .step-circle.active + .step-info .step-title {
       color: #035946;
     }
-    
-    /* Main Form Area */
     .register-box {
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(14px);
@@ -157,10 +138,20 @@
       60% { transform: scale(1.05); opacity: 1; }
       100% { transform: scale(1); }
     }
+
+    /* Shake animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .shake {
+      animation: shake 0.4s ease-in-out;
+    }
+
     .form-header { text-align: center; margin-bottom: 30px; }
     .form-header h2 { color: #035946; font-size: 28px; margin-bottom: 8px; }
     .form-header p { color: #666; font-size: 14px; }
-    
     .form-step { display: none; }
     .form-step.active { display: block; }
     .form-grid {
@@ -177,6 +168,29 @@
       border: 1px solid #ccc; border-radius: 25px;
       background-color: #f7f7f7; font-size: 15px;
       outline: none;
+      transition: border-color 0.3s ease;
+    }
+    .form-group select {
+      color: #333;
+      cursor: pointer;
+    }
+    .form-group select option {
+      color: #333;
+      background: white;
+      padding: 10px;
+    }
+    .form-group select:invalid {
+      color: transparent;
+    }
+    .form-group input.error,
+    .form-group select.error {
+      border-color: #ff6b6b !important;
+      box-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
+    }
+    .form-group input.success,
+    .form-group select.success {
+      border-color: #4caf50 !important;
+      box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
     }
     .form-group label {
       position: absolute;
@@ -192,11 +206,31 @@
     .form-group input:focus + label,
     .form-group input:not(:placeholder-shown) + label,
     .form-group select:focus + label,
-    .form-group select:not(:placeholder-shown) + label {
+    .form-group select:valid + label {
       top: 0; left: 12px;
       font-size: 12px;
       color: #035946;
       background: #f5fbfa;
+    }
+    .error-message {
+      color: #ff6b6b;
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+      margin-left: 16px;
+    }
+    .error-message.show {
+      display: block;
+    }
+    .success-message {
+      color: #4caf50;
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+      margin-left: 16px;
+    }
+    .success-message.show {
+      display: block;
     }
     .button-row {
       display: flex;
@@ -216,6 +250,10 @@
     .submit-btn:hover {
       background-color: #024437;
     }
+    .submit-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
     .blob {
       position: absolute;
       border-radius: 50%;
@@ -231,7 +269,138 @@
       50% { transform: translate(20px, -20px) scale(1.05); }
       100% { transform: translate(-20px, 20px) scale(1); }
     }
-    
+
+    /* Payment Modal */
+    .payment-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+    .payment-modal.show {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .payment-content {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      animation: slideUp 0.3s ease;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .payment-header {
+      color: #035946;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .payment-amount {
+      font-size: 36px;
+      color: #035946;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .payment-details {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .payment-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .pay-btn {
+      background: #035946;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: 0.3s ease;
+    }
+    .pay-btn:hover {
+      background: #024437;
+    }
+    .cancel-btn {
+      background: #666;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: 0.3s ease;
+    }
+    .cancel-btn:hover {
+      background: #555;
+    }
+
+    /* Success Modal */
+    .success-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1001;
+      animation: fadeIn 0.3s ease;
+    }
+    .success-modal.show {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .success-content {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      animation: bounceIn 0.5s ease;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: #4caf50;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 40px;
+      color: white;
+    }
+    .success-title {
+      color: #4caf50;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
     @media (max-width: 968px) {
       .container {
         flex-direction: column;
@@ -258,7 +427,6 @@
         display: none;
       }
     }
-    
     @media (max-width: 768px) {
       .form-grid {
         grid-template-columns: 1fr;
@@ -267,6 +435,41 @@
         flex-direction: column;
         gap: 10px;
       }
+    }
+
+    /* Toggle password eye icon */
+    .toggle-password {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      user-select: none;
+      font-size: 18px;
+      color: #666;
+      transition: color 0.3s ease;
+    }
+    .toggle-password.active {
+      color: #035946;
+    }
+    .form-group.password-group {
+      position: relative;
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #035946;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -283,7 +486,6 @@
       <div class="progress-line">
         <div class="progress-line-fill" id="progressFill"></div>
       </div>
-      
       <div class="progress-step">
         <div class="step-circle active" id="stepCircle1">1</div>
         <div class="step-info">
@@ -291,7 +493,6 @@
           <div class="step-description">Basic information about your company</div>
         </div>
       </div>
-      
       <div class="progress-step">
         <div class="step-circle" id="stepCircle2">2</div>
         <div class="step-info">
@@ -299,7 +500,6 @@
           <div class="step-description">Primary contact person details</div>
         </div>
       </div>
-      
       <div class="progress-step">
         <div class="step-circle" id="stepCircle3">3</div>
         <div class="step-info">
@@ -316,25 +516,56 @@
       <h2>Register Your Company</h2>
       <p>Join our internship portal and connect with talented students</p>
     </div>
-    
-    <form id="companyForm">
+    <form id="companyForm" novalidate>
+      <!-- Step 1 -->
       <div class="form-step active" id="step1">
         <div class="form-grid">
           <div class="form-group">
             <input type="text" id="company_name" placeholder=" " required>
             <label for="company_name">Company Name *</label>
+            <div class="error-message" id="company_name_error"></div>
           </div>
           <div class="form-group">
-            <input type="text" id="industry_type" placeholder=" " required>
+            <select id="industry_type" required>
+              <option value="" disabled selected></option>
+              <option value="IT">IT</option>
+              <option value="Finance">Finance</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Education">Education</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Retail">Retail</option>
+              <option value="Consulting">Consulting</option>
+              <option value="Other">Other</option>
+            </select>
             <label for="industry_type">Industry Type *</label>
+            <div class="error-message" id="industry_type_error"></div>
           </div>
           <div class="form-group">
             <input type="email" id="company_email" placeholder=" " required>
             <label for="company_email">Company Email *</label>
+            <div class="error-message" id="company_email_error"></div>
+            <div class="success-message" id="company_email_success"></div>
           </div>
           <div class="form-group">
-            <input type="text" id="year_established" placeholder=" " required>
+            <select id="year_established" required>
+              <option value="" disabled selected></option>
+              <!-- Years populated by JS -->
+            </select>
             <label for="year_established">Year of Establishment *</label>
+            <div class="error-message" id="year_established_error"></div>
+          </div>
+          <!-- Password Fields with toggle -->
+          <div class="form-group password-group">
+            <input type="password" id="password" placeholder=" " required minlength="8" autocomplete="new-password">
+            <label for="password">Create Password *</label>
+            <span class="toggle-password" data-target="password" title="Show/Hide Password">&#128065;</span>
+            <div class="error-message" id="password_error"></div>
+          </div>
+          <div class="form-group password-group">
+            <input type="password" id="confirm_password" placeholder=" " required autocomplete="new-password">
+            <label for="confirm_password">Confirm Password *</label>
+            <span class="toggle-password" data-target="confirm_password" title="Show/Hide Password">&#128065;</span>
+            <div class="error-message" id="confirm_password_error"></div>
           </div>
         </div>
         <div class="button-row">
@@ -343,19 +574,24 @@
         </div>
       </div>
 
+      <!-- Step 2 -->
       <div class="form-step" id="step2">
         <div class="form-grid">
           <div class="form-group">
             <input type="text" id="contact_name" placeholder=" " required>
             <label for="contact_name">Contact Person *</label>
+            <div class="error-message" id="contact_name_error"></div>
           </div>
           <div class="form-group">
             <input type="text" id="designation" placeholder=" " required>
             <label for="designation">Designation *</label>
+            <div class="error-message" id="designation_error"></div>
           </div>
           <div class="form-group">
             <input type="tel" id="contact_phone" placeholder=" " required>
             <label for="contact_phone">Phone Number *</label>
+            <div class="error-message" id="contact_phone_error"></div>
+            <div class="success-message" id="contact_phone_success"></div>
           </div>
         </div>
         <div class="button-row">
@@ -364,15 +600,41 @@
         </div>
       </div>
 
+      <!-- Step 3: Payment & Confirmation -->
       <div class="form-step" id="step3">
         <div class="form-grid">
           <div class="form-group">
-            <input type="text" id="payment_type" placeholder=" " required readonly value="Razorpay">
+            <input type="text" id="payment_type" placeholder=" " required readonly value="Dummy Payment">
             <label for="payment_type">Payment Method *</label>
           </div>
           <div class="form-group">
             <input type="text" id="transaction_id" placeholder=" " required readonly>
             <label for="transaction_id">Transaction ID *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="payment_amount" placeholder=" " required readonly value="500.00">
+            <label for="payment_amount">Amount (INR) *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="payment_date" placeholder=" " required readonly>
+            <label for="payment_date">Payment Date *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="payment_status" placeholder=" " required readonly value="Pending">
+            <label for="payment_status">Payment Status *</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="invoice_number" placeholder=" ">
+            <label for="invoice_number">Invoice Number</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="gst_number" placeholder=" ">
+            <label for="gst_number">GST Number / Tax ID</label>
+          </div>
+          <div class="form-group">
+            <input type="email" id="billing_email" placeholder=" " required>
+            <label for="billing_email">Billing Email *</label>
+            <div class="error-message" id="billing_email_error"></div>
           </div>
         </div>
         <div class="button-row">
@@ -383,109 +645,526 @@
     </form>
   </div>
 </div>
+
+<!-- Payment Modal -->
+<div class="payment-modal" id="paymentModal">
+  <div class="payment-content">
+    <div class="payment-header">Complete Payment</div>
+    <div class="payment-amount">₹500.00</div>
+    <div class="payment-details">
+      <p><strong>Company:</strong> <span id="modal-company-name"></span></p>
+      <p><strong>Email:</strong> <span id="modal-company-email"></span></p>
+      <p><strong>Contact:</strong> <span id="modal-contact-name"></span></p>
+      <p><strong>Phone:</strong> <span id="modal-contact-phone"></span></p>
+    </div>
+    <div class="payment-buttons">
+      <button class="pay-btn" onclick="processPayment()">Pay Now</button>
+      <button class="cancel-btn" onclick="closePaymentModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="success-modal" id="successModal">
+  <div class="success-content">
+    <div class="success-icon">✓</div>
+    <div class="success-title">Registration Successful!</div>
+    <p>Your company has been registered successfully.</p>
+    <p><strong>Transaction ID:</strong> <span id="final-transaction-id"></span></p>
+    <div class="button-row" style="justify-content: center; margin-top: 30px;">
+      <button class="submit-btn" onclick="closeSuccessModal()">Continue</button>
+    </div>
+  </div>
+</div>
+
 <script>
   let currentStep = 1;
-  
-  function updateProgressLine() {
-    const progressFill = document.getElementById('progressFill');
-    let height = '0%';
-    
-    if (currentStep === 2) {
-      height = '50%';
-    } else if (currentStep === 3) {
-      height = '100%';
+  let registeredCompanies = JSON.parse(localStorage.getItem('registeredCompanies') || '[]');
+
+  // Initialize form
+  document.addEventListener('DOMContentLoaded', function() {
+    populateYears();
+    setupPasswordToggle();
+    initializePaymentFields();
+    updateProgressBar();
+  });
+
+  // Populate year dropdown
+  function populateYears() {
+    const yearSelect = document.getElementById('year_established');
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear; year >= 1900; year--) {
+      const option = document.createElement('option');
+      option.value = year;
+      option.textContent = year;
+      yearSelect.appendChild(option);
     }
-    
-    progressFill.style.height = height;
-  }
-  
-  function updateStepCircles(step) {
-    // Reset all circles
-    for (let i = 1; i <= 3; i++) {
-      const circle = document.getElementById(`stepCircle${i}`);
-      circle.classList.remove('active', 'completed');
-      circle.innerHTML = i;
-    }
-    
-    // Mark completed steps
-    for (let i = 1; i < step; i++) {
-      const circle = document.getElementById(`stepCircle${i}`);
-      circle.classList.add('completed');
-      circle.innerHTML = '';
-    }
-    
-    // Mark current active step
-    const currentCircle = document.getElementById(`stepCircle${step}`);
-    currentCircle.classList.add('active');
   }
 
-  function nextStep(current) {
-    // Validate current step before proceeding
-    const currentStepElement = document.getElementById(`step${current}`);
-    const requiredInputs = currentStepElement.querySelectorAll('input[required]');
-    let allValid = true;
-    
-    requiredInputs.forEach(input => {
-      if (!input.value.trim()) {
-        input.style.borderColor = '#ff6b6b';
-        allValid = false;
-      } else {
-        input.style.borderColor = '#ccc';
-      }
+  // Setup password toggle functionality
+  function setupPasswordToggle() {
+    document.querySelectorAll('.toggle-password').forEach(toggle => {
+      toggle.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
+        
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          this.innerHTML = '&#128064;'; // Closed eye
+          this.classList.add('active');
+        } else {
+          passwordInput.type = 'password';
+          this.innerHTML = '&#128065;'; // Open eye
+          this.classList.remove('active');
+        }
+      });
     });
+  }
+
+  // Initialize payment fields
+  function initializePaymentFields() {
+    const transactionId = 'TXN' + Date.now() + Math.floor(Math.random() * 1000);
+    const currentDate = new Date().toLocaleDateString('en-IN');
     
-    if (!allValid) {
-      alert('Please fill in all required fields.');
+    document.getElementById('transaction_id').value = transactionId;
+    document.getElementById('payment_date').value = currentDate;
+    document.getElementById('invoice_number').value = 'INV' + Date.now();
+  }
+
+  // Validation functions
+  function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  function validatePhone(phone) {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      return false;
+    }
+    const phonePatterns = [
+      /^\d{10}$/,
+      /^\+\d{10,14}$/,
+      /^\d{3}-\d{3}-\d{4}$/,
+      /^\(\d{3}\)\s?\d{3}-\d{4}$/,
+      /^\d{3}\s\d{3}\s\d{4}$/
+    ];
+    return phonePatterns.some(pattern => pattern.test(phone)) || /^\d{10,15}$/.test(cleanPhone);
+  }
+
+  function validatePassword(password) {
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password);
+  }
+
+  // Show error with shake effect only on email field
+  function showError(inputId, message) {
+    const input = document.getElementById(inputId);
+    const formGroup = input.closest('.form-group');
+    const errorElement = document.getElementById(inputId + '_error');
+    const successElement = document.getElementById(inputId + '_success');
+
+    input.classList.remove('success');
+    input.classList.add('error');
+
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.classList.add('show');
+    }
+    if (successElement) {
+      successElement.classList.remove('show');
+    }
+
+    // Shake animation only for company_email
+    if(inputId === 'company_email' && formGroup){
+      formGroup.classList.remove('shake');
+      void formGroup.offsetWidth; // trigger reflow
+      formGroup.classList.add('shake');
+      formGroup.addEventListener('animationend', () => {
+        formGroup.classList.remove('shake');
+      }, { once: true });
+    }
+  }
+
+  function showSuccess(inputId, message = '') {
+    const input = document.getElementById(inputId);
+    const errorElement = document.getElementById(inputId + '_error');
+    const successElement = document.getElementById(inputId + '_success');
+
+    input.classList.remove('error');
+    input.classList.add('success');
+
+    if (errorElement) {
+      errorElement.classList.remove('show');
+    }
+    if (successElement && message) {
+      successElement.textContent = message;
+      successElement.classList.add('show');
+    }
+  }
+
+  function clearValidation(inputId) {
+    const input = document.getElementById(inputId);
+    const errorElement = document.getElementById(inputId + '_error');
+    const successElement = document.getElementById(inputId + '_success');
+
+    input.classList.remove('error', 'success');
+    if (errorElement) {
+      errorElement.classList.remove('show');
+    }
+    if (successElement) {
+      successElement.classList.remove('show');
+    }
+  }
+
+  // Check if email already exists
+  function isEmailExists(email) {
+    return registeredCompanies.some(company => 
+      company.company_email.toLowerCase() === email.toLowerCase()
+    );
+  }
+
+  // Validate Step 1
+  function validateStep1() {
+    let isValid = true;
+    const fields = ['company_name', 'industry_type', 'company_email', 'year_established', 'password', 'confirm_password'];
+    
+    fields.forEach(field => clearValidation(field));
+    
+    // Company Name
+    const companyName = document.getElementById('company_name').value.trim();
+    if (!companyName) {
+      showError('company_name', 'Company name is required');
+      isValid = false;
+    } else if (companyName.length < 2) {
+      showError('company_name', 'Company name must be at least 2 characters');
+      isValid = false;
+    }
+    
+    // Industry Type
+    const industryType = document.getElementById('industry_type').value;
+    if (!industryType) {
+      showError('industry_type', 'Please select an industry type');
+      isValid = false;
+    }
+    
+    // Company Email
+    const companyEmail = document.getElementById('company_email').value.trim();
+    if (!companyEmail) {
+      showError('company_email', 'Company email is required');
+      isValid = false;
+    } else if (!validateEmail(companyEmail)) {
+      showError('company_email', 'Please enter a valid email address');
+      isValid = false;
+    } else if (isEmailExists(companyEmail)) {
+      showError('company_email', 'This email is already registered');
+      isValid = false;
+    } else {
+      showSuccess('company_email', 'Email is available');
+    }
+    
+    // Year Established
+    const yearEstablished = document.getElementById('year_established').value;
+    if (!yearEstablished) {
+      showError('year_established', 'Please select the year of establishment');
+      isValid = false;
+    }
+    
+    // Password
+    const password = document.getElementById('password').value;
+    if (!password) {
+      showError('password', 'Password is required');
+      isValid = false;
+    } else if (!validatePassword(password)) {
+      showError('password', 'Password must contain at least 8 characters, including uppercase, lowercase, number and special character');
+      isValid = false;
+    }
+    
+    // Confirm Password
+    const confirmPassword = document.getElementById('confirm_password').value;
+    if (!confirmPassword) {
+      showError('confirm_password', 'Please confirm your password');
+      isValid = false;
+    } else if (password !== confirmPassword) {
+      showError('confirm_password', 'Passwords do not match');
+      isValid = false;
+    }
+    
+    return isValid;
+  }
+
+  // Validate Step 2
+  function validateStep2() {
+    let isValid = true;
+    const fields = ['contact_name', 'designation', 'contact_phone'];
+    
+    fields.forEach(field => clearValidation(field));
+    
+    // Contact Name
+    const contactName = document.getElementById('contact_name').value.trim();
+    if (!contactName) {
+      showError('contact_name', 'Contact person name is required');
+      isValid = false;
+    } else if (contactName.length < 2) {
+      showError('contact_name', 'Name must be at least 2 characters');
+      isValid = false;
+    }
+    
+    // Designation
+    const designation = document.getElementById('designation').value.trim();
+    if (!designation) {
+      showError('designation', 'Designation is required');
+      isValid = false;
+    }
+    
+    // Contact Phone
+    const contactPhone = document.getElementById('contact_phone').value.trim();
+    if (!contactPhone) {
+      showError('contact_phone', 'Phone number is required');
+      isValid = false;
+    } else if (!validatePhone(contactPhone)) {
+      showError('contact_phone', 'Please enter a valid phone number');
+      isValid = false;
+    } else {
+      showSuccess('contact_phone', 'Valid phone number');
+    }
+    
+    return isValid;
+  }
+
+  // Validate Step 3
+  function validateStep3() {
+    let isValid = true;
+    
+    clearValidation('billing_email');
+    
+    // Billing Email
+    const billingEmail = document.getElementById('billing_email').value.trim();
+    if (!billingEmail) {
+      showError('billing_email', 'Billing email is required');
+      isValid = false;
+    } else if (!validateEmail(billingEmail)) {
+      showError('billing_email', 'Please enter a valid email address');
+      isValid = false;
+    }
+    
+    return isValid;
+  }
+
+  // Update progress bar
+  function updateProgressBar() {
+    const progressFill = document.getElementById('progressFill');
+    const progressPercentage = ((currentStep - 1) / 2) * 100;
+    progressFill.style.height = progressPercentage + '%';
+  }
+
+  // Update step circles
+  function updateStepCircles() {
+    for (let i = 1; i <= 3; i++) {
+      const circle = document.getElementById('stepCircle' + i);
+      circle.classList.remove('active', 'completed');
+      
+      if (i < currentStep) {
+        circle.classList.add('completed');
+        circle.textContent = '';
+      } else if (i === currentStep) {
+        circle.classList.add('active');
+        circle.textContent = i;
+      } else {
+        circle.textContent = i;
+      }
+    }
+  }
+
+  // Next step
+  function nextStep(step) {
+    let canProceed = false;
+    
+    if (step === 1) {
+      canProceed = validateStep1();
+    } else if (step === 2) {
+      canProceed = validateStep2();
+    }
+    
+    if (canProceed) {
+      document.getElementById('step' + step).classList.remove('active');
+      currentStep++;
+      document.getElementById('step' + currentStep).classList.add('active');
+      updateStepCircles();
+      updateProgressBar();
+      
+      // Auto-fill billing email if moving to step 3
+      if (currentStep === 3) {
+        const companyEmail = document.getElementById('company_email').value;
+        document.getElementById('billing_email').value = companyEmail;
+      }
+    }
+  }
+
+  // Previous step
+  function prevStep(step) {
+    document.getElementById('step' + step).classList.remove('active');
+    currentStep--;
+    document.getElementById('step' + currentStep).classList.add('active');
+    updateStepCircles();
+    updateProgressBar();
+  }
+
+  // Show payment modal
+  function payNow() {
+    if (!validateStep3()) {
       return;
     }
     
-    // Proceed to next step
-    document.getElementById(`step${current}`).classList.remove('active');
-    document.getElementById(`step${current + 1}`).classList.add('active');
+    // Populate modal with form data
+    document.getElementById('modal-company-name').textContent = document.getElementById('company_name').value;
+    document.getElementById('modal-company-email').textContent = document.getElementById('company_email').value;
+    document.getElementById('modal-contact-name').textContent = document.getElementById('contact_name').value;
+    document.getElementById('modal-contact-phone').textContent = document.getElementById('contact_phone').value;
     
-    currentStep = current + 1;
-    updateStepCircles(currentStep);
-    updateProgressLine();
+    // Show payment modal
+    document.getElementById('paymentModal').classList.add('show');
   }
-  
-  function prevStep(current) {
-    document.getElementById(`step${current}`).classList.remove('active');
-    document.getElementById(`step${current - 1}`).classList.add('active');
+
+  // Close payment modal
+  function closePaymentModal() {
+    document.getElementById('paymentModal').classList.remove('show');
+  }
+
+  // Process dummy payment
+  function processPayment() {
+    const payButton = document.querySelector('.pay-btn');
+    const originalText = payButton.innerHTML;
     
-    currentStep = current - 1;
-    updateStepCircles(currentStep);
-    updateProgressLine();
+    // Show loading state
+    payButton.innerHTML = '<span class="loading-spinner"></span>Processing...';
+    payButton.disabled = true;
+    
+    // Simulate payment processing
+    setTimeout(() => {
+      // Update payment status
+      document.getElementById('payment_status').value = 'Completed';
+      
+      // Save company data to database
+      saveCompanyData();
+      
+      // Close payment modal
+      closePaymentModal();
+      
+      // Show success modal
+      document.getElementById('final-transaction-id').textContent = document.getElementById('transaction_id').value;
+      document.getElementById('successModal').classList.add('show');
+      
+      // Reset button
+      payButton.innerHTML = originalText;
+      payButton.disabled = false;
+    }, 2000);
   }
-  
-  function payNow() {
-    const options = {
-      key: 'YOUR_RAZORPAY_KEY',
-      amount: 50000, // INR 500 in paise
-      currency: 'INR',
-      name: 'Nexttern',
-      description: 'Company Registration Fee',
-      handler: function (response) {
-        document.getElementById("transaction_id").value = response.razorpay_payment_id;
-        alert('Payment successful! Registration completed.');
-        // You can submit the form or redirect here
-        // document.getElementById("companyForm").submit();
-      },
-      prefill: {
-        name: document.getElementById("contact_name").value,
-        email: document.getElementById("company_email").value,
-        contact: document.getElementById("contact_phone").value
-      },
-      theme: { color: "#035946" }
+
+  // Save company data to localStorage (simulating database)
+  function saveCompanyData() {
+    const companyData = {
+      id: Date.now(),
+      company_name: document.getElementById('company_name').value,
+      industry_type: document.getElementById('industry_type').value,
+      company_email: document.getElementById('company_email').value,
+      year_established: document.getElementById('year_established').value,
+      password: document.getElementById('password').value, // In real app, hash this
+      contact_name: document.getElementById('contact_name').value,
+      designation: document.getElementById('designation').value,
+      contact_phone: document.getElementById('contact_phone').value,
+      payment_type: document.getElementById('payment_type').value,
+      transaction_id: document.getElementById('transaction_id').value,
+      payment_amount: document.getElementById('payment_amount').value,
+      payment_date: document.getElementById('payment_date').value,
+      payment_status: document.getElementById('payment_status').value,
+      invoice_number: document.getElementById('invoice_number').value,
+      gst_number: document.getElementById('gst_number').value,
+      billing_email: document.getElementById('billing_email').value,
+      registration_date: new Date().toISOString(),
+      status: 'active'
     };
-    const rzp = new Razorpay(options);
-    rzp.open();
+    
+    registeredCompanies.push(companyData);
+    localStorage.setItem('registeredCompanies', JSON.stringify(registeredCompanies));
+    
+    console.log('Company registered successfully:', companyData);
   }
-  
-  // Initialize progress on page load
+
+  // Close success modal
+  function closeSuccessModal() {
+    document.getElementById('successModal').classList.remove('show');
+    
+    // Reset form
+    document.getElementById('companyForm').reset();
+    currentStep = 1;
+    
+    // Reset steps
+    document.querySelectorAll('.form-step').forEach(step => step.classList.remove('active'));
+    document.getElementById('step1').classList.add('active');
+    
+    // Reset progress
+    updateStepCircles();
+    updateProgressBar();
+    
+    // Reinitialize payment fields
+    initializePaymentFields();
+    
+    alert('Registration completed! You can now login with your credentials.');
+  }
+
+  // Real-time validation
   document.addEventListener('DOMContentLoaded', function() {
-    updateStepCircles(1);
-    updateProgressLine();
+    // Email validation on blur
+    document.getElementById('company_email').addEventListener('blur', function() {
+      const email = this.value.trim();
+      if (email && validateEmail(email)) {
+        if (isEmailExists(email)) {
+          showError('company_email', 'This email is already registered');
+        } else {
+          showSuccess('company_email', 'Email is available');
+        }
+      }
+    });
+    
+    // Phone validation on blur
+    document.getElementById('contact_phone').addEventListener('blur', function() {
+      const phone = this.value.trim();
+      if (phone && validatePhone(phone)) {
+        showSuccess('contact_phone', 'Valid phone number');
+      } else if (phone) {
+        showError('contact_phone', 'Please enter a valid phone number');
+      }
+    });
+    
+    // Password confirmation validation
+    document.getElementById('confirm_password').addEventListener('input', function() {
+      const password = document.getElementById('password').value;
+      const confirmPassword = this.value;
+      
+      if (confirmPassword && password !== confirmPassword) {
+        showError('confirm_password', 'Passwords do not match');
+      } else if (confirmPassword && password === confirmPassword) {
+        clearValidation('confirm_password');
+      }
+    });
   });
+
+  // Function to view registered companies (for testing)
+  function viewRegisteredCompanies() {
+    console.log('Registered Companies:', registeredCompanies);
+    return registeredCompanies;
+  }
+
+  // Function to clear all data (for testing)
+  function clearAllData() {
+    localStorage.removeItem('registeredCompanies');
+    registeredCompanies = [];
+    console.log('All data cleared');
+  }
+
+  // Make functions available globally for testing
+  window.viewRegisteredCompanies = viewRegisteredCompanies;
+  window.clearAllData = clearAllData;
 </script>
 </body>
 </html>
