@@ -463,10 +463,10 @@ document.getElementById("loginForm").addEventListener("submit", function(e) {
     return res.json(); // Parse the JSON response
   })
   .then(data => {
-    if (data.success) {
-      // If login is successful, redirect to internship dashboard
-      window.location.href = "internship1.html";
-    } else {
+  if (data.success) {
+    // Redirect to the dashboard sent from the backend
+    window.location.href = data.redirect;
+  }  else {
       // Handle server-side validation errors
       if (data.field === "email") {
         showError(emailInput, emailError, data.message || "This email is not registered");
