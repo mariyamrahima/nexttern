@@ -11,7 +11,7 @@
         :root {
             --primary: #035946;
             --primary-light: #0a7058;
-            --primary-dark: #023d32;
+            --primary-dark: #023d32; /* Used for the sidebar's solid background */
             --secondary: #2e3944;
             --accent: #4ecdc4;
             --bg-light: #f5fbfa;
@@ -103,15 +103,13 @@
         /* Sidebar Styling */
         .sidebar {
             width: var(--sidebar-width);
-            background: rgba(3, 89, 70, 0.9);
-            backdrop-filter: blur(var(--blur));
-            border-right: 1px solid var(--glass-border);
+            background: var(--primary-dark); /* Solid dark background as requested */
             color: white;
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            box-shadow: var(--shadow-medium);
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1); /* Adjusted shadow for a cleaner look */
             position: relative;
             z-index: 10;
             transition: var(--transition);
@@ -124,15 +122,8 @@
         }
 
         .sidebar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
-            border-radius: inherit;
-            pointer-events: none;
+            /* Removed the glass overlay to make the solid background visible */
+            content: none;
         }
 
         .logo {
@@ -207,15 +198,15 @@
             font-weight: 500;
             padding: 0.8rem 1rem;
             border-radius: 12px;
-            transition: var(--transition);
+            transition: all 0.2s ease; /* Enhanced transition speed */
             display: flex;
             align-items: center;
             gap: 0.75rem;
             position: relative;
             overflow: hidden;
             margin: 2px 0;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: transparent; /* Changed to transparent */
+            border: 1px solid transparent; /* Changed to transparent */
         }
 
         .sidebar.collapsed .nav-link {
@@ -239,39 +230,37 @@
         }
 
         .nav-link::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
-            transition: var(--transition);
+            /* Removed the inner hover effect to use a simpler one */
+            content: none;
         }
 
-        .nav-link:hover,
-        .nav-link.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateX(4px);
-            box-shadow: 0 6px 25px rgba(0,0,0,0.2);
-            backdrop-filter: blur(var(--blur));
+        .nav-link:hover {
+            background: var(--primary-light); /* Hover background color */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* Added box shadow on hover */
+            transform: translateX(5px); /* Slide effect on hover */
+            color: white; /* Ensure text color stays white */
         }
 
-        .sidebar.collapsed .nav-link:hover,
-        .sidebar.collapsed .nav-link.active {
+        .sidebar.collapsed .nav-link:hover {
             transform: scale(1.08);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.2);
         }
 
         .nav-link:hover::before,
         .nav-link.active::before {
+            /* Removed this since we are using a different hover effect now */
             left: 0;
         }
 
         .nav-link.active {
-            background: var(--accent);
+            background: var(--accent); /* Active link background color */
             color: var(--primary-dark);
             box-shadow: 0 8px 32px rgba(78, 205, 196, 0.3);
+            transform: translateX(5px); /* Added slide effect for active link */
+        }
+
+        .sidebar.collapsed .nav-link.active {
+            transform: scale(1.08);
         }
 
         .nav-link:hover i,

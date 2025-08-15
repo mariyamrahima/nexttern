@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Login | Nexttern</title>
+<title>Company Login | Nexttern</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 /* Universal Box Sizing */
@@ -59,8 +59,18 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: scale(1); }
 }
 
-/* Left Section of Login Box (Branding) */
+/* Right Section of Login Box (Branding) - now on the right */
 .login-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+}
+
+/* Left Section of Login Box (Form) - now on the left */
+.login-right {
   flex: 1;
   background: rgba(3, 89, 70, 0.07);
   display: flex;
@@ -72,7 +82,7 @@ h1, h2, h3, h4, h5, h6 {
   padding: 20px;
 }
 
-.login-left img {
+.login-right img {
   width: 140px;
   height: 140px;
   object-fit: cover;
@@ -81,12 +91,12 @@ h1, h2, h3, h4, h5, h6 {
   border: 4px solid #03594655;
 }
 
-.login-left h2 {
+.login-right h2 {
   font-size: 26px;
   margin-bottom: 10px;
 }
 
-.login-left p {
+.login-right p {
   font-size: 14px;
   color: #2e3944;
   font-weight: 500;
@@ -125,16 +135,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .login-toggle-buttons button:hover:not(.active) {
     background-color: rgba(3, 89, 70, 0.1);
-}
-
-/* Right Section of Login Box (Form) */
-.login-right {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 40px;
-  position: relative;
 }
 
 /* Form Header */
@@ -312,7 +312,7 @@ h1, h2, h3, h4, h5, h6 {
   .submit-btn {
     width: 100%;
   }
-  .login-left {
+  .login-right {
     padding-top: 50px;
     padding-bottom: 20px;
   }
@@ -329,21 +329,9 @@ h1, h2, h3, h4, h5, h6 {
 <div class="container">
   <div class="login-box">
     <div class="login-left">
-      <img src="NEXTTERN.png" alt="Nexttern Logo">
-      <h2>Welcome to Nexttern</h2>
-      <p>Where Talent Meets Opportunity</p>
-
-      <!-- Buttons to toggle between login types -->
-      <div class="login-toggle-buttons">
-        <button id="studentBtn" class="active">Student</button>
-        <button id="companyBtn">Company</button>
-      </div>
-
-    </div>
-    <div class="login-right">
       <div class="form-header">
-        <h2>Student Login</h2>
-        <p>Access your student dashboard</p>
+        <h2>Company Login</h2>
+        <p>Access your company dashboard</p>
       </div>
       <form id="loginForm" novalidate>
         <div class="form-group">
@@ -362,9 +350,20 @@ h1, h2, h3, h4, h5, h6 {
           <button type="submit" class="submit-btn">Login</button>
         </div>
         <div class="footer-link">
-          <a href="registerstudent.html">Don't have an account? Register as a student</a>
+          <a href="registercompany1.html">Don't have an account? Register as a company</a>
         </div>
       </form>
+    </div>
+    <div class="login-right">
+      <img src="NEXTTERN.png" alt="Nexttern Logo">
+      <h2>Welcome to Nexttern</h2>
+      <p>Your Hiring Hub, One Click Away</p>
+      
+      <!-- Buttons to toggle between login types -->
+      <div class="login-toggle-buttons">
+        <button id="studentBtn">Student</button>
+        <button id="companyBtn" class="active">Company</button>
+      </div>
     </div>
   </div>
 </div>
@@ -479,7 +478,7 @@ document.getElementById("loginForm").addEventListener("submit", function(e) {
 
   const formData = new FormData(this);
 
-  fetch("login.php", {
+  fetch("companylogin.php", { // Changed to companylogin.php
     method: "POST",
     body: formData
   })
@@ -513,17 +512,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const studentBtn = document.getElementById('studentBtn');
     const companyBtn = document.getElementById('companyBtn');
 
-    // Add 'active' class to the student button by default
-    studentBtn.classList.add('active');
+    // Add 'active' class to the company button by default
+    companyBtn.classList.add('active');
 
-    // The student button doesn't need a click handler as it's the current page
-    
-    // Add a click listener for the company button
-    companyBtn.addEventListener('click', () => {
-        // Redirect to the company login page
-        window.location.href = 'logincompany.html';
+    // Add a click listener for the student button
+    studentBtn.addEventListener('click', () => {
+        // Redirect to the student login page
+        window.location.href = 'login.html'; 
     });
 });
 </script>
 </body>
 </html>
+
