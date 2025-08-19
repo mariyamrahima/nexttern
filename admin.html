@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Register New Admin</h2>
+
+        <form action="register_admin.php" method="POST" id="registerForm">
+            <div class="mb-6">
+                <label for="username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200"
+                    placeholder="Choose a username"
+                    required
+                />
+            </div>
+
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200"
+                    placeholder="Enter a strong password"
+                    required
+                />
+            </div>
+
+            <div class="mb-6">
+                <label for="confirm_password" class="block text-gray-700 text-sm font-semibold mb-2">Confirm Password</label>
+                <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200"
+                    placeholder="Confirm your password"
+                    required
+                />
+            </div>
+
+            <button
+                type="submit"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200 transform hover:scale-105"
+            >
+                Register Admin
+            </button>
+        </form>
+
+        <div id="message" class="mt-4 text-center text-sm"></div>
+    </div>
+
+    <script>
+        // Check password match before submit
+        document.getElementById('registerForm').addEventListener('submit', function(event) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const messageDiv = document.getElementById('message');
+
+            if (password !== confirmPassword) {
+                messageDiv.textContent = 'Passwords do not match!';
+                messageDiv.className = 'mt-4 text-center text-sm text-red-600 font-semibold';
+                event.preventDefault();
+            } else {
+                messageDiv.textContent = '';
+            }
+        });
+    </script>
+</body>
+</html>

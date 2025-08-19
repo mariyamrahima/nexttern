@@ -1,216 +1,1072 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>All Internships | Nexttern</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Internships | Nexttern</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     :root {
       --primary: #035946;
       --secondary: #2e3944;
       --bg-light: #f5fbfa;
     }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      margin: 0;
       font-family: 'Segoe UI', sans-serif;
       background: var(--bg-light);
       color: var(--secondary);
       overflow-x: hidden;
+      min-height: 100vh;
+      position: relative;
     }
 
-    /* BLOBS */
     .blob {
-      position: absolute;
+      position: fixed;
       border-radius: 50%;
       z-index: 0;
-      filter: blur(50px);
-      opacity: 0.5;
-      animation: moveBlob 20s infinite alternate ease-in-out;
+      animation: moveBlob 18s infinite alternate ease-in-out;
     }
-    .blob1 { width: 450px; height: 450px; background: rgba(3, 89, 70, 0.15); top: -100px; right: -150px; }
-    .blob2 { width: 300px; height: 300px; background: rgba(3, 89, 70, 0.2); top: 150px; right: -80px; animation-delay: 2s; }
-    .blob3 { width: 250px; height: 250px; background: rgba(3, 89, 70, 0.12); bottom: 50px; left: -100px; animation-delay: 4s; }
+    .blob1 { width: 500px; height: 500px; background: #035946; top: -80px; right: -120px; opacity: 0.2; }
+    .blob2 { width: 350px; height: 350px; background: #047d5f; top: 250px; left: -90px; animation-delay: 2s; opacity: 0.18; }
+    .blob3 { width: 300px; height: 300px; background: #05a77c; bottom: 220px; right: 40px; animation-delay: 4s; opacity: 0.15; }
+    .blob4 { width: 220px; height: 220px; background: #04c793; bottom: -50px; left: 100px; animation-delay: 1s; opacity: 0.12; }
+
     @keyframes moveBlob {
-      0% { transform: translate(0,0) scale(1); }
-      50% { transform: translate(20px,-20px) scale(1.05); }
-      100% { transform: translate(-20px,20px) scale(1); }
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(25px, -25px) scale(1.05); }
+      100% { transform: translate(-25px, 25px) scale(1); }
     }
 
-    /* HEADER */
-    .header {
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(12px);
-      color: var(--primary);
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .navbar {
       position: sticky;
       top: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 40px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       z-index: 10;
-      border-bottom: 1px solid rgba(255,255,255,0.3);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    .header h1 {
-      font-size: 24px;
-      margin: 0;
-      font-weight: bold;
-      color: var(--primary);
+
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
-    .header .nav-links a {
+
+    .navbar-left img {
+      height: 50px;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      flex: 1;
+      max-width: 600px;
+      margin: 0 30px;
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.7);
+      border-radius: 25px;
+      padding: 6px 15px;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .search-bar input {
+      border: none;
+      outline: none;
+      flex: 1;
+      font-size: 16px;
+      padding: 6px;
+      background: transparent;
       color: var(--secondary);
-      margin-left: 20px;
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.3s;
-    }
-    .header .nav-links a:hover {
-      color: var(--primary);
     }
 
-    .container {
-      padding: 40px 20px;
-      max-width: 1200px;
-      margin: auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    .section-title {
-      font-size: 28px;
-      color: var(--primary);
-      text-align: center;
-      margin-bottom: 30px;
-      font-weight: bold;
-    }
-
-    /* GRID */
-    .internship-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    .nav-right {
+      display: flex;
+      align-items: center;
       gap: 25px;
     }
 
-    /* CARD */
-    .card {
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(12px);
-      border-radius: 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    .nav-right i {
+      font-size: 22px;
+      color: var(--secondary);
+      cursor: pointer;
+      transition: color 0.3s ease, transform 0.2s ease;
+    }
+
+    .nav-right i:hover { color: var(--primary); transform: scale(1.1); }
+
+    .nav-profile img {
+      height: 38px;
+      width: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      padding: 50px 20px;
+      min-height: 200vh;
+    }
+
+    .filter-card {
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(20px);
       border: 1px solid rgba(255,255,255,0.3);
-    }
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      border-radius: 20px;
+      padding: 25px 35px;
+      margin: 0 auto 40px auto;
+      width: 95%;
+      max-width: 1200px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
 
-    .card h3 {
-      font-size: 20px;
-      color: var(--secondary);
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 25px;
+    }
+
+    .filter-item label {
+      display: block;
+      font-weight: 600;
       margin-bottom: 8px;
-    }
-    .card .company {
-      font-weight: bold;
-      color: var(--primary);
-      margin-bottom: 5px;
-    }
-    .card .location, .card .stipend, .card .duration {
-      font-size: 14px;
       color: var(--secondary);
-      margin-bottom: 6px;
-    }
-    .card p.description {
-      font-size: 14px;
-      color: #333;
-      margin: 10px 0;
-      height: 60px;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    /* BUTTONS */
-    .card .actions {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 15px;
+    .filter-item input,
+    .filter-item select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 10px;
+      font-size: 15px;
+      background: rgba(255,255,255,0.9);
+      color: var(--secondary);
     }
-    .btn {
-      padding: 8px 14px;
-      font-size: 14px;
+
+    .apply-btn {
+      background-color: var(--primary);
+      color: white;
       border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .apply-btn:hover { background-color: #048465; }
+
+   /* Modern Creative Carousel */
+.ad-carousel-container {
+  position: relative;
+  width: 95%;
+  max-width: 1200px;
+  margin: 40px auto;
+  height: 400px;
+  border-radius: 25px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(3, 89, 70, 0.15);
+}
+
+.carousel-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+}
+
+.carousel-slide {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.slide-1 {
+  background: linear-gradient(135deg, #2e3944 0%, #035946 50%, #047d5f 100%);}
+.slide-3 {
+  background: linear-gradient(135deg, #2e3944 0%, #035946 50%, #047d5f 100%);}
+
+.slide-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 80px;
+  position: relative;
+  z-index: 2;
+}
+
+.slide-text {
+  flex: 15;
+  color: white;
+  max-width: 700px;
+}
+
+.slide-text h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInText 0.8s ease forwards;
+  animation-delay: 0.3s;
+}
+
+.slide-text p {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInText 0.8s ease forwards;
+  animation-delay: 0.5s;
+}
+
+.slide-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 30px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInText 0.8s ease forwards;
+  animation-delay: 0.7s;
+}
+
+.slide-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.slide-visual {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+}
+
+.slide-illustration {
+  width: 350px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateX(50px) scale(0.9);
+  animation: slideInImage 1s ease forwards;
+  animation-delay: 0.4s;
+}
+
+.slide-illustration svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+}
+
+#illustration1 svg {
+  animation: rocketFloat 3s ease-in-out infinite;
+}
+
+#illustration3 svg {
+  animation: networkPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes rocketFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes networkPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.9; }
+}
+
+.floating-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: float 6s ease-in-out infinite;
+}
+
+.circle-1 { width: 80px; height: 80px; top: 20%; left: 10%; animation-delay: 0s; }
+.circle-3 { width: 40px; height: 40px; top: 30%; right: 30%; animation-delay: 4s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
+}
+
+@keyframes slideInText {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInImage {
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+.carousel-controls {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  z-index: 2;
+}
+.control-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+.control-dot.active {
+  background: white;
+  transform: scale(1.2);
+}
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  z-index: 3;
+}
+.carousel-nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(1.1);
+}
+.nav-prev { left: 20px; }
+.nav-next { right: 20px; }
+    /* Recommended Company Cards */
+    .recommend-container {
+      width: 95%;
+      max-width: 1200px;
+      margin: 60px auto 0 auto;
+    }
+
+    .recommend-container h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #035946;
+      margin-bottom: 20px;
+    }
+
+    .company-card {
+      display: flex;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+      padding: 20px;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 15px;
+      
+    }
+
+    .company-card img {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .company-info {
+      flex: 1;
+    }
+
+    .company-info h3 {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #2e3944;
+    }
+
+    .company-info p {
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .company-card button {
+      background: #035946;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .company-card button:hover {
+      background: #024636;
+    }
+
+    .company-card-v2 {
+      display: flex;
+      flex-wrap: wrap;
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      margin-bottom: 40px;
+      gap: 30px;
+      align-items: flex-start;
+      
+    }
+    
+
+    .left-card {
+      flex: 1 1 350px;
+      max-width: 600px;
+    }
+
+    .badge {
+      background: #e6f4f1;
+      color: #035946;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    .left-card h3 {
+      font-size: 1.4rem;
+      color: #2e3944;
+      margin-bottom: 10px;
+    }
+
+    .left-card .skills,
+    .left-card .desc,
+    .left-card .rating {
+      margin: 6px 0;
+      font-size: 0.95rem;
+      color: #444;
+    }
+
+    .actions {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .enroll-btn {
+      background: #035946;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      font-size: 0.95rem;
       border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.2s, background 0.3s;
     }
-    .btn:hover { transform: scale(1.05); }
-    .btn-save {
-      background-color: var(--primary);
-      color: #fff;
+
+    .enroll-btn:hover {
+      background: #024636;
     }
-    .btn-save:hover { background-color: #024437; }
-    .btn-details {
-      background-color: var(--secondary);
-      color: #fff;
+
+    .link {
+      font-size: 0.9rem;
+      color: #035946;
+      text-decoration: underline;
+      cursor: pointer;
     }
-    .btn-details:hover { background-color: #1e2933; }
+
+    .right-carousel {
+      flex: 1 1 300px;
+      overflow-x: auto;
+      display: flex;
+      align-items: center;
+    }
+
+    .carousel-scroll {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 5px 0;
+    }
+
+    .mini-card {
+      min-width: 140px;
+      max-width: 160px;
+      background: #f8f8f8;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .mini-card img {
+      width: 100%;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .mini-card p {
+      font-size: 0.85rem;
+      color: #333;
+    }
 
     @media (max-width: 768px) {
-      .section-title { font-size: 24px; }
-      .header h1 { font-size: 20px; }
+      .slide-content {
+        flex-direction: column;
+        text-align: center;
+        padding: 40px 30px;
+        gap: 30px;
+      }
+
+      .slide-text h2 {
+        font-size: 2rem;
+      }
+
+      .slide-text p {
+        font-size: 1rem;
+      }
+
+      .slide-illustration {
+        width: 280px;
+        height: 220px;
+      }
+
+      .carousel-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+
+      .nav-prev { left: 15px; }
+      .nav-next { right: 15px; }
     }
+
+  .courses-section {
+  padding: 60px 40px;
+  background: transparent;
+  text-align: center;
+}
+
+.courses-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 30px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.course-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-6px);
+}
+
+.course-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.course-content {
+  padding: 1rem;
+}
+
+.course-title {
+  font-weight: 600;
+  color: #035946;
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.course-instructor {
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 0.5rem;
+}
+
+.course-rating i {
+  font-size: 0.8rem;
+  margin-right: 2px;
+}
+
+.badges {
+  margin-top: 0.6rem;
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-right: 6px;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.badge.premium {
+  background-color: #d4edda;
+  color: #256029;
+}
+
+.badge.bestseller {
+  background-color: #ffeeba;
+  color: #8a6d3b;
+}
   </style>
 </head>
 <body>
+
   <!-- BLOBS -->
   <div class="blob blob1"></div>
   <div class="blob blob2"></div>
   <div class="blob blob3"></div>
+  <div class="blob blob4"></div>
 
-  <!-- HEADER -->
-  <div class="header">
-    <h1>Nexttern Internships</h1>
-    <div class="nav-links">
-      <a href="student_dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
-      <a href="saved_internships.php"><i class="fas fa-bookmark"></i> Saved</a>
-      <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  <!-- NAVBAR -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <img src="logo.png" alt="Nexttern Logo">
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="What do you want to learn?">
+    </div>
+    <div class="nav-right">
+      <i class="fas fa-bell"></i>
+      <div class="nav-profile" onclick="window.location.href='student_dashboard.php'">
+        <img src="uploads/default-avatar.png" alt="Profile">
+      </div>
     </div>
   </div>
 
   <!-- CONTENT -->
-  <div class="container">
-    <div class="section-title">Available Internships</div>
-    <div class="internship-grid">
-    <!--  <?php
-      if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-          echo '<div class="card">
-                  <h3>'.htmlspecialchars($row['title']).'</h3>
-                  <div class="company">'.htmlspecialchars($row['company']).'</div>
-                  <div class="location"><i class="fas fa-map-marker-alt"></i> '.htmlspecialchars($row['location']).'</div>
-                  <div class="stipend"><i class="fas fa-coins"></i> Stipend: '.htmlspecialchars($row['stipend']).'</div>
-                  <div class="duration"><i class="fas fa-clock"></i> Duration: '.htmlspecialchars($row['duration']).'</div>
-                  <p class="description">'.htmlspecialchars(substr($row['description'], 0, 100)).'...</p>
-                  <div class="actions">
-                    <form action="save_internship.php" method="post" style="margin:0;">
-                      <input type="hidden" name="internship_id" value="'.$row['id'].'">
-                      <button type="submit" class="btn btn-save"><i class="fas fa-bookmark"></i> Save</button>
-                    </form>
-                    <a href="internship_details.php?id='.$row['id'].'" class="btn btn-details"><i class="fas fa-info-circle"></i> Details</a>
-                  </div>
-                </div>';
-        }
-      } else {
-        echo "<p>No internships available at the moment.</p>";
-      }
-      ?>-->
+  <div class="content">
+
+    <!-- FILTER CARD -->
+    <div class="filter-card">
+      <div class="filter-grid">
+        <div class="filter-item">
+          <label for="search">Keyword</label>
+          <input type="text" id="search" placeholder="e.g., Web Developer, Data Analyst">
+        </div>
+        <div class="filter-item">
+          <label for="mode">Mode</label>
+          <input type="text" id="location" placeholder="e.g., Remote, Bengaluru">
+        </div>
+        <div class="filter-item">
+          <label for="category">Category</label>
+          <select id="category">
+            <option value="">All Categories</option>
+            <option value="tech">Technology</option>
+            <option value="business">Business</option>
+            <option value="design">Design</option>
+            <option value="data">Data Science</option>
+            <option value="marketing">Marketing</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>&nbsp;</label>
+          <button class="apply-btn"><i class="fas fa-filter"></i> Apply Filters</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODERN CREATIVE AD CAROUSEL -->
+    <div class="ad-carousel-container">
+      <div class="carousel-track" id="carouselTrack">
+        <!-- Slide 1 -->
+        <div class="carousel-slide slide-1">
+          <div class="floating-elements">
+            <div class="floating-circle circle-1"></div>
+            <div class="floating-circle circle-2"></div>
+            <div class="floating-circle circle-3"></div>
+          </div>
+          <div class="slide-content">
+            <div class="slide-text">
+              <h2>🚀 Launch Your Career</h2>
+              <p>Join top companies and kickstart your professional journey with premium internships designed for success.</p>
+              <a href="#" class="slide-btn">
+                <i class="fas fa-rocket"></i>
+                Explore Opportunities
+              </a>
+            </div>
+            <div class="slide-visual">
+              <div class="slide-illustration" id="illustration1">
+                <svg width="350" height="280" viewBox="0 0 350 280" fill="none">
+                  <!-- Rocket Launch Illustration -->
+                  <circle cx="175" cy="140" r="120" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                  <path d="M175 60 L185 90 L215 85 L190 110 L200 140 L175 125 L150 140 L160 110 L135 85 L165 90 Z" fill="white" opacity="0.9"/>
+                  <rect x="170" y="125" width="10" height="40" fill="white" opacity="0.8"/>
+                  <path d="M160 165 L175 180 L190 165" fill="none" stroke="white" stroke-width="3" opacity="0.7"/>
+                  <circle cx="200" cy="80" r="8" fill="rgba(255,255,255,0.6)"/>
+                  <circle cx="220" cy="120" r="6" fill="rgba(255,255,255,0.4)"/>
+                  <circle cx="130" cy="100" r="5" fill="rgba(255,255,255,0.5)"/>
+                  <path d="M175 180 Q175 200 175 220" stroke="rgba(255,255,255,0.6)" stroke-width="2" fill="none"/>
+                  <circle cx="175" cy="225" r="3" fill="rgba(255,255,255,0.6)"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="carousel-slide slide-3">
+          <div class="floating-elements">
+            <div class="floating-circle circle-1"></div>
+            <div class="floating-circle circle-2"></div>
+            <div class="floating-circle circle-3"></div>
+          </div>
+          <div class="slide-content">
+            <div class="slide-text">
+              <h2>🌟 Premium Network</h2>
+              <p>Connect with leading professionals and build relationships that will accelerate your career growth.</p>
+              <a href="#" class="slide-btn">
+                <i class="fas fa-network-wired"></i>
+                Join Network
+              </a>
+            </div>
+            <div class="slide-visual">
+              <div class="slide-illustration" id="illustration3">
+                <svg width="350" height="280" viewBox="0 0 350 280" fill="none">
+                  <!-- Network/Connection Illustration -->
+                  <circle cx="175" cy="140" r="20" fill="white" opacity="0.9"/>
+                  <circle cx="120" cy="100" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="230" cy="100" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="100" cy="180" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="250" cy="180" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="175" cy="220" r="15" fill="rgba(255,255,255,0.8)"/>
+                  
+                  <line x1="175" y1="140" x2="120" y2="100" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="230" y2="100" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="100" y2="180" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="250" y2="180" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="175" y2="220" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="120" y1="100" x2="100" y2="180" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+                  <line x1="230" y1="100" x2="250" y2="180" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+                  
+                  <circle cx="175" cy="140" r="8" fill="#035946" opacity="0.8"/>
+                  <circle cx="120" cy="100" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="230" cy="100" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="100" cy="180" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="250" cy="180" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="175" cy="220" r="6" fill="#035946" opacity="0.6"/>
+                  
+                  <circle cx="80" cy="60" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                  <circle cx="270" cy="60" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                  <circle cx="60" cy="240" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                  <circle cx="290" cy="240" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Controls -->
+      <button class="carousel-nav nav-prev" onclick="prevSlide()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button class="carousel-nav nav-next" onclick="nextSlide()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+
+      <!-- Dot Controls -->
+      <div class="carousel-controls">
+        <div class="control-dot active" onclick="goToSlide(0)"></div>
+        <div class="control-dot" onclick="goToSlide(1)"></div>
+      </div>
+    </div>
+
+    <!-- Recommended Companies -->
+    <div class="recommend-container">
+      <h2>Top Recommended Companies</h2>
+
+      <div class="company-card-v2">
+        <div class="left-card">
+          <div class="badge">Top Recommendation</div>
+          <h3>Google Summer of Code</h3>
+          <p class="skills">
+            <strong>Skills:</strong> Git, Open Source, Python
+          </p>
+          <p class="desc">Remote • Summer Internship • Open Source Projects</p>
+          <p class="rating">⭐ 4.8 (12,304 reviews)</p>
+          <div class="actions">
+            <button class="enroll-btn">Apply Now</button>
+            <a href="#" class="link">Why is this recommended?</a>
+          </div>
+        </div>
+
+        <div class="right-carousel">
+          <div class="carousel-scroll">
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>GitHub Projects Guide</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Open Source with Python</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Linux Tools & Terminal</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="company-card-v2">
+        <div class="left-card">
+          <div class="badge">Top Recommendation</div>
+          <h3>Microsoft Learn Student Ambassadors</h3>
+          <p class="skills">
+            <strong>Skills:</strong> Azure, .NET, Leadership
+          </p>
+          <p class="desc">Hybrid • Leadership Program • Community Building</p>
+          <p class="rating">⭐ 4.7 (8,921 reviews)</p>
+          <div class="actions">
+            <button class="enroll-btn">Apply Now</button>
+            <a href="#" class="link">Why is this recommended?</a>
+          </div>
+        </div>
+
+        <div class="right-carousel">
+          <div class="carousel-scroll">
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Azure Fundamentals</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Community Leadership</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Event Management</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="company-card-v2">
+        <div class="left-card">
+          <div class="badge">Top Recommendation</div>
+          <h3>Amazon Web Services Internship</h3>
+          <p class="skills">
+            <strong>Skills:</strong> Cloud Computing, AWS, DevOps
+          </p>
+          <p class="desc">Remote • 3-Month Program • Cloud Infrastructure</p>
+          <p class="rating">⭐ 4.9 (15,673 reviews)</p>
+          <div class="actions">
+            <button class="enroll-btn">Apply Now</button>
+            <a href="#" class="link">Why is this recommended?</a>
+          </div>
+        </div>
+
+        <div class="right-carousel">
+          <div class="carousel-scroll">
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>AWS Fundamentals</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>DevOps Pipeline</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Cloud Architecture</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+<section class="courses-offered-section">
+  <h2 class="section-title">Courses Offered</h2>
+
+  <!-- Area of Study: IT -->
+  <div class="course-area">
+    <h3 class="area-heading">Information Technology</h3>
+    <div class="course-grid">
+      <div class="course-card">
+        <div class="course-header">
+          <img src="images/code-icon.svg" alt="Course Icon">
+          <h4>Web Development Bootcamp</h4>
+        </div>
+        <p>Learn HTML, CSS, JS, and backend development in one course.</p>
+        <button>View Details</button>
+      </div>
+      <div class="course-card">
+        <div class="course-header">
+          <img src="images/data-icon.svg" alt="Course Icon">
+          <h4>Data Analytics Basics</h4>
+        </div>
+        <p>Understand data visualization and analytics tools.</p>
+        <button>View Details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Area of Study: Marketing -->
+  <div class="course-area">
+    <h3 class="area-heading">Marketing & Business</h3>
+    <div class="course-grid">
+      <div class="course-card">
+        <div class="course-header">
+          <img src="images/marketing-icon.svg" alt="Course Icon">
+          <h4>Digital Marketing 101</h4>
+        </div>
+        <p>Explore SEO, social media, and email marketing strategies.</p>
+        <button>View Details</button>
+      </div>
+      <div class="course-card">
+        <div class="course-header">
+          <img src="images/startup-icon.svg" alt="Course Icon">
+          <h4>Startup Fundamentals</h4>
+        </div>
+        <p>Learn how to plan, pitch, and launch your startup idea.</p>
+        <button>View Details</button>
+      </div>
+    </div>
+  </div>
+</section>
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.carousel-slide');
+    const dots = document.querySelectorAll('.control-dot');
+    const track = document.getElementById('carouselTrack');
+
+    function updateCarousel() {
+      track.style.transform = `translateX(-${currentSlide * 100}%)`;
+      
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === currentSlide);
+      });
+
+      // Reset animations for current slide
+      const currentSlideElement = slides[currentSlide];
+      const textElements = currentSlideElement.querySelectorAll('.slide-text h2, .slide-text p, .slide-btn');
+      const illustrationElement = currentSlideElement.querySelector('.slide-illustration');
+      
+      textElements.forEach(el => {
+        el.style.animation = 'none';
+        el.offsetHeight; // Trigger reflow
+        el.style.animation = null;
+      });
+      
+      if (illustrationElement) {
+        illustrationElement.style.animation = 'none';
+        illustrationElement.offsetHeight; // Trigger reflow
+        illustrationElement.style.animation = null;
+      }
+    }
+
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % slides.length;
+      updateCarousel();
+    }
+
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+      updateCarousel();
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateCarousel();
+    }
+
+    // Auto-advance carousel
+    setInterval(nextSlide, 6000);
+
+    // Initialize carousel
+    updateCarousel();
+    
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target); // optional: run only once
+      }
+    });
+  }, {
+    threshold: 0.2
+  });
+
+  document.querySelectorAll('.company-card').forEach(card => {
+    observer.observe(card);
+  });
+// Observe course cards too
+document.querySelectorAll('.course-card').forEach(card => {
+  observer.observe(card);
+});
+  </script>
 </body>
 </html>

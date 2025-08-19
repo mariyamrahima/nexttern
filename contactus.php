@@ -68,6 +68,31 @@ if ($conn->connect_error) {
     }
 }
 
+// Updated static FAQ data array
+$faqs = [
+    [
+        'question' => 'How do I register as a student and apply for an internship on your platform?',
+        'answer' => 'You can register as a student by filling out our online form. Once registered, you can browse available internships and apply directly through the platform by following the steps on each 
+        internship listing.'
+    ],
+    [
+        'question' => 'What is the eligibility criteria for internships?',
+        'answer' => 'Our internships are open to all students who are currently enrolled in a university or college program. Specific requirements may vary by internship, so be sure to check the individual internship listings for details.'
+    ],
+    [
+        'question' => 'Are the internships paid?',
+        'answer' => 'Many of the internships on our platform are unpaid, but this can vary. The payment terms will be clearly stated in the internship details provided by the company.'
+    ],
+    [
+        'question' => 'What kind of support does Nexttern provide?',
+        'answer' => 'We offer a range of support services, including resume tips, and a dedicated support team to help with any questions you may have during your internship search or for the companies posting internships.'
+    ],
+    [
+        'question' => 'How can a company partner with Nexttern to post an internship?',
+        'answer' => 'Interested companies can register via our online form. Your registration will then be reviewed and approved by our team. After approval, you can select and pay for either a premium or normal account, which will allow you to post and manage your internship listings.'
+    ]
+];
+
 // Close the database connection
 if ($conn) {
     $conn->close();
@@ -157,7 +182,7 @@ if ($conn) {
     }
 
     /* Container for contact information blocks */
-    .contact-info-display, .contact-form {
+    .contact-info-display, .contact-form, .faq-section {
         background: var(--glass-bg);
         backdrop-filter: blur(var(--blur));
         border: 1px solid var(--glass-border);
@@ -169,7 +194,7 @@ if ($conn) {
     }
 
     /* Styling for individual contact items */
-    .contact-item {
+    .contact-item, .faq-item {
         margin-bottom: 2rem;
         padding: 1.5rem;
         background: rgba(255, 255, 255, 0.3);
@@ -184,6 +209,59 @@ if ($conn) {
         background: rgba(255, 255, 255, 0.5);
         transform: translateY(-4px);
         box-shadow: 0 6px 20px rgba(3, 89, 70, 0.1);
+    }
+
+    /* Specific styling for FAQ items */
+    .faq-item {
+        cursor: pointer;
+        border-left: 4px solid var(--primary);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .faq-item:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(3, 89, 70, 0.1);
+    }
+    
+    .faq-question {
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.1rem;
+        color: var(--primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+    }
+
+    .faq-question i {
+        color: var(--primary);
+        transition: transform 0.3s ease;
+    }
+
+    .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        padding-top: 0;
+        transition: max-height 0.4s ease, padding-top 0.4s ease;
+    }
+    
+    .faq-item.active .faq-answer {
+        max-height: 200px; /* Adjust as needed */
+        padding-top: 1rem;
+    }
+
+    .faq-item.active .faq-question i {
+        transform: rotate(180deg);
+    }
+
+    .faq-answer p {
+        color: var(--secondary);
+        font-size: 0.95rem;
+        line-height: 1.6;
     }
     
     .contact-item h4 {
@@ -417,8 +495,44 @@ if ($conn) {
                 </button>
             </form>
         </section>
+
+        <!-- New FAQ Section -->
+        <section class="faq-section">
+            <h3 style="font-family: 'Poppins', sans-serif; font-size: 1.5rem; color: var(--primary); margin-bottom: 2rem; text-align: center;">Frequently Asked Questions</h3>
+            
+            <?php foreach ($faqs as $faq): ?>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span><?= htmlspecialchars($faq['question']) ?></span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p><?= htmlspecialchars($faq['answer']) ?></p>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </section>
+
     <?php endif; ?>
 </div>
+
+<script>
+    document.querySelectorAll('.faq-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const isActive = item.classList.contains('active');
+            
+            // Close all other active items
+            document.querySelectorAll('.faq-item.active').forEach(activeItem => {
+                if (activeItem !== item) {
+                    activeItem.classList.remove('active');
+                }
+            });
+            
+            // Toggle the clicked item
+            item.classList.toggle('active');
+        });
+    });
+</script>
 
 </body>
 </html>

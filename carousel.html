@@ -1,0 +1,2242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Internships | Nexttern</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary: #035946;
+      --secondary: #2e3944;
+      --bg-light: #f5fbfa;
+      --accent: #047d5f;
+      --success: #28a745;
+      --warning: #ffc107;
+      --info: #17a2b8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-light);
+      color: var(--secondary);
+      overflow-x: hidden;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      z-index: 0;
+      animation: moveBlob 18s infinite alternate ease-in-out;
+    }
+    .blob1 { width: 500px; height: 500px; background: #035946; top: -80px; right: -120px; opacity: 0.2; }
+    .blob2 { width: 350px; height: 350px; background: #047d5f; top: 250px; left: -90px; animation-delay: 2s; opacity: 0.18; }
+    .blob3 { width: 300px; height: 300px; background: #05a77c; bottom: 220px; right: 40px; animation-delay: 4s; opacity: 0.15; }
+    .blob4 { width: 220px; height: 220px; background: #04c793; bottom: -50px; left: 100px; animation-delay: 1s; opacity: 0.12; }
+
+    @keyframes moveBlob {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(25px, -25px) scale(1.05); }
+      100% { transform: translate(-25px, 25px) scale(1); }
+    }
+
+    .navbar {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 40px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .navbar-left img {
+      height: 50px;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      flex: 1;
+      max-width: 600px;
+      margin: 0 30px;
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.7);
+      border-radius: 25px;
+      padding: 6px 15px;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .search-bar input {
+      border: none;
+      outline: none;
+      flex: 1;
+      font-size: 16px;
+      padding: 6px;
+      background: transparent;
+      color: var(--secondary);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .nav-right i {
+      font-size: 22px;
+      color: var(--secondary);
+      cursor: pointer;
+      transition: color 0.3s ease, transform 0.2s ease;
+    }
+
+    .nav-right i:hover { color: var(--primary); transform: scale(1.1); }
+
+    .nav-profile img {
+      height: 38px;
+      width: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      padding: 50px 20px;
+      min-height: 200vh;
+    }
+
+    .filter-card {
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 25px 35px;
+      margin: 0 auto 40px auto;
+      width: 95%;
+      max-width: 1200px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 25px;
+    }
+
+    .filter-item label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--secondary);
+    }
+
+    .filter-item input,
+    .filter-item select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 10px;
+      font-size: 15px;
+      background: rgba(255,255,255,0.9);
+      color: var(--secondary);
+    }
+
+    .apply-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .apply-btn:hover { background-color: #048465; }
+
+   /* Modern Creative Carousel */
+.ad-carousel-container {
+  position: relative;
+  width: 95%;
+  max-width: 1200px;
+  margin: 40px auto;
+  height: 400px;
+  border-radius: 25px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(3, 89, 70, 0.15);
+}
+
+.carousel-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+}
+
+.carousel-slide {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.slide-1 {
+  background: linear-gradient(135deg, #2e3944 0%, #035946 50%, #047d5f 100%);}
+.slide-3 {
+  background: linear-gradient(135deg, #2e3944 0%, #035946 50%, #047d5f 100%);}
+
+.slide-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 80px;
+  position: relative;
+  z-index: 2;
+}
+
+.slide-text {
+  flex: 15;
+  color: white;
+  max-width: 700px;
+}
+
+.slide-text h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInText 0.8s ease forwards;
+  animation-delay: 0.3s;
+}
+
+.slide-text p {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInText 0.8s ease forwards;
+  animation-delay: 0.5s;
+}
+
+.slide-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 30px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideInText 0.8s ease forwards;
+  animation-delay: 0.7s;
+}
+
+.slide-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.slide-visual {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+}
+
+.slide-illustration {
+  width: 350px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateX(50px) scale(0.9);
+  animation: slideInImage 1s ease forwards;
+  animation-delay: 0.4s;
+}
+
+.slide-illustration svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+}
+
+#illustration1 svg {
+  animation: rocketFloat 3s ease-in-out infinite;
+}
+
+#illustration3 svg {
+  animation: networkPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes rocketFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes networkPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.9; }
+}
+
+.floating-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: float 6s ease-in-out infinite;
+}
+
+.circle-1 { width: 80px; height: 80px; top: 20%; left: 10%; animation-delay: 0s; }
+.circle-3 { width: 40px; height: 40px; top: 30%; right: 30%; animation-delay: 4s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
+}
+
+@keyframes slideInText {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInImage {
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+.carousel-controls {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  z-index: 2;
+}
+.control-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+.control-dot.active {
+  background: white;
+  transform: scale(1.2);
+}
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  z-index: 3;
+}
+.carousel-nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(1.1);
+}
+.nav-prev { left: 20px; }
+.nav-next { right: 20px; }
+
+    /* Recommended Company Cards */
+    .recommend-container {
+      width: 95%;
+      max-width: 1200px;
+      margin: 60px auto 0 auto;
+    }
+
+    .recommend-container h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #035946;
+      margin-bottom: 20px;
+    }
+
+    .company-card-v2 {
+      display: flex;
+      flex-wrap: wrap;
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      margin-bottom: 40px;
+      gap: 30px;
+      align-items: flex-start;
+    }
+
+    .left-card {
+      flex: 1 1 350px;
+      max-width: 600px;
+    }
+
+    .badge {
+      background: #e6f4f1;
+      color: #035946;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    .left-card h3 {
+      font-size: 1.4rem;
+      color: #2e3944;
+      margin-bottom: 10px;
+    }
+
+    .left-card .skills,
+    .left-card .desc,
+    .left-card .rating {
+      margin: 6px 0;
+      font-size: 0.95rem;
+      color: #444;
+    }
+
+    .actions {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .enroll-btn {
+      background: #035946;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .enroll-btn:hover {
+      background: #024636;
+    }
+
+    .link {
+      font-size: 0.9rem;
+      color: #035946;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .right-carousel {
+      flex: 1 1 300px;
+      overflow-x: auto;
+      display: flex;
+      align-items: center;
+    }
+
+    .carousel-scroll {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 5px 0;
+    }
+
+    .mini-card {
+      min-width: 140px;
+      max-width: 160px;
+      background: #f8f8f8;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .mini-card img {
+      width: 100%;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .mini-card p {
+      font-size: 0.85rem;
+      color: #333;
+    }
+
+    /* Course Sections */
+    .courses-section {
+      width: 95%;
+      max-width: 1400px;
+      margin: 80px auto;
+      padding: 0 20px;
+    }
+
+    .section-title {
+      font-size: 2.8rem;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 60px;
+      font-weight: 700;
+      position: relative;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 2px;
+    }
+
+    .course-category {
+      margin-bottom: 70px;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 35px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid rgba(3, 89, 70, 0.1);
+    }
+
+    .category-title {
+      font-size: 2rem;
+      color: var(--secondary);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .category-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+    }
+
+    .view-all-btn {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 12px 24px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .view-all-btn:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .course-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .course-card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+
+    .course-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 40px rgba(3, 89, 70, 0.12);
+    }
+
+    .course-image {
+      position: relative;
+      height: 200px;
+      overflow: hidden;
+    }
+
+    .course-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .course-card:hover .course-image img {
+      transform: scale(1.05);
+    }
+
+    .company-logo {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 50px;
+      height: 50px;
+      background: white;
+      border-radius: 50%;
+      padding: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .company-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .course-duration {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .course-content {
+      padding: 25px;
+    }
+
+    .course-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--secondary);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .company-name {
+      font-size: 1rem;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .course-description {
+      font-size: 0.95rem;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 15px;
+    }
+
+    .course-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      font-size: 0.9rem;
+    }
+
+    .course-type {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 4px 10px;
+      border-radius: 15px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .course-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #ff9800;
+    }
+
+    .skills-required {
+      margin-bottom: 20px;
+    }
+
+    .skills-label {
+      font-size: 0.9rem;
+      color: var(--secondary);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .skills-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .skill-tag {
+      background: #f0f8f5;
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .course-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .apply-now-btn {
+      flex: 1;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 25px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.95rem;
+    }
+
+    .apply-now-btn:hover {
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(3, 89, 70, 0.3);
+    }
+
+    .bookmark-btn {
+      background: #f8f9fa;
+      border: 2px solid #e9ecef;
+      color: #6c757d;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .bookmark-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      transform: scale(1.1);
+    }
+
+    .bookmark-btn.bookmarked {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Special Course Types */
+    .course-card.premium {
+      border: 2px solid #ffd700;
+      position: relative;
+    }
+
+    .course-card.premium::before {
+      content: '👑 Premium';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
+      color: #333;
+      padding: 6px 15px;
+      border-radius: 20px 0 20px 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      z-index: 2;
+    }
+
+    .course-card.featured {
+      border: 2px solid var(--success);
+      position: relative;
+    }
+
+    .course-card.featured::before {
+      content: '⭐ Featured';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      background: linear-gradient(135deg, var(--success), #20c997);
+      color: white;
+      padding: 6px 15px;
+      border-radius: 20px 0 20px 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      z-index: 2;
+    }
+
+    .course-card.trending {
+      border: 2px solid #ff4757;
+      position: relative;
+    }
+
+    .course-card.trending::before {
+      content: '🔥 Trending';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      background: linear-gradient(135deg, #ff4757, #ff6b7d);
+      color: white;
+      padding: 6px 15px;
+      border-radius: 20px 0 20px 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      z-index: 2;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .slide-content {
+        flex-direction: column;
+        text-align: center;
+        padding: 40px 30px;
+        gap: 30px;
+      }
+
+      .slide-text h2 {
+        font-size: 2rem;
+      }
+
+      .slide-text p {
+        font-size: 1rem;
+      }
+
+      .slide-illustration {
+        width: 280px;
+        height: 220px;
+      }
+
+      .carousel-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+
+      .nav-prev { left: 15px; }
+      .nav-next { right: 15px; }
+
+      .course-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .category-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+      }
+
+      .section-title {
+        font-size: 2.2rem;
+      }
+
+      .category-title {
+        font-size: 1.6rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .course-content {
+        padding: 20px;
+      }
+
+      .course-footer {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .apply-now-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BLOBS -->
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+  <div class="blob blob4"></div>
+
+  <!-- NAVBAR -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <img src="logo.png" alt="Nexttern Logo">
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="What do you want to learn?">
+    </div>
+    <div class="nav-right">
+      <i class="fas fa-bell"></i>
+      <div class="nav-profile" onclick="window.location.href='student_dashboard.php'">
+        <img src="uploads/default-avatar.png" alt="Profile">
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- FILTER CARD -->
+    <div class="filter-card">
+      <div class="filter-grid">
+        <div class="filter-item">
+          <label for="search">Keyword</label>
+          <input type="text" id="search" placeholder="e.g., Web Developer, Data Analyst">
+        </div>
+        <div class="filter-item">
+          <label for="mode">Mode</label>
+          <input type="text" id="location" placeholder="e.g., Remote, Bengaluru">
+        </div>
+        <div class="filter-item">
+          <label for="category">Category</label>
+          <select id="category">
+            <option value="">All Categories</option>
+            <option value="tech">Technology</option>
+            <option value="business">Business</option>
+            <option value="design">Design</option>
+            <option value="data">Data Science</option>
+            <option value="marketing">Marketing</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>&nbsp;</label>
+          <button class="apply-btn"><i class="fas fa-filter"></i> Apply Filters</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODERN CREATIVE AD CAROUSEL -->
+    <div class="ad-carousel-container">
+      <div class="carousel-track" id="carouselTrack">
+        <!-- Slide 1 -->
+        <div class="carousel-slide slide-1">
+          <div class="floating-elements">
+            <div class="floating-circle circle-1"></div>
+            <div class="floating-circle circle-3"></div>
+          </div>
+          <div class="slide-content">
+            <div class="slide-text">
+              <h2>🚀 Launch Your Career</h2>
+              <p>Join top companies and kickstart your professional journey with premium internships designed for success.</p>
+              <a href="#" class="slide-btn">
+                <i class="fas fa-rocket"></i>
+                Explore Opportunities
+              </a>
+            </div>
+            <div class="slide-visual">
+              <div class="slide-illustration" id="illustration1">
+                <svg width="350" height="280" viewBox="0 0 350 280" fill="none">
+                  <!-- Rocket Launch Illustration -->
+                  <circle cx="175" cy="140" r="120" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                  <path d="M175 60 L185 90 L215 85 L190 110 L200 140 L175 125 L150 140 L160 110 L135 85 L165 90 Z" fill="white" opacity="0.9"/>
+                  <rect x="170" y="125" width="10" height="40" fill="white" opacity="0.8"/>
+                  <path d="M160 165 L175 180 L190 165" fill="none" stroke="white" stroke-width="3" opacity="0.7"/>
+                  <circle cx="200" cy="80" r="8" fill="rgba(255,255,255,0.6)"/>
+                  <circle cx="220" cy="120" r="6" fill="rgba(255,255,255,0.4)"/>
+                  <circle cx="130" cy="100" r="5" fill="rgba(255,255,255,0.5)"/>
+                  <path d="M175 180 Q175 200 175 220" stroke="rgba(255,255,255,0.6)" stroke-width="2" fill="none"/>
+                  <circle cx="175" cy="225" r="3" fill="rgba(255,255,255,0.6)"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="carousel-slide slide-3">
+          <div class="floating-elements">
+            <div class="floating-circle circle-1"></div>
+            <div class="floating-circle circle-3"></div>
+          </div>
+          <div class="slide-content">
+            <div class="slide-text">
+              <h2>🌟 Premium Network</h2>
+              <p>Connect with leading professionals and build relationships that will accelerate your career growth.</p>
+              <a href="#" class="slide-btn">
+                <i class="fas fa-network-wired"></i>
+                Join Network
+              </a>
+            </div>
+            <div class="slide-visual">
+              <div class="slide-illustration" id="illustration3">
+                <svg width="350" height="280" viewBox="0 0 350 280" fill="none">
+                  <!-- Network/Connection Illustration -->
+                  <circle cx="175" cy="140" r="20" fill="white" opacity="0.9"/>
+                  <circle cx="120" cy="100" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="230" cy="100" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="100" cy="180" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="250" cy="180" r="15" fill="rgba(255,255,255,0.8)"/>
+                  <circle cx="175" cy="220" r="15" fill="rgba(255,255,255,0.8)"/>
+                  
+                  <line x1="175" y1="140" x2="120" y2="100" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="230" y2="100" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="100" y2="180" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="250" y2="180" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="175" y1="140" x2="175" y2="220" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+                  <line x1="120" y1="100" x2="100" y2="180" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+                  <line x1="230" y1="100" x2="250" y2="180" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+                  
+                  <circle cx="175" cy="140" r="8" fill="#035946" opacity="0.8"/>
+                  <circle cx="120" cy="100" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="230" cy="100" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="100" cy="180" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="250" cy="180" r="6" fill="#035946" opacity="0.6"/>
+                  <circle cx="175" cy="220" r="6" fill="#035946" opacity="0.6"/>
+                  
+                  <circle cx="80" cy="60" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                  <circle cx="270" cy="60" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                  <circle cx="60" cy="240" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                  <circle cx="290" cy="240" r="8" fill="rgba(255,255,255,0.4)" opacity="0.7"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Controls -->
+      <button class="carousel-nav nav-prev" onclick="prevSlide()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button class="carousel-nav nav-next" onclick="nextSlide()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+
+      <!-- Dot Controls -->
+      <div class="carousel-controls">
+        <div class="control-dot active" onclick="goToSlide(0)"></div>
+        <div class="control-dot" onclick="goToSlide(1)"></div>
+      </div>
+    </div>
+
+    <!-- Recommended Companies -->
+    <div class="recommend-container">
+      <h2>Top Recommended Companies</h2>
+
+      <div class="company-card-v2">
+        <div class="left-card">
+          <div class="badge">Top Recommendation</div>
+          <h3>Google Summer of Code</h3>
+          <p class="skills">
+            <strong>Skills:</strong> Git, Open Source, Python
+          </p>
+          <p class="desc">Remote • Summer Internship • Open Source Projects</p>
+          <p class="rating">⭐ 4.8 (12,304 reviews)</p>
+          <div class="actions">
+            <button class="enroll-btn">Apply Now</button>
+            <a href="#" class="link">Why is this recommended?</a>
+          </div>
+        </div>
+
+        <div class="right-carousel">
+          <div class="carousel-scroll">
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>GitHub Projects Guide</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Open Source with Python</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Linux Tools & Terminal</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="company-card-v2">
+        <div class="left-card">
+          <div class="badge">Top Recommendation</div>
+          <h3>Microsoft Learn Student Ambassadors</h3>
+          <p class="skills">
+            <strong>Skills:</strong> Azure, .NET, Leadership
+          </p>
+          <p class="desc">Hybrid • Leadership Program • Community Building</p>
+          <p class="rating">⭐ 4.7 (8,921 reviews)</p>
+          <div class="actions">
+            <button class="enroll-btn">Apply Now</button>
+            <a href="#" class="link">Why is this recommended?</a>
+          </div>
+        </div>
+
+        <div class="right-carousel">
+          <div class="carousel-scroll">
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Azure Fundamentals</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Community Leadership</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Event Management</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="company-card-v2">
+        <div class="left-card">
+          <div class="badge">Top Recommendation</div>
+          <h3>Amazon Web Services Internship</h3>
+          <p class="skills">
+            <strong>Skills:</strong> Cloud Computing, AWS, DevOps
+          </p>
+          <p class="desc">Remote • 3-Month Program • Cloud Infrastructure</p>
+          <p class="rating">⭐ 4.9 (15,673 reviews)</p>
+          <div class="actions">
+            <button class="enroll-btn">Apply Now</button>
+            <a href="#" class="link">Why is this recommended?</a>
+          </div>
+        </div>
+
+        <div class="right-carousel">
+          <div class="carousel-scroll">
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>AWS Fundamentals</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>DevOps Pipeline</p>
+            </div>
+            <div class="mini-card">
+              <img src="https://via.placeholder.com/100x80" alt="">
+              <p>Cloud Architecture</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPREHENSIVE COURSES SECTION -->
+    <div class="courses-section">
+      <h2 class="section-title">Available Internship Programs</h2>
+      
+      <!-- Technology & Development -->
+      <div class="course-category">
+        <div class="category-header">
+          <div class="category-title">
+            <div class="category-icon">
+              <i class="fas fa-code"></i>
+            </div>
+            Technology & Development
+          </div>
+          <a href="#" class="view-all-btn">View All (24)</a>
+        </div>
+        
+        <div class="course-grid">
+          <!-- Course Card 1 - Premium -->
+          <div class="course-card premium">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/4285f4/ffffff?text=Frontend+Development" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/4285f4/ffffff?text=G" alt="Google Logo">
+              </div>
+              <div class="course-duration">6 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Frontend Development Internship</h3>
+              <p class="company-name">Google</p>
+              <p class="course-description">Build modern web applications using React, TypeScript, and cutting-edge frontend technologies.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Full-time</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.9 (1,234)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">React</span>
+                  <span class="skill-tag">JavaScript</span>
+                  <span class="skill-tag">CSS</span>
+                  <span class="skill-tag">Git</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 2 - Featured -->
+          <div class="course-card featured">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/0066cc/ffffff?text=Data+Science" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/0066cc/ffffff?text=MS" alt="Microsoft Logo">
+              </div>
+              <div class="course-duration">4 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Data Science Research Intern</h3>
+              <p class="company-name">Microsoft</p>
+              <p class="course-description">Work on machine learning projects and data analysis with real-world datasets.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Remote</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.8 (987)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Python</span>
+                  <span class="skill-tag">Machine Learning</span>
+                  <span class="skill-tag">SQL</span>
+                  <span class="skill-tag">Statistics</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 3 - Trending -->
+          <div class="course-card trending">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/ff9900/ffffff?text=Cloud+Engineering" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/ff9900/ffffff?text=AWS" alt="AWS Logo">
+              </div>
+              <div class="course-duration">5 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Cloud Infrastructure Intern</h3>
+              <p class="company-name">Amazon Web Services</p>
+              <p class="course-description">Design and implement scalable cloud solutions using AWS services and DevOps practices.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Hybrid</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.7 (756)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">AWS</span>
+                  <span class="skill-tag">Docker</span>
+                  <span class="skill-tag">Kubernetes</span>
+                  <span class="skill-tag">Linux</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 4 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/1da1f2/ffffff?text=Mobile+Development" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/1da1f2/ffffff?text=T" alt="Twitter Logo">
+              </div>
+              <div class="course-duration">4 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Mobile App Development Intern</h3>
+              <p class="company-name">Twitter</p>
+              <p class="course-description">Create innovative mobile applications for iOS and Android platforms using modern frameworks.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Full-time</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.6 (543)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">React Native</span>
+                  <span class="skill-tag">Swift</span>
+                  <span class="skill-tag">Kotlin</span>
+                  <span class="skill-tag">UI/UX</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Business & Marketing -->
+      <div class="course-category">
+        <div class="category-header">
+          <div class="category-title">
+            <div class="category-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            Business & Marketing
+          </div>
+          <a href="#" class="view-all-btn">View All (18)</a>
+        </div>
+        
+        <div class="course-grid">
+          <!-- Course Card 1 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/3b5998/ffffff?text=Digital+Marketing" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/3b5998/ffffff?text=FB" alt="Facebook Logo">
+              </div>
+              <div class="course-duration">3 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Digital Marketing Specialist</h3>
+              <p class="company-name">Meta (Facebook)</p>
+              <p class="course-description">Learn social media marketing, content strategy, and digital advertising campaigns.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Remote</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.5 (892)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">SEO</span>
+                  <span class="skill-tag">Google Ads</span>
+                  <span class="skill-tag">Analytics</span>
+                  <span class="skill-tag">Content Creation</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 2 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/0077b5/ffffff?text=Business+Analytics" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/0077b5/ffffff?text=LI" alt="LinkedIn Logo">
+              </div>
+              <div class="course-duration">6 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Business Analytics Intern</h3>
+              <p class="company-name">LinkedIn</p>
+              <p class="course-description">Analyze business data to drive strategic decisions and optimize performance metrics.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Hybrid</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.4 (671)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Excel</span>
+                  <span class="skill-tag">Tableau</span>
+                  <span class="skill-tag">SQL</span>
+                  <span class="skill-tag">PowerBI</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 3 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/ff5722/ffffff?text=Product+Management" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/ff5722/ffffff?text=A" alt="Airbnb Logo">
+              </div>
+              <div class="course-duration">4 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Product Management Trainee</h3>
+              <p class="company-name">Airbnb</p>
+              <p class="course-description">Learn product strategy, user research, and roadmap planning for digital products.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Full-time</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.6 (445)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Strategy</span>
+                  <span class="skill-tag">User Research</span>
+                  <span class="skill-tag">Agile</span>
+                  <span class="skill-tag">Wireframing</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Design & Creative -->
+      <div class="course-category">
+        <div class="category-header">
+          <div class="category-title">
+            <div class="category-icon">
+              <i class="fas fa-palette"></i>
+            </div>
+            Design & Creative
+          </div>
+          <a href="#" class="view-all-btn">View All (15)</a>
+        </div>
+        
+        <div class="course-grid">
+          <!-- Course Card 1 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/ff0050/ffffff?text=UI/UX+Design" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/ff0050/ffffff?text=D" alt="Dribbble Logo">
+              </div>
+              <div class="course-duration">5 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">UI/UX Design Intern</h3>
+              <p class="company-name">Dribbble</p>
+              <p class="course-description">Design user-centered digital experiences and create compelling visual interfaces.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Remote</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.7 (623)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Figma</span>
+                  <span class="skill-tag">Adobe XD</span>
+                  <span class="skill-tag">Prototyping</span>
+                  <span class="skill-tag">User Research</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 2 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/6f42c1/ffffff?text=Graphic+Design" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/6f42c1/ffffff?text=B" alt="Behance Logo">
+              </div>
+              <div class="course-duration">4 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Graphic Design Specialist</h3>
+              <p class="company-name">Adobe (Behance)</p>
+              <p class="course-description">Create stunning visual content for digital and print media using industry-standard tools.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Hybrid</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.5 (389)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Photoshop</span>
+                  <span class="skill-tag">Illustrator</span>
+                  <span class="skill-tag">InDesign</span>
+                  <span class="skill-tag">Branding</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 3 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/e60023/ffffff?text=Content+Creation" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/e60023/ffffff?text=P" alt="Pinterest Logo">
+              </div>
+              <div class="course-duration">3 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Content Creator Intern</h3>
+              <p class="company-name">Pinterest</p>
+              <p class="course-description">Develop engaging visual content and social media campaigns for global audiences.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Remote</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.3 (512)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Photography</span>
+                  <span class="skill-tag">Video Editing</span>
+                  <span class="skill-tag">Social Media</span>
+                  <span class="skill-tag">Copywriting</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Engineering & Research -->
+      <div class="course-category">
+        <div class="category-header">
+          <div class="category-title">
+            <div class="category-icon">
+              <i class="fas fa-cogs"></i>
+            </div>
+            Engineering & Research
+          </div>
+          <a href="#" class="view-all-btn">View All (21)</a>
+        </div>
+        
+        <div class="course-grid">
+          <!-- Course Card 1 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/ea4335/ffffff?text=Software+Engineering" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/ea4335/ffffff?text=G" alt="Google Logo">
+              </div>
+              <div class="course-duration">6 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Software Engineering Intern</h3>
+              <p class="company-name">Google</p>
+              <p class="course-description">Work on large-scale distributed systems and contribute to products used by billions.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Full-time</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.9 (2,156)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Java</span>
+                  <span class="skill-tag">Python</span>
+                  <span class="skill-tag">Algorithms</span>
+                  <span class="skill-tag">System Design</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 2 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/1b1f23/ffffff?text=AI+Research" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/1b1f23/ffffff?text=OAI" alt="OpenAI Logo">
+              </div>
+              <div class="course-duration">8 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">AI Research Intern</h3>
+              <p class="company-name">OpenAI</p>
+              <p class="course-description">Contribute to cutting-edge artificial intelligence research and model development.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Full-time</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.8 (1,345)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">PyTorch</span>
+                  <span class="skill-tag">TensorFlow</span>
+                  <span class="skill-tag">Deep Learning</span>
+                  <span class="skill-tag">Research</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 3 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/7c3aed/ffffff?text=Robotics" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/7c3aed/ffffff?text=BD" alt="Boston Dynamics Logo">
+              </div>
+              <div class="course-duration">7 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Robotics Engineering Intern</h3>
+              <p class="company-name">Boston Dynamics</p>
+              <p class="course-description">Design and program advanced robotic systems for real-world applications.</p>
+              
+              <div class="course-details">
+                <span class="course-type">On-site</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.7 (678)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">C++</span>
+                  <span class="skill-tag">ROS</span>
+                  <span class="skill-tag">Computer Vision</span>
+                  <span class="skill-tag">Control Systems</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 4 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/059669/ffffff?text=Cybersecurity" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/059669/ffffff?text=CS" alt="CrowdStrike Logo">
+              </div>
+              <div class="course-duration">5 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Cybersecurity Analyst Intern</h3>
+              <p class="company-name">CrowdStrike</p>
+              <p class="course-description">Protect digital infrastructure and investigate security threats in enterprise environments.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Hybrid</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.6 (891)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Network Security</span>
+                  <span class="skill-tag">Penetration Testing</span>
+                  <span class="skill-tag">SIEM</span>
+                  <span class="skill-tag">Incident Response</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Finance & Consulting -->
+      <div class="course-category">
+        <div class="category-header">
+          <div class="category-title">
+            <div class="category-icon">
+              <i class="fas fa-chart-pie"></i>
+            </div>
+            Finance & Consulting
+          </div>
+          <a href="#" class="view-all-btn">View All (12)</a>
+        </div>
+        
+        <div class="course-grid">
+          <!-- Course Card 1 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/1f2937/ffffff?text=Investment+Banking" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/1f2937/ffffff?text=GS" alt="Goldman Sachs Logo">
+              </div>
+              <div class="course-duration">10 weeks</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Investment Banking Analyst</h3>
+              <p class="company-name">Goldman Sachs</p>
+              <p class="course-description">Learn financial modeling, valuation techniques, and M&A transaction analysis.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Full-time</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.4 (734)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Financial Modeling</span>
+                  <span class="skill-tag">Excel</span>
+                  <span class="skill-tag">Valuation</span>
+                  <span class="skill-tag">Bloomberg</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 2 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/0f4c75/ffffff?text=Management+Consulting" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/0f4c75/ffffff?text=McK" alt="McKinsey Logo">
+              </div>
+              <div class="course-duration">12 weeks</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Management Consulting Intern</h3>
+              <p class="company-name">McKinsey & Company</p>
+              <p class="course-description">Solve complex business problems and drive strategic transformation for Fortune 500 clients.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Full-time</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.6 (567)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Strategy</span>
+                  <span class="skill-tag">Case Studies</span>
+                  <span class="skill-tag">Analytics</span>
+                  <span class="skill-tag">Presentation</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 3 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/dc2626/ffffff?text=FinTech" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/dc2626/ffffff?text=S" alt="Stripe Logo">
+              </div>
+              <div class="course-duration">4 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">FinTech Product Intern</h3>
+              <p class="company-name">Stripe</p>
+              <p class="course-description">Build next-generation financial products and payment solutions for global markets.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Remote</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.5 (423)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Product Strategy</span>
+                  <span class="skill-tag">APIs</span>
+                  <span class="skill-tag">Payments</span>
+                  <span class="skill-tag">Compliance</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Healthcare & Biotech -->
+      <div class="course-category">
+        <div class="category-header">
+          <div class="category-title">
+            <div class="category-icon">
+              <i class="fas fa-heartbeat"></i>
+            </div>
+            Healthcare & Biotech
+          </div>
+          <a href="#" class="view-all-btn">View All (9)</a>
+        </div>
+        
+        <div class="course-grid">
+          <!-- Course Card 1 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/16a085/ffffff?text=Medical+Research" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/16a085/ffffff?text=P" alt="Pfizer Logo">
+              </div>
+              <div class="course-duration">6 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Clinical Research Intern</h3>
+              <p class="company-name">Pfizer</p>
+              <p class="course-description">Participate in pharmaceutical research and drug development processes.</p>
+              
+              <div class="course-details">
+                <span class="course-type">On-site</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.3 (298)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Clinical Trials</span>
+                  <span class="skill-tag">Data Analysis</span>
+                  <span class="skill-tag">Regulatory</span>
+                  <span class="skill-tag">Biology</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 2 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/e74c3c/ffffff?text=HealthTech" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/e74c3c/ffffff?text=T" alt="Teladoc Logo">
+              </div>
+              <div class="course-duration">4 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">HealthTech Innovation Intern</h3>
+              <p class="company-name">Teladoc Health</p>
+              <p class="course-description">Develop digital health solutions and telemedicine platforms for better patient care.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Remote</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.4 (156)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Healthcare IT</span>
+                  <span class="skill-tag">HIPAA</span>
+                  <span class="skill-tag">Mobile Health</span>
+                  <span class="skill-tag">UX Design</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Card 3 -->
+          <div class="course-card">
+            <div class="course-image">
+              <img src="https://via.placeholder.com/320x200/8e44ad/ffffff?text=Bioengineering" alt="Course Image">
+              <div class="company-logo">
+                <img src="https://via.placeholder.com/50x50/8e44ad/ffffff?text=I" alt="Illumina Logo">
+              </div>
+              <div class="course-duration">5 months</div>
+            </div>
+            <div class="course-content">
+              <h3 class="course-title">Bioengineering Research Intern</h3>
+              <p class="company-name">Illumina</p>
+              <p class="course-description">Work on genomics and biotechnology solutions for precision medicine.</p>
+              
+              <div class="course-details">
+                <span class="course-type">Hybrid</span>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i>
+                  <span>4.5 (234)</span>
+                </div>
+              </div>
+              
+              <div class="skills-required">
+                <div class="skills-label">Required Skills:</div>
+                <div class="skills-list">
+                  <span class="skill-tag">Genomics</span>
+                  <span class="skill-tag">Bioinformatics</span>
+                  <span class="skill-tag">Lab Techniques</span>
+                  <span class="skill-tag">Python</span>
+                </div>
+              </div>
+              
+              <div class="course-footer">
+                <button class="apply-now-btn">Apply Now</button>
+                <button class="bookmark-btn">
+                  <i class="far fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.carousel-slide');
+    const dots = document.querySelectorAll('.control-dot');
+    const track = document.getElementById('carouselTrack');
+
+    function updateCarousel() {
+      track.style.transform = `translateX(-${currentSlide * 100}%)`;
+      
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === currentSlide);
+      });
+
+      // Reset animations for current slide
+      const currentSlideElement = slides[currentSlide];
+      const textElements = currentSlideElement.querySelectorAll('.slide-text h2, .slide-text p, .slide-btn');
+      const illustrationElement = currentSlideElement.querySelector('.slide-illustration');
+      
+      textElements.forEach(el => {
+        el.style.animation = 'none';
+        el.offsetHeight; // Trigger reflow
+        el.style.animation = null;
+      });
+      
+      if (illustrationElement) {
+        illustrationElement.style.animation = 'none';
+        illustrationElement.offsetHeight; // Trigger reflow
+        illustrationElement.style.animation = null;
+      }
+    }
+
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % slides.length;
+      updateCarousel();
+    }
+
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+      updateCarousel();
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateCarousel();
+    }
+
+    // Auto-advance carousel
+    setInterval(nextSlide, 6000);
+
+    // Initialize carousel
+    updateCarousel();
+    
+    // Intersection Observer for animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.2
+    });
+
+    // Observe all course cards for animations
+    document.querySelectorAll('.course-card').forEach(card => {
+      observer.observe(card);
+    });
+
+    // Bookmark functionality
+    document.querySelectorAll('.bookmark-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.classList.toggle('bookmarked');
+        const icon = this.querySelector('i');
+        if (this.classList.contains('bookmarked')) {
+          icon.classList.remove('far');
+          icon.classList.add('fas');
+        } else {
+          icon.classList.remove('fas');
+          icon.classList.add('far');
+        }
+      });
+    });
+
+    // Apply Now button functionality
+    document.querySelectorAll('.apply-now-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Add your application logic here
+        console.log('Application submitted for:', this.closest('.course-card').querySelector('.course-title').textContent);
+        
+        // Visual feedback
+        const originalText = this.textContent;
+        this.textContent = 'Applied ✓';
+        this.style.background = '#28a745';
+        
+        setTimeout(() => {
+          this.textContent = originalText;
+          this.style.background = '';
+        }, 2000);
+      });
+    });
+
+    // Filter functionality
+    document.querySelector('.apply-btn').addEventListener('click', function() {
+      const keyword = document.getElementById('search').value.toLowerCase();
+      const location = document.getElementById('location').value.toLowerCase();
+      const category = document.getElementById('category').value;
+
+      const courseCards = document.querySelectorAll('.course-card');
+      
+      courseCards.forEach(card => {
+        const title = card.querySelector('.course-title').textContent.toLowerCase();
+        const company = card.querySelector('.company-name').textContent.toLowerCase();
+        const skills = Array.from(card.querySelectorAll('.skill-tag')).map(tag => tag.textContent.toLowerCase());
+        
+        let matchesKeyword = !keyword || title.includes(keyword) || company.includes(keyword) || skills.some(skill => skill.includes(keyword));
+        let matchesLocation = !location; // For now, we'll assume all locations match
+        let matchesCategory = !category; // Category filtering would need additional data attributes
+        
+        if (matchesKeyword && matchesLocation && matchesCategory) {
+          card.style.display = 'block';
+          card.style.animation = 'fadeIn 0.5s ease';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+
+    // Add CSS for fade in animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

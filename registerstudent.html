@@ -13,15 +13,14 @@
   padding: 0;
 }
 body {
-  font-family: 'Roboto', sans-serif; /* Changed font-family */
+  font-family: 'Roboto', sans-serif;
   background: #f5fbfa;
   height: 100vh;
   overflow: hidden;
 }
 
-/* Heading Font */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Poppins', sans-serif; /* Added for headings */
+  font-family: 'Poppins', sans-serif;
 }
 
 .container {
@@ -113,24 +112,32 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 15px;
   width: 200px;
   justify-self: center;
+  transition: background-color 0.3s ease;
+}
+.submit-btn:hover {
+  background-color: #024437;
+}
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 .footer-link {
   grid-column: span 2;
   text-align: center;
   font-size: 14px;
   margin-top: 10px;
-  color: #555; /* Added this color for consistency with the previous output */
+  color: #555;
 }
 .footer-link a {
   color: #035946;
   text-decoration: none;
-  font-weight: 500; /* Added font-weight */
-  transition: color 0.3s ease; /* Added transition */
+  font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .footer-link a:hover {
-  color: #024437; /* Darker green on hover */
-  text-decoration: underline; /* Underline on hover */
+  color: #024437;
+  text-decoration: underline;
 }
 
 .toggle-icon {
@@ -188,6 +195,10 @@ h1, h2, h3, h4, h5, h6 {
   20%,60%{transform:translateX(-8px);}
   40%,80%{transform:translateX(8px);}
 }
+.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
 @media (max-width: 768px) {
   .form-grid {
     grid-template-columns: 1fr;
@@ -242,16 +253,17 @@ h1, h2, h3, h4, h5, h6 {
         <div class="form-group">
           <select name="gender" id="gender">
             <option value="" disabled selected hidden></option>
-            <option>Male</option>
-            <option>Female</option>
-            <option>Other</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
           </select>
           <label>Gender *</label>
           <div class="error-text" id="genderError"></div>
         </div>
         <div class="form-group">
           <input type="text" name="dob" id="dob" placeholder=" ">
-          <label>DOB</label>
+          <label>DOB *</label>
+          <div class="error-text" id="dobError"></div>
         </div>
         <div class="form-group">
           <input type="password" name="password" id="password" placeholder=" ">
@@ -265,9 +277,9 @@ h1, h2, h3, h4, h5, h6 {
           <span class="toggle-icon" onclick="toggleVisibility('confirm_password', this)">👁️</span>
           <div class="error-text" id="passwordError"></div>
         </div>
-        <button type="submit" class="submit-btn">Register</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Register</button>
         <div class="footer-link">
-          <a href="registercompany.html">Register as a Company</a> | <a href="login.html">Already have an account Login</a>
+          <a href="registercmpy.html">Register as a Company</a> | <a href="login.html">Already have an account Login </a> 
         </div>
       </div>
     </form>
@@ -276,7 +288,27 @@ h1, h2, h3, h4, h5, h6 {
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-flatpickr("#dob", { dateFormat: "d/m/Y", allowInput: true });
+// Initialize flatpickr with better configuration
+flatpickr("#dob", { 
+  dateFormat: "d/m/Y", 
+  allowInput: true,
+  maxDate: "today",
+  yearRange: [1950, new Date().getFullYear()],
+  onClose: function(selectedDates, dateStr, instance) {
+    // Trigger validation when date is selected
+    if (dateStr) {
+      const dobField = document.getElementById("dob");
+      const label = dobField.nextElementSibling;
+      if (label && label.tagName === 'LABEL') {
+        label.style.top = '0';
+        label.style.left = '12px';
+        label.style.fontSize = '12px';
+        label.style.color = '#035946';
+        label.style.background = '#f5fbfa';
+      }
+    }
+  }
+});
 
 function toggleVisibility(id, icon) {
   const input = document.getElementById(id);
@@ -288,34 +320,56 @@ function toggleVisibility(id, icon) {
     icon.textContent = "👁️";
   }
 }
+
 function validatePhone(phone) {
-  // Remove all non-digit characters
   const cleanPhone = phone.replace(/\D/g, '');
   
-  // Check length (international standard: 10 to 15 digits)
   if (cleanPhone.length < 10 || cleanPhone.length > 15) {
     return false;
   }
 
-  // Optional: accept common user formats
   const phonePatterns = [
-    /^\d{10}$/, // 1234567890
-    /^\+\d{10,14}$/, // +1234567890 to +123456789012345
-    /^\d{3}-\d{3}-\d{4}$/, // 123-456-7890
-    /^\(\d{3}\)\s?\d{3}-\d{4}$/, // (123)456-7890 or (123) 456-7890
-    /^\d{3}\s\d{3}\s\d{4}$/ // 123 456 7890
+    /^\d{10}$/,
+    /^\+\d{10,14}$/,
+    /^\d{3}-\d{3}-\d{4}$/,
+    /^\(\d{3}\)\s?\d{3}-\d{4}$/,
+    /^\d{3}\s\d{3}\s\d{4}$/
   ];
 
-  // Return true if matches any pattern or is clean digits between 10–15
   return phonePatterns.some(pattern => pattern.test(phone)) || /^\d{10,15}$/.test(cleanPhone);
 }
+
+function validateDate(dateStr) {
+  if (!dateStr || dateStr.trim() === '') return false;
+  
+  // Check if the date matches the expected format (d/m/Y)
+  const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+  if (!dateRegex.test(dateStr)) return false;
+  
+  // Try to create a date object to validate if it's a real date
+  const parts = dateStr.split('/');
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+  
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && 
+         date.getMonth() === month - 1 && 
+         date.getDate() === day &&
+         date <= new Date(); // Must be today or earlier
+}
+
 document.getElementById("registerForm").addEventListener("submit", function(e) {
   e.preventDefault();
+  
+  console.log("Form submission started"); // Debug log
+  
   let valid = true;
+  const submitBtn = document.getElementById("submitBtn");
 
   // Clear all error messages and error borders first
-  const errorFields = ['firstNameError', 'lastNameError', 'emailError', 'phoneError', 'genderError', 'passwordFieldError', 'passwordError'];
-  const inputFields = ['first_name', 'last_name', 'email', 'contact', 'gender', 'password', 'confirm_password'];
+  const errorFields = ['firstNameError', 'lastNameError', 'emailError', 'phoneError', 'genderError', 'dobError', 'passwordFieldError', 'passwordError'];
+  const inputFields = ['first_name', 'last_name', 'email', 'contact', 'gender', 'dob', 'password', 'confirm_password'];
   
   errorFields.forEach(field => {
     document.getElementById(field).textContent = "";
@@ -331,8 +385,11 @@ document.getElementById("registerForm").addEventListener("submit", function(e) {
   const email = document.getElementById("email").value.trim();
   const phone = document.getElementById("contact").value.trim();
   const gender = document.getElementById("gender").value;
+  const dob = document.getElementById("dob").value.trim();
   const pass = document.getElementById("password").value;
   const confirmPass = document.getElementById("confirm_password").value;
+
+  console.log("Form values:", { firstName, lastName, email, phone, gender, dob, pass: "***", confirmPass: "***" }); // Debug log
 
   // Validate required fields
   if (!firstName) {
@@ -362,7 +419,19 @@ document.getElementById("registerForm").addEventListener("submit", function(e) {
     shakeField("gender");
     valid = false;
   }
-if (!pass) {
+
+  // DOB validation - now required
+  if (!dob) {
+    document.getElementById("dobError").textContent = "This field is required";
+    shakeField("dob");
+    valid = false;
+  } else if (!validateDate(dob)) {
+    document.getElementById("dobError").textContent = "Please enter a valid date (DD/MM/YYYY)";
+    shakeField("dob");
+    valid = false;
+  }
+
+  if (!pass) {
     document.getElementById("passwordFieldError").textContent = "This field is required";
     shakeField("password");
     valid = false;
@@ -383,30 +452,91 @@ if (!pass) {
     valid = false;
   }
 
-if (!phone) {
-  document.getElementById("phoneError").textContent = "This field is required";
-  shakeField("contact");
-  valid = false;
-} else if (!validatePhone(phone)) {
-  document.getElementById("phoneError").textContent = "Enter a valid phone number";
-  shakeField("contact");
-  valid = false;
-}
+  if (!phone) {
+    document.getElementById("phoneError").textContent = "This field is required";
+    shakeField("contact");
+    valid = false;
+  } else if (!validatePhone(phone)) {
+    document.getElementById("phoneError").textContent = "Enter a valid phone number";
+    shakeField("contact");
+    valid = false;
+  }
 
-  if (!valid) return;
+  console.log("Validation result:", valid); // Debug log
+
+  if (!valid) {
+    console.log("Form validation failed, stopping submission"); // Debug log
+    return;
+  }
+
+  // Disable submit button and show loading state
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Registering...";
+  document.querySelector('.register-box').classList.add('loading');
+
+  console.log("Sending form data to server..."); // Debug log
 
   const formData = new FormData(this);
-  fetch("register.php", { method: "POST", body: formData })
-    .then(res => res.json())
-    .then(data => {
-      const popup = document.getElementById("popupMessage");
-      popup.textContent = data.message;
-      popup.style.display = "flex";
-      setTimeout(() => {
-        popup.style.display = "none";
-        if (data.success) window.location.href = "login.html";
-      }, 2000);
-    });
+  
+  // Log form data being sent
+  console.log("FormData contents:");
+  for (let [key, value] of formData.entries()) {
+    console.log(key, value === formData.get('password') || value === formData.get('confirm_password') ? '***' : value);
+  }
+
+  fetch("registerstudent.php", { 
+    method: "POST", 
+    body: formData 
+  })
+  .then(response => {
+    console.log("Response status:", response.status); // Debug log
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.text(); // Get as text first to check for errors
+  })
+  .then(text => {
+    console.log("Raw response:", text); // Debug log
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("JSON parse error:", e);
+      throw new Error("Invalid JSON response from server: " + text);
+    }
+  })
+  .then(data => {
+    console.log("Parsed response:", data); // Debug log
+    
+    const popup = document.getElementById("popupMessage");
+    popup.textContent = data.message || "Registration completed";
+    popup.style.display = "flex";
+    
+    setTimeout(() => {
+      popup.style.display = "none";
+      if (data.success) {
+        console.log("Registration successful, redirecting..."); // Debug log
+        window.location.href = "login.html";
+      }
+    }, 2000);
+  })
+  .catch(error => {
+    console.error("Registration error:", error); // Debug log
+    
+    const popup = document.getElementById("popupMessage");
+    popup.textContent = "Registration failed: " + error.message;
+    popup.style.display = "flex";
+    
+    setTimeout(() => {
+      popup.style.display = "none";
+    }, 3000);
+  })
+  .finally(() => {
+    // Re-enable submit button
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Register";
+    document.querySelector('.register-box').classList.remove('loading');
+    console.log("Form submission completed"); // Debug log
+  });
 });
 
 function shakeField(id) {

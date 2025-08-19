@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Nexttern Internship Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Modern Professional Styles */
+        :root {
+            --primary: #035946;
+            --primary-light: #0a7058;
+            --primary-dark: #024034;
+            --secondary: #2e3944;
+            --accent: #4ecdc4;
+            --accent-light: #7ed9d2;
+            --bg-light: #f8fffe;
+            --bg-gradient: linear-gradient(135deg, #f8fffe 0%, #e8f7f5 100%);
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --shadow-sm: 0 4px 20px rgba(3, 89, 70, 0.08);
+            --shadow-md: 0 8px 32px rgba(3, 89, 70, 0.12);
+            --shadow-lg: 0 16px 48px rgba(3, 89, 70, 0.16);
+            --shadow-xl: 0 24px 64px rgba(3, 89, 70, 0.20);
+            --blur: 16px;
+            --transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            position: relative;
+            overflow-x: hidden;
+            color: var(--secondary);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        /* Advanced Animation Blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: -1;
+            opacity: 0.15;
+            animation: morphBlob 25s infinite ease-in-out;
+        }
+        .blob1 { 
+            width: 800px; 
+            height: 600px; 
+            background: radial-gradient(circle, rgba(3, 89, 70, 0.2) 0%, rgba(3, 89, 70, 0.05) 100%); 
+            top: -200px; 
+            right: -300px; 
+        }
+        .blob2 { 
+            width: 500px; 
+            height: 400px; 
+            background: radial-gradient(circle, rgba(78, 205, 196, 0.25) 0%, rgba(78, 205, 196, 0.08) 100%); 
+            top: 300px; 
+            right: -200px; 
+            animation-delay: 8s; 
+        }
+        .blob3 { 
+            width: 600px; 
+            height: 450px; 
+            background: radial-gradient(circle, rgba(3, 89, 70, 0.15) 0%, rgba(3, 89, 70, 0.03) 100%); 
+            bottom: 200px; 
+            left: -250px; 
+            animation-delay: 15s; 
+        }
+        .blob4 { 
+            width: 350px; 
+            height: 350px; 
+            background: radial-gradient(circle, rgba(78, 205, 196, 0.18) 0%, rgba(78, 205, 196, 0.05) 100%); 
+            bottom: -150px; 
+            left: 200px; 
+            animation-delay: 3s; 
+        }
+
+        @keyframes morphBlob {
+            0%, 100% { 
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+            }
+            25% { 
+                transform: translate(30px, -30px) scale(1.1) rotate(90deg);
+                border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+            }
+            50% { 
+                transform: translate(-20px, 20px) scale(0.9) rotate(180deg);
+                border-radius: 50% 60% 30% 60% / 60% 40% 60% 30%;
+            }
+            75% { 
+                transform: translate(-30px, -20px) scale(1.05) rotate(270deg);
+                border-radius: 70% 30% 60% 40% / 40% 70% 30% 60%;
+            }
+        }
+
+        /* Professional Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 1rem 0;
+            box-shadow: 0 2px 20px rgba(3, 89, 70, 0.08);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            transition: var(--transition);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar.scrolled {
+            padding: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 4px 30px rgba(3, 89, 70, 0.15);
+        }
+
+        .navbar-brand { 
+            color: var(--primary) !important; 
+            font-size: 2rem; 
+            font-weight: 800; 
+            font-family: 'Poppins', sans-serif;
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.05);
+            color: var(--primary-light) !important;
+        }
+
+        .nav-link { 
+            color: var(--secondary) !important; 
+            font-weight: 500; 
+            transition: var(--transition-fast);
+            position: relative;
+            padding: 0.5rem 1rem !important;
+            margin: 0 0.25rem;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: var(--transition-fast);
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::after {
+            width: 80%;
+        }
+
+        .nav-link:hover { 
+            color: var(--primary) !important; 
+            transform: translateY(-2px); 
+        }
+
+        .btn-login { 
+            font-weight: 600; 
+            padding: 0.75rem 1.5rem; 
+            border-radius: 12px; 
+            transition: var(--transition-fast);
+            border: 2px solid var(--primary); 
+            color: var(--primary); 
+            background: transparent;
+            font-size: 0.95rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            transition: var(--transition-fast);
+            z-index: -1;
+        }
+
+        .btn-login:hover::before {
+            left: 0;
+        }
+
+        .btn-login:hover { 
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Hero Carousel - Fixed Height and Content Positioning */
+        .carousel {
+            margin-top: 80px;
+        }
+
+        .carousel-item { 
+            height: 85vh; 
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(3, 89, 70, 0.7) 0%, rgba(78, 205, 196, 0.3) 100%);
+        }
+
+        .carousel-caption { 
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            bottom: auto;
+            left: auto;
+            right: auto;
+            transform: none;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .carousel-caption h1 { 
+            font-size: 3.5rem; 
+            font-weight: 800; 
+            margin-bottom: 1.5rem;
+            color: white;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: slideInUp 1s ease-out;
+            line-height: 1.1;
+        }
+
+        .carousel-caption p { 
+            font-size: 1.4rem; 
+            margin-bottom: 2.5rem;
+            color: rgba(255,255,255,0.95);
+            animation: slideInUp 1s ease-out 0.2s both;
+            font-weight: 400;
+            line-height: 1.4;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            animation: slideInUp 1s ease-out 0.4s both;
+            justify-content: center;
+        }
+
+        .btn-hero { 
+            padding: 1rem 2rem; 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            border-radius: 50px; 
+            transition: var(--transition-fast);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transition: var(--transition);
+            transform: translate(-50%, -50%);
+        }
+
+        .btn-hero:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-hero:hover { 
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary-hero { 
+            background: white; 
+            color: var(--primary); 
+            border: 2px solid white;
+        }
+
+        .btn-secondary-hero { 
+            border: 2px solid white; 
+            color: white; 
+            background: transparent; 
+        }
+
+        @keyframes slideInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(60px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        /* Carousel Controls */
+        .carousel-control-prev, .carousel-control-next {
+            width: 5%;
+            opacity: 0.8;
+            transition: var(--transition-fast);
+        }
+
+        .carousel-control-prev:hover, .carousel-control-next:hover {
+            opacity: 1;
+        }
+
+        .carousel-control-prev-icon, .carousel-control-next-icon { 
+            background-color: rgba(255,255,255,0.9);
+            border-radius: 50%; 
+            padding: 20px;
+            width: 60px;
+            height: 60px;
+            backdrop-filter: blur(10px);
+            transition: var(--transition-fast);
+        }
+
+        .carousel-control-prev-icon:hover, .carousel-control-next-icon:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Professional Section Styling - Reduced spacing */
+        .section-padding {
+            padding: 4rem 0;
+        }
+
+        .section-title {
+            font-size: 2.8rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Why Choose Section */
+        .feature-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            transition: var(--transition);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            transform: scaleX(0);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-card:hover { 
+            transform: translateY(-12px);
+            box-shadow: var(--shadow-xl);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .feature-icon i {
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .feature-card h5 {
+            font-size: 1.4rem;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+
+        /* Impact Section */
+        .impact-section {
+            background: linear-gradient(135deg, var(--glass-bg) 0%, rgba(255,255,255,0.1) 100%);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border-radius: 32px;
+            position: relative;
+            margin: 0 1rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .impact-item {
+            text-align: center;
+            padding: 2rem 1rem;
+            transition: var(--transition-fast);
+            border-radius: 20px;
+        }
+
+        .impact-item:hover {
+            transform: translateY(-8px);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .impact-count { 
+            font-size: 3.5rem; 
+            font-weight: 800; 
+            color: var(--primary);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .impact-label {
+            font-size: 1.1rem;
+            color: var(--secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Featured Companies */
+        .marquee-container {
+            overflow: hidden;
+            padding: 2rem 0;
+            position: relative;
+        }
+
+        .marquee-container::before,
+        .marquee-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 100px;
+            height: 100%;
+            z-index: 2;
+        }
+
+        .marquee-container::before {
+            left: 0;
+            background: linear-gradient(90deg, var(--bg-light) 0%, transparent 100%);
+        }
+
+        .marquee-container::after {
+            right: 0;
+            background: linear-gradient(270deg, var(--bg-light) 0%, transparent 100%);
+        }
+
+        .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: marquee 30s linear infinite;
+            gap: 4rem;
+        }
+
+        .company-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+            padding: 1rem;
+            transition: var(--transition-fast);
+            border-radius: 16px;
+        }
+
+        .company-item:hover {
+            transform: scale(1.1);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .company-item i {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            transition: var(--transition-fast);
+        }
+
+        .company-item p {
+            color: var(--secondary);
+            font-weight: 600;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        @keyframes marquee {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        /* Success Stories */
+        .story-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            text-align: center;
+            transition: var(--transition);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .story-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            transform: rotate(45deg);
+            transition: var(--transition);
+            opacity: 0;
+        }
+
+        .story-card:hover::before {
+            animation: shine 0.6s ease-in-out;
+        }
+
+        @keyframes shine {
+            0% { transform: rotate(45deg) translateX(-100%); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: rotate(45deg) translateX(100%); opacity: 0; }
+        }
+
+        .story-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .story-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 1.5rem;
+            border: 4px solid var(--accent);
+            transition: var(--transition-fast);
+        }
+
+        .story-card:hover .story-img {
+            transform: scale(1.1);
+            border-color: var(--primary);
+        }
+
+        .story-title {
+            font-size: 1.4rem;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .story-desc {
+            color: #666;
+            line-height: 1.7;
+            font-style: italic;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 32px;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            margin: 0 1rem;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .cta-heading {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .cta-desc {
+            font-size: 1.2rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn {
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cta-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transition: var(--transition);
+            transform: translate(-50%, -50%);
+        }
+
+        .cta-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .cta-btn.student {
+            background: white;
+            color: var(--primary);
+            border: 2px solid white;
+        }
+
+        .cta-btn.company {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        /* Professional Footer */
+        .footer {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ccc;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+        }
+
+        .footer-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-column h4 {
+            color: white;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-column ul li a {
+            color: #ccc;
+            text-decoration: none;
+            transition: var(--transition-fast);
+            position: relative;
+        }
+
+        .footer-column ul li a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--accent);
+            transition: var(--transition-fast);
+        }
+
+        .footer-column ul li a:hover::after {
+            width: 100%;
+        }
+
+        .footer-column ul li a:hover {
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .brand {
+            text-align: center;
+        }
+
+        .footer-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .brand h3 {
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subscribe-form {
+            display: flex;
+            margin-top: 1rem;
+            border-radius: 50px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .subscribe-form input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            color: white;
+            outline: none;
+        }
+
+        .subscribe-form input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .subscribe-form button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-weight: 600;
+        }
+
+        .subscribe-form button:hover {
+            background: var(--primary-light);
+        }
+
+        .footer-social {
+            text-align: center;
+            padding: 2rem 0;
+            border-top: 1px solid #333;
+        }
+
+        .footer-social a {
+            color: #ccc;
+            margin: 0 1rem;
+            font-size: 1.5rem;
+            transition: var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .footer-social a:hover {
+            color: white;
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding: 1.5rem 0;
+            border-top: 1px solid #333;
+            color: #777;
+        }
+
+        /* Scroll Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .blob { display: none; }
+            
+            .carousel-item {
+                height: 70vh;
+            }
+            
+            .carousel-caption h1 {
+                font-size: 2.5rem;
+            }
+            
+            .section-title {
+                font-size: 2.2rem;
+            }
+            
+            .section-padding {
+                padding: 3rem 0;
+            }
+            
+            .hero-buttons {
+                justify-content: center;
+            }
+            
+            .btn-hero {
+                font-size: 1rem;
+                padding: 0.75rem 1.5rem;
+            }
+            
+            .navbar {
+                padding: 0.5rem 0;
+            }
+            
+            .feature-card,
+            .story-card {
+                padding: 2rem 1.5rem;
+            }
+            
+            .cta-heading {
+                font-size: 2.2rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .carousel-item {
+                height: 60vh;
+            }
+            
+            .carousel-caption {
+                padding: 1rem;
+            }
+            
+            .carousel-caption h1 {
+                font-size: 2rem;
+            }
+            
+            .section-title {
+                font-size: 1.8rem;
+            }
+            
+            .section-padding {
+                padding: 2.5rem 0;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .impact-count {
+                font-size: 2.5rem;
+            }
+            
+            .footer-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Blobs -->
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+    <div class="blob blob3"></div>
+    <div class="blob blob4"></div>
+
+    <!-- Professional Navbar -->
+    <nav id="navbar" class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">Nexttern</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Internships</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Companies</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+                </ul>
+                <button class="btn btn-login ms-3" onclick="window.location.href='login.html'">Login</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Carousel -->
+    <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+        <div class="carousel-inner">
+            <!-- Slide 1: Find Internships -->
+            <div class="carousel-item active">
+                <div class="hero-bg" style="background-image: linear-gradient(135deg, rgba(3, 89, 70, 0.8), rgba(78, 205, 196, 0.6)), url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTkyMCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiBmaWxsPSIjZjhmZmZlIi8+CjxjaXJjbGUgY3g9IjE2MDAiIGN5PSIyMDAiIHI9IjMwMCIgZmlsbD0iIzAzNTk0NiIgZmlsbC1vcGFjaXR5PSIwLjEiLz4KPGJ5Y2lyY2xlIGN4PSI0MDAiIGN5PSI4MDAiIHI9IjIwMCIgZmlsbD0iIzRlY2RjNCIgZmlsbC1vcGFjaXR5PSIwLjE1Ii8+CjxwYXRoIGQ9Ik02MDAgNDAwSDgwMFY2MDBINjAwVjQwMFoiIGZpbGw9IiMwMzU5NDYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPgo8L3N2Zz4K')"></div>
+                <div class="carousel-caption">
+                    <h1>Find Your Next Internship</h1>
+                    <p>Your gateway to discovering amazing internship opportunities with top companies.</p>
+                    <div class="hero-buttons">
+                        <a href="#" class="btn-hero btn-primary-hero">
+                            <i class="fas fa-search"></i>
+                            Explore Internships
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: Professional Growth -->
+            <div class="carousel-item">
+                <div class="hero-bg" style="background-image: linear-gradient(135deg, rgba(3, 89, 70, 0.8), rgba(78, 205, 196, 0.6)), url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTkyMCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiBmaWxsPSIjZjhmZmZlIi8+CjxjaXJjbGUgY3g9IjMwMCIgY3k9IjMwMCIgcj0iMjUwIiBmaWxsPSIjMDM1OTQ2IiBmaWxsLW9wYWNpdHk9IjAuMTIiLz4KPHN2ZyB4PSI4MDAiIHk9IjIwMCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiPgo8cGF0aCBkPSJNMjAwIDUwTDM1MCAyMDBMMjAwIDM1MEw1MCAyMDBMMjAwIDUwWiIgZmlsbD0iIzRlY2RjNCIgZmlsbC1vcGFjaXR5PSIwLjA4Ii8+Cjwvc3ZnPgo8L3N2Zz4K')"></div>
+                <div class="carousel-caption">
+                    <h1>Your Gateway to Professional Growth</h1>
+                    <p>Connect with top companies, build your skills, and launch your career with confidence.</p>
+                    <div class="hero-buttons">
+                        <a href="#" class="btn-hero btn-primary-hero">
+                            <i class="fas fa-briefcase"></i>
+                            Find Internships
+                        </a>
+                        <a href="#" class="btn-hero btn-secondary-hero">
+                            <i class="fas fa-info-circle"></i>
+                            Learn More
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3: Post Internships -->
+            <div class="carousel-item">
+                <div class="hero-bg" style="background-image: linear-gradient(135deg, rgba(3, 89, 70, 0.8), rgba(78, 205, 196, 0.6)), url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTkyMCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiBmaWxsPSIjZjhmZmZlIi8+CjxyZWN0IHg9IjUwMCIgeT0iMjAwIiB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzAzNTk0NiIgZmlsbC1vcGFjaXR5PSIwLjA2IiByeD0iMjAiLz4KPGJ5Y2lyY2xlIGN4PSIxNTAwIiBjeT0iNzAwIiByPSIzMDAiIGZpbGw9IiM0ZWNkYzQiIGZpbGwtb3BhY2l0eT0iMC4xIi8+CjxjaXJjbGUgY3g9IjIwMCIgY3k9IjUwMCIgcj0iMTAwIiBmaWxsPSIjMDM1OTQ2IiBmaWxsLW9wYWNpdHk9IjAuMTUiLz4KPC9zdmc+Cg==')"></div>
+                <div class="carousel-caption">
+                    <h1>Post Internships Easily</h1>
+                    <p>Companies can find the right talent and manage applicants seamlessly through our platform.</p>
+                    <div class="hero-buttons">
+                        <a href="#" class="btn-hero btn-primary-hero">
+                            <i class="fas fa-plus-circle"></i>
+                            Post Internships
+                        </a>
+                        <a href="#" class="btn-hero btn-secondary-hero">
+                            <i class="fas fa-user-plus"></i>
+                            Register
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        </button>
+    </div>
+
+    <!-- Why Choose Section -->
+    <section class="section-padding fade-in">
+        <div class="container">
+            <h2 class="section-title">Why Choose Nexttern</h2>
+            <p class="section-subtitle">Our platform provides everything you need to find the perfect internship or discover talented interns for your company.</p>
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <h5>Easy Application Process</h5>
+                        <p>Apply to multiple internships with just a few clicks using your saved profile and resume.</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h5>Verified Companies</h5>
+                        <p>All companies on our platform are verified to ensure legitimate and quality internship opportunities.</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h5>Resume Builder</h5>
+                        <p>Create a professional resume with our easy-to-use builder to stand out to potential employers.</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h5>Analytics Dashboard</h5>
+                        <p>Track your application status and performance with detailed analytics and insights.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact Section -->
+    <section class="section-padding fade-in">
+        <div class="container">
+            <div class="impact-section section-padding">
+                <div class="container">
+                    <h2 class="section-title" style="color: var(--secondary);">Making an Impact</h2>
+                    <p class="section-subtitle">Join thousands of students and companies already benefiting from our platform.</p>
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="impact-item">
+                                <span class="impact-count" data-count="10000">0</span>
+                                <div class="impact-label">Active Students</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="impact-item">
+                                <span class="impact-count" data-count="500">0</span>
+                                <div class="impact-label">Partner Companies</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="impact-item">
+                                <span class="impact-count" data-count="2500">0</span>
+                                <div class="impact-label">Available Internships</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="impact-item">
+                                <span class="impact-count" data-count="8000">0</span>
+                                <div class="impact-label">Successful Placements</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Featured Companies -->
+    <section class="section-padding fade-in">
+        <div class="container">
+            <h2 class="section-title">Featured Companies</h2>
+            <p class="section-subtitle">Join these leading companies in finding talented interns for your organization.</p>
+            <div class="marquee-container">
+                <div class="marquee-track">
+                    <div class="company-item"><i class="fab fa-microsoft"></i><p>Microsoft</p></div>
+                    <div class="company-item"><i class="fab fa-google"></i><p>Google</p></div>
+                    <div class="company-item"><i class="fab fa-amazon"></i><p>Amazon</p></div>
+                    <div class="company-item"><i class="fab fa-apple"></i><p>Apple</p></div>
+                    <div class="company-item"><i class="fab fa-meta"></i><p>Meta</p></div>
+                    <div class="company-item"><i class="fab fa-netflix"></i><p>Netflix</p></div>
+                    <div class="company-item"><i class="fab fa-spotify"></i><p>Spotify</p></div>
+                    <div class="company-item"><i class="fab fa-adobe"></i><p>Adobe</p></div>
+                    <div class="company-item"><i class="fab fa-salesforce"></i><p>Salesforce</p></div>
+                    <div class="company-item"><i class="fab fa-uber"></i><p>Uber</p></div>
+                    <!-- Duplicate for seamless loop -->
+                    <div class="company-item"><i class="fab fa-microsoft"></i><p>Microsoft</p></div>
+                    <div class="company-item"><i class="fab fa-google"></i><p>Google</p></div>
+                    <div class="company-item"><i class="fab fa-amazon"></i><p>Amazon</p></div>
+                    <div class="company-item"><i class="fab fa-apple"></i><p>Apple</p></div>
+                    <div class="company-item"><i class="fab fa-meta"></i><p>Meta</p></div>
+                    <div class="company-item"><i class="fab fa-netflix"></i><p>Netflix</p></div>
+                    <div class="company-item"><i class="fab fa-spotify"></i><p>Spotify</p></div>
+                    <div class="company-item"><i class="fab fa-adobe"></i><p>Adobe</p></div>
+                    <div class="company-item"><i class="fab fa-salesforce"></i><p>Salesforce</p></div>
+                    <div class="company-item"><i class="fab fa-uber"></i><p>Uber</p></div>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <a href="#" class="btn-hero btn-secondary-hero" style="background: var(--primary); color: white; border-color: var(--primary);">
+                    <i class="fas fa-building"></i>
+                    Join as Company
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Stories -->
+    <section class="section-padding fade-in">
+        <div class="container">
+            <h2 class="section-title">Student Success Stories</h2>
+            <p class="section-subtitle">Discover how our platform has transformed careers and opened new opportunities.</p>
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="story-card">
+                        <div class="story-img" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;">AS</div>
+                        <h3 class="story-title">Aditi Sharma</h3>
+                        <p class="story-desc">"From intern to full-time software engineer at a top MNC through Nexttern's internship match! The platform connected me with amazing opportunities."</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="story-card">
+                        <div class="story-img" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;">RV</div>
+                        <h3 class="story-title">Rahul Verma</h3>
+                        <p class="story-desc">"Discovered my passion for data analytics and landed a role at a startup after a hands-on internship. Nexttern made it all possible!"</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="story-card">
+                        <div class="story-img" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;">NK</div>
+                        <h3 class="story-title">Neha Kulkarni</h3>
+                        <p class="story-desc">"Turned classroom learning into real-world impact with Nexttern's UX design internship program. The experience was transformative!"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="section-padding fade-in">
+        <div class="container">
+            <div class="cta-section section-padding">
+                <div class="cta-content">
+                    <h2 class="cta-heading">Ready to Start Your Journey?</h2>
+                    <p class="cta-desc">Whether you're a student looking for an internship or a company seeking talented interns, Nexttern is your gateway to connect and grow.</p>
+                    <div class="cta-buttons">
+                        <a href="register_student.html" class="cta-btn student">
+                            <i class="fas fa-user-graduate"></i>
+                            Register as Student
+                        </a>
+                        <a href="register_company.html" class="cta-btn company">
+                            <i class="fas fa-building"></i>
+                            Register as Company
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Professional Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-column brand">
+                <div class="footer-logo">N</div>
+                <h3>Nexttern</h3>
+                <p>Your bridge to internships and industrial growth. Empowering students and companies to build meaningful connections and achieve success together.</p>
+            </div>
+            <div class="footer-column">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">Find Internships</a></li>
+                    <li><a href="#">Post Internship</a></li>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Success Stories</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="#">Career Blog</a></li>
+                    <li><a href="#">Interview Tips</a></li>
+                    <li><a href="#">Resume Builder</a></li>
+                    <li><a href="#">FAQs</a></li>
+                    <li><a href="#">Help Center</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Stay Connected</h4>
+                <p>Get the latest internship alerts and career tips delivered to your inbox.</p>
+                <form class="subscribe-form">
+                    <input type="email" placeholder="Enter your email" required>
+                    <button type="submit">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+                <div style="margin-top: 2rem;">
+                    <h4>Contact Us</h4>
+                    <p style="margin: 0.5rem 0; color: #ccc;"><i class="fas fa-envelope" style="margin-right: 0.5rem;"></i> support@nexttern.com</p>
+                    <p style="margin: 0.5rem 0; color: #ccc;"><i class="fas fa-phone-alt" style="margin-right: 0.5rem;"></i> +91 98765 43210</p>
+                    <p style="margin: 0.5rem 0; color: #ccc;"><i class="fas fa-map-marker-alt" style="margin-right: 0.5rem;"></i> Mumbai, India</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-social">
+            <a href="#"><i class="fab fa-linkedin"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-facebook"></i></a>
+            <a href="#"><i class="fab fa-youtube"></i></a>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2025 Nexttern. All Rights Reserved. | Privacy Policy | Terms of Service</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Enhanced Counter Animation
+        const counters = document.querySelectorAll('.impact-count');
+        const counterSection = document.querySelector('.impact-section');
+        let hasAnimated = false;
+
+        const animateCounts = () => {
+            counters.forEach(counter => {
+                const updateCount = () => {
+                    const target = +counter.getAttribute('data-count');
+                    const current = +counter.innerText.replace(/,/g, '');
+                    const increment = Math.max(1, Math.ceil(target / 80));
+                    
+                    if (current < target) {
+                        const newValue = Math.min(current + increment, target);
+                        counter.innerText = new Intl.NumberFormat().format(newValue);
+                        setTimeout(updateCount, 25);
+                    } else {
+                        counter.innerText = new Intl.NumberFormat().format(target) + "+";
+                    }
+                };
+                updateCount();
+            });
+        };
+
+        // Enhanced Scroll Animations
+        const observerOptions = {
+            threshold: 0.3,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    
+                    // Trigger counter animation for impact section
+                    if (entry.target.querySelector('.impact-section') && !hasAnimated) {
+                        setTimeout(() => {
+                            animateCounts();
+                            hasAnimated = true;
+                        }, 200);
+                    }
+                    
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        // Observe all fade-in elements
+        document.querySelectorAll('.fade-in').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Enhanced Navbar Scroll Effect
+        let lastScrollTop = 0;
+        const navbar = document.getElementById("navbar");
+
+        window.addEventListener("scroll", function() {
+            const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // Add scrolled class for styling
+            if (currentScroll > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+            
+            // Hide/show navbar on scroll
+            if (currentScroll > lastScrollTop && currentScroll > 200) {
+                navbar.style.transform = 'translateY(-100%)';
+            } else {
+                navbar.style.transform = 'translateY(0)';
+            }
+            
+            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Enhanced carousel auto-pause on hover
+        const carousel = document.querySelector('#heroCarousel');
+        if (carousel) {
+            carousel.addEventListener('mouseenter', () => {
+                bootstrap.Carousel.getInstance(carousel).pause();
+            });
+            
+            carousel.addEventListener('mouseleave', () => {
+                bootstrap.Carousel.getInstance(carousel).cycle();
+            });
+        }
+
+        // Parallax effect for hero backgrounds
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const backgrounds = document.querySelectorAll('.hero-bg');
+            
+            backgrounds.forEach(bg => {
+                const speed = 0.5;
+                bg.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
+
+        // Newsletter form submission
+        document.querySelector('.subscribe-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = this.querySelector('input[type="email"]').value;
+            
+            // Simulate API call
+            this.querySelector('button').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            setTimeout(() => {
+                alert('Thank you for subscribing! You will receive our latest updates.');
+                this.reset();
+                this.querySelector('button').innerHTML = '<i class="fas fa-paper-plane"></i>';
+            }, 1000);
+        });
+
+        // Add loading animation for images
+        document.addEventListener('DOMContentLoaded', function() {
+            const images = document.querySelectorAll('img');
+            images.forEach(img => {
+                img.addEventListener('load', function() {
+                    this.style.opacity = '1';
+                });
+            });
+        });
+
+        // Performance optimization: Reduce animations on low-end devices
+        if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
+            document.body.classList.add('reduced-motion');
+        }
+    </script>
+</body>
+</html>
