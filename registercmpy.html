@@ -371,7 +371,7 @@
     if (!valid) return;
 
     const formData = new FormData(this);
-    fetch("registercy.php", { method: "POST", body: formData })
+    fetch("registercmpy.php", { method: "POST", body: formData })
       .then(res => res.json())
       .then(data => {
         const popup = document.getElementById("popupMessage");

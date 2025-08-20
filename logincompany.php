@@ -61,7 +61,7 @@ $_SESSION['company_name'] = $company_name;
 // Success: redirect to company dashboard (change as needed)
 echo json_encode([
     'success' => true,
-    'redirect' => 'companydashboard.html'
+    'redirect' => 'company_dash.html' // <-- update this line
 ]);
 
 $stmt->close();
