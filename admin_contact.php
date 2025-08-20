@@ -1,9 +1,4 @@
 <?php
-
-// ==========================================================
-//  DATABASE CONNECTION AND INITIAL SETUP
-// ==========================================================
-
 // Database connection details
 $servername = "localhost";
 $username = "root";
@@ -57,9 +52,6 @@ if ($table_check_messages->num_rows == 0) {
     $conn->query($create_contact_messages_table);
 }
 
-// ==========================================================
-//  HANDLE FORM POST REQUESTS
-// ==========================================================
 
 $success_message = '';
 $error_message = '';
@@ -121,10 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_message'])) {
     }
     $active_tab = 'messages'; // Stay on messages tab
 }
-
-// ==========================================================
-//  DATA FETCHING
-// ==========================================================
 
 // Pagination setup
 $messages_per_page = 10;
