@@ -164,21 +164,6 @@ h1, h2, h3, h4, h5, h6 {
   50% { transform: translate(20px, -20px) scale(1.05); }
   100% { transform: translate(-20px, 20px) scale(1); }
 }
-.success-popup {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(3, 89, 70, 0.2);
-  color: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 20px;
-  font-weight: bold;
-  z-index: 999;
-  display: none;
-}
 .error-text {
   color: #b10000;
   font-size: 13px;
@@ -218,8 +203,6 @@ h1, h2, h3, h4, h5, h6 {
 <div class="blob blob2"></div>
 <div class="blob blob3"></div>
 <div class="blob blob4"></div>
-
-<div id="popupMessage" class="success-popup"></div>
 
 <div class="container">
   <div class="register-box">
@@ -507,28 +490,18 @@ document.getElementById("registerForm").addEventListener("submit", function(e) {
   .then(data => {
     console.log("Parsed response:", data); // Debug log
     
-    const popup = document.getElementById("popupMessage");
-    popup.textContent = data.message || "Registration completed";
-    popup.style.display = "flex";
-    
-    setTimeout(() => {
-      popup.style.display = "none";
-      if (data.success) {
-        console.log("Registration successful, redirecting..."); // Debug log
-        window.location.href = "login.html";
-      }
-    }, 2000);
+    // Simply redirect on success without showing any popup
+    if (data.success) {
+      console.log("Registration successful, redirecting..."); // Debug log
+      window.location.href = "login.html";
+    } else {
+      // Only show error messages, no success popup
+      console.error("Registration failed:", data.message);
+    }
   })
   .catch(error => {
     console.error("Registration error:", error); // Debug log
-    
-    const popup = document.getElementById("popupMessage");
-    popup.textContent = "Registration failed: " + error.message;
-    popup.style.display = "flex";
-    
-    setTimeout(() => {
-      popup.style.display = "none";
-    }, 3000);
+    // Could add error handling here if needed, but no popup
   })
   .finally(() => {
     // Re-enable submit button
