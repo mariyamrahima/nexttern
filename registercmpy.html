@@ -182,7 +182,7 @@
       <h2>Register Your Company</h2>
       <p>Join our internship portal and connect with talented students</p>
     </div>
-    <form id="registerCompanyForm" method="POST" action="registercmpny.php" novalidate>
+    <form id="registerCompanyForm" method="POST" action="registercmpy.php" novalidate>
       <div class="form-grid">
         <div class="form-group">
           <input type="text" name="company_name" id="company_name" placeholder=" ">
@@ -371,7 +371,7 @@
     if (!valid) return;
 
     const formData = new FormData(this);
-    fetch("registercompany.php", { method: "POST", body: formData })
+    fetch("registercmpy.php", { method: "POST", body: formData })
       .then(res => res.json())
       .then(data => {
         const popup = document.getElementById("popupMessage");

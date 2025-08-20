@@ -350,7 +350,7 @@ h1, h2, h3, h4, h5, h6 {
           <button type="submit" class="submit-btn">Login</button>
         </div>
         <div class="footer-link">
-          <a href="registercompany1.html">Don't have an account? Register as a company</a>
+          <a href="registercmpy.html">Don't have an account? Register as a company</a>
         </div>
       </form>
     </div>
@@ -478,7 +478,7 @@ document.getElementById("loginForm").addEventListener("submit", function(e) {
 
   const formData = new FormData(this);
 
-  fetch("companylogin.php", { // Changed to companylogin.php
+  fetch("logincompany.php", { // Changed to companylogin.php
     method: "POST",
     body: formData
   })
