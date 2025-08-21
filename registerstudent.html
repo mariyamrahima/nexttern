@@ -342,6 +342,44 @@ function validateDate(dateStr) {
          date <= new Date(); // Must be today or earlier
 }
 
+// Function to display server error messages
+function displayServerError(message) {
+  // Check if the error is related to email already existing
+  if (message.toLowerCase().includes('email already exists') || message.toLowerCase().includes('email already registered')) {
+    document.getElementById("emailError").textContent = "This email is already registered. Please use a different email.";
+    shakeField("email");
+    return;
+  }
+  
+  // Check for other specific server errors and map them to appropriate fields
+  if (message.toLowerCase().includes('gmail')) {
+    document.getElementById("emailError").textContent = "Only Gmail addresses are allowed";
+    shakeField("email");
+  } else if (message.toLowerCase().includes('password')) {
+    document.getElementById("passwordFieldError").textContent = message;
+    shakeField("password");
+  } else if (message.toLowerCase().includes('phone') || message.toLowerCase().includes('contact')) {
+    document.getElementById("phoneError").textContent = "Please enter a valid phone number";
+    shakeField("contact");
+  } else if (message.toLowerCase().includes('date') || message.toLowerCase().includes('dob')) {
+    document.getElementById("dobError").textContent = "Please enter a valid date of birth";
+    shakeField("dob");
+  } else if (message.toLowerCase().includes('first name')) {
+    document.getElementById("firstNameError").textContent = "Please enter a valid first name";
+    shakeField("first_name");
+  } else if (message.toLowerCase().includes('last name')) {
+    document.getElementById("lastNameError").textContent = "Please enter a valid last name";
+    shakeField("last_name");
+  } else if (message.toLowerCase().includes('gender')) {
+    document.getElementById("genderError").textContent = "Please select a gender";
+    shakeField("gender");
+  } else {
+    // For generic errors, show under email field as a fallback
+    document.getElementById("emailError").textContent = message;
+    shakeField("email");
+  }
+}
+
 document.getElementById("registerForm").addEventListener("submit", function(e) {
   e.preventDefault();
   
@@ -490,18 +528,20 @@ document.getElementById("registerForm").addEventListener("submit", function(e) {
   .then(data => {
     console.log("Parsed response:", data); // Debug log
     
-    // Simply redirect on success without showing any popup
+    // Handle success
     if (data.success) {
       console.log("Registration successful, redirecting..."); // Debug log
       window.location.href = "login.html";
     } else {
-      // Only show error messages, no success popup
+      // Display server error message in appropriate field
       console.error("Registration failed:", data.message);
+      displayServerError(data.message);
     }
   })
   .catch(error => {
     console.error("Registration error:", error); // Debug log
-    // Could add error handling here if needed, but no popup
+    // Display generic error message
+    displayServerError("Registration failed. Please try again.");
   })
   .finally(() => {
     // Re-enable submit button

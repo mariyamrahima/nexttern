@@ -91,10 +91,6 @@ h1, h2, h3, h4, h5, h6 {
   color: #2e3944;
   font-weight: 500;
 }
-
-/* ==================================== */
-/* New styles for the toggle buttons */
-/* ==================================== */
 .login-toggle-buttons {
     display: flex;
     justify-content: center;
@@ -152,13 +148,10 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 14px;
   color: #555;
 }
-
-/* Form Group (Input + Label + Error) */
 .form-group {
   position: relative;
   margin-bottom: 25px;
 }
-
 .form-group input {
   width: 100%;
   padding: 14px 16px;
@@ -370,24 +363,11 @@ h1, h2, h3, h4, h5, h6 {
 </div>
 
 <script>
-/**
- * Toggles the visibility of a password input field.
- * Changes input type between 'password' and 'text' and updates the eye icon.
- * @param {string} id - The ID of the password input field.
- * @param {HTMLElement} icon - The icon element that was clicked.
- */
 function toggleVisibility(id, icon) {
   const input = document.getElementById(id);
   input.type = input.type === "password" ? "text" : "password";
   icon.textContent = input.type === "password" ? "👁️" : "👁️‍🗨️";
 }
-
-/**
- * Shows error message with shake animation and red border.
- * @param {HTMLElement} input - The input field to apply error styling to.
- * @param {HTMLElement} errorElement - The error message element.
- * @param {string} message - The error message to display.
- */
 function showError(input, errorElement, message) {
   input.classList.add('error-border', 'shake');
   errorElement.textContent = message;
@@ -396,21 +376,11 @@ function showError(input, errorElement, message) {
     input.classList.remove('shake');
   }, 300);
 }
-
-/**
- * Clears error state from input and error message.
- * @param {HTMLElement} input - The input field to clear error styling from.
- * @param {HTMLElement} errorElement - The error message element to hide.
- */
 function clearError(input, errorElement) {
   input.classList.remove('error-border', 'shake');
   errorElement.classList.remove('show');
   errorElement.textContent = '';
 }
-
-/**
- * Clears all errors from the form.
- */
 function clearAllErrors() {
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
@@ -420,12 +390,6 @@ function clearAllErrors() {
   clearError(emailInput, emailError);
   clearError(passwordInput, passwordError);
 }
-
-/**
- * Validates email format (Gmail only).
- * @param {string} email - Email to validate.
- * @returns {boolean} - True if valid Gmail format.
- */
 function isValidGmailFormat(email) {
   const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
   return gmailRegex.test(email);
@@ -515,10 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add 'active' class to the student button by default
     studentBtn.classList.add('active');
-
-    // The student button doesn't need a click handler as it's the current page
-    
-    // Add a click listener for the company button
     companyBtn.addEventListener('click', () => {
         // Redirect to the company login page
         window.location.href = 'logincompany.html';
