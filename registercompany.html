@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register Company | Nexttern</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f5fbfa;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+    }
+    .register-box {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(14px);
+      width: 900px;
+      max-width: 95%;
+      border-radius: 20px;
+      padding: 40px;
+      position: relative;
+      animation: bounceIn 0.8s ease-out;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      z-index: 1;
+      margin: 20px 0;
+    }
+    @keyframes bounceIn {
+      0% { transform: scale(0.9); opacity: 0; }
+      60% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .form-header { text-align: center; margin-bottom: 25px; }
+    .form-header h2 { font-size: 24px; color: #035946; }
+    .form-header p { font-size: 14px; color: #555; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px 40px;
+    }
+    .form-group { position: relative; }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
+      background-color: #f7f7f7;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #035946;
+    }
+    .form-group label {
+      position: absolute;
+      top: 50%;
+      left: 16px;
+      transform: translateY(-50%);
+      background: #f7f7f7;
+      padding: 0 6px;
+      transition: 0.2s ease;
+      font-size: 14px;
+      color: #666;
+      pointer-events: none;
+    }
+    .form-group input:focus + label,
+    .form-group input:not(:placeholder-shown) + label,
+    .form-group select:focus + label,
+    .form-group select:not([value=""]) + label {
+      top: 0;
+      left: 12px;
+      font-size: 12px;
+      color: #035946;
+      background: #f5fbfa;
+    }
+    .submit-btn {
+      grid-column: span 2;
+      background-color: #035946;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 15px;
+      width: 200px;
+      justify-self: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .submit-btn:hover {
+      background-color: #024437;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(3, 89, 70, 0.3);
+    }
+    .submit-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .loading {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #ffffff;
+      border-top: 2px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .footer-link {
+      grid-column: span 2;
+      text-align: center;
+      font-size: 14px;
+      margin-top: 10px;
+      color: #555;
+    }
+    .footer-link a {
+      color: #035946;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+    .footer-link a:hover {
+      color: #024437;
+      text-decoration: underline;
+    }
+    .toggle-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 18px;
+      color: #666;
+      transition: color 0.3s ease;
+    }
+    .toggle-icon:hover {
+      color: #035946;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      z-index: 0;
+      animation: moveBlob 20s infinite alternate ease-in-out;
+    }
+    .blob1 { width: 500px; height: 500px; background: rgba(3, 89, 70, 0.15); top: -100px; right: -150px; }
+    .blob2 { width: 300px; height: 300px; background: rgba(3, 89, 70, 0.2); top: 150px; right: -100px; animation-delay: 2s; }
+    .blob3 { width: 250px; height: 250px; background: rgba(3, 89, 70, 0.12); bottom: 50px; left: -120px; animation-delay: 4s; }
+    .blob4 { width: 150px; height: 150px; background: rgba(3, 89, 70, 0.18); bottom: -60px; left: 80px; animation-delay: 1s; }
+    @keyframes moveBlob {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(20px, -20px) scale(1.05); }
+      100% { transform: translate(-20px, 20px) scale(1); }
+    }
+    .error-text {
+      color: #b10000;
+      font-size: 13px;
+      margin-top: 3px;
+      min-height: 18px;
+    }
+    .shake { animation: shake 0.3s ease-in-out; }
+    .error-border { border-color: #b10000 !important; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0);}
+      20%,60%{transform:translateX(-8px);}
+      40%,80%{transform:translateX(8px);}
+    }
+
+    /* Admin Approval Alert Styles */
+    .admin-alert {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #035946, #024437);
+      color: white;
+      padding: 20px 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(3, 89, 70, 0.3);
+      z-index: 9999;
+      min-width: 320px;
+      max-width: 400px;
+      transform: translateX(100%);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      border-left: 4px solid #4ade80;
+    }
+    .admin-alert.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    .admin-alert-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .admin-alert-icon {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-size: 16px;
+    }
+    .admin-alert-body {
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 15px;
+      opacity: 0.9;
+    }
+    .admin-alert-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .admin-alert-close {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+      padding: 4px;
+      line-height: 1;
+    }
+    .admin-alert-close:hover {
+      opacity: 1;
+    }
+    .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 0 0 12px 12px;
+      animation: progressBar 5s linear forwards;
+    }
+    @keyframes progressBar {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
+
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .submit-btn, .footer-link { grid-column: span 1; }
+      .submit-btn { width: 100%; }
+      .register-box { padding: 30px 20px; }
+      
+      .admin-alert {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+<div class="blob blob4"></div>
+
+<div class="container">
+  <div class="register-box">
+    <div class="form-header">
+      <h2>Register Your Company</h2>
+      <p>Join our internship portal and connect with talented students</p>
+    </div>
+    <form id="registerCompanyForm" method="POST" action="registercmpy.php" novalidate>
+      <div class="form-grid">
+        <div class="form-group">
+          <input type="text" name="company_name" id="company_name" placeholder=" " maxlength="100">
+          <label>Company Name *</label>
+          <div class="error-text" id="companyNameError"></div>
+        </div>
+        <div class="form-group">
+          <select name="industry_type" id="industry_type">
+            <option value="" disabled selected hidden></option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Finance & Banking">Finance & Banking</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Education">Education</option>
+            <option value="Manufacturing">Manufacturing</option>
+            <option value="Retail & E-commerce">Retail & E-commerce</option>
+            <option value="Consulting">Consulting</option>
+            <option value="Marketing & Advertising">Marketing & Advertising</option>
+            <option value="Construction & Real Estate">Construction & Real Estate</option>
+            <option value="Media & Entertainment">Media & Entertainment</option>
+            <option value="Transportation & Logistics">Transportation & Logistics</option>
+            <option value="Other">Other</option>
+          </select>
+          <label>Industry Type *</label>
+          <div class="error-text" id="industryTypeError"></div>
+        </div>
+        <div class="form-group">
+          <input type="email" name="company_email" id="company_email" placeholder=" " maxlength="100">
+          <label>Company Email (Gmail) *</label>
+          <div class="error-text" id="companyEmailError"></div>
+        </div>
+        <div class="form-group">
+          <select name="year_established" id="year_established">
+            <option value="" disabled selected hidden></option>
+            <!-- Years will be populated by JS -->
+          </select>
+          <label>Year of Establishment *</label>
+          <div class="error-text" id="yearEstablishedError"></div>
+        </div>
+        <div class="form-group">
+          <input type="text" name="contact_name" id="contact_name" placeholder=" " maxlength="50">
+          <label>Contact Person *</label>
+          <div class="error-text" id="contactNameError"></div>
+        </div>
+        <div class="form-group">
+          <input type="text" name="designation" id="designation" placeholder=" " maxlength="50">
+          <label>Designation *</label>
+          <div class="error-text" id="designationError"></div>
+        </div>
+        <div class="form-group">
+          <input type="text" name="contact_phone" id="contact_phone" placeholder=" " maxlength="20">
+          <label>Phone Number *</label>
+          <div class="error-text" id="contactPhoneError"></div>
+        </div>
+        <div class="form-group">
+          <input type="password" name="password" id="password" placeholder=" " maxlength="50">
+          <label>Create Password *</label>
+          <span class="toggle-icon" onclick="toggleVisibility('password', this)">👁️</span>
+          <div class="error-text" id="passwordFieldError"></div>
+        </div>
+        <div class="form-group">
+          <input type="password" name="confirm_password" id="confirm_password" placeholder=" " maxlength="50">
+          <label>Confirm Password *</label>
+          <span class="toggle-icon" onclick="toggleVisibility('confirm_password', this)">👁️</span>
+          <div class="error-text" id="passwordError"></div>
+        </div>
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span id="btnText">Register</span>
+          <span class="loading" id="loading">
+            <div class="spinner"></div>
+          </span>
+        </button>
+        <div class="footer-link">
+          <a href="registerstudent.html">Register as Student</a> | <a href="logincompany.html">Already have an account? Login</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Populate years dropdown
+  (function() {
+    const yearSelect = document.getElementById('year_established');
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 1900; y--) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      yearSelect.appendChild(opt);
+    }
+  })();
+
+  // Toggle password visibility
+  function toggleVisibility(id, icon) {
+    const input = document.getElementById(id);
+    if (input.type === "password") {
+      input.type = "text";
+      icon.textContent = "👁️‍🗨️";
+    } else {
+      input.type = "password";
+      icon.textContent = "👁️";
+    }
+  }
+
+  // Enhanced phone validation
+  function validatePhone(phone) {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) return false;
+    const phonePatterns = [
+      /^\d{10}$/,                    // 1234567890
+      /^\+\d{10,14}$/,               // +11234567890
+      /^\d{3}-\d{3}-\d{4}$/,         // 123-456-7890
+      /^\(\d{3}\)\s?\d{3}-\d{4}$/,   // (123) 456-7890
+      /^\d{3}\s\d{3}\s\d{4}$/        // 123 456 7890
+    ];
+    return phonePatterns.some(pattern => pattern.test(phone)) || /^\d{10,15}$/.test(cleanPhone);
+  }
+
+  // Enhanced email validation for Gmail only
+  function validateEmail(email) {
+    // Check if email ends with @gmail.com (case insensitive)
+    const gmailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+    return gmailPattern.test(email);
+  }
+
+  // Function to show admin approval alert
+  function showAdminApprovalAlert(companyId) {
+    const alertHTML = `
+      <div class="admin-alert" id="adminAlert">
+        <button class="admin-alert-close" onclick="closeAdminAlert()">&times;</button>
+        <div class="admin-alert-header">
+          <div class="admin-alert-icon">⏳</div>
+          Registration Pending
+        </div>
+        <div class="admin-alert-body">
+          Your company registration has been submitted successfully! Your account is currently pending admin approval. You'll receive an email notification once approved.
+        </div>
+        <div class="admin-alert-footer">
+          <span>Company ID: ${companyId}</span>
+          <span>Status: Pending</span>
+        </div>
+        <div class="progress-bar"></div>
+      </div>
+    `;
+    
+    // Insert alert into body
+    document.body.insertAdjacentHTML('beforeend', alertHTML);
+    
+    // Show alert with animation
+    setTimeout(() => {
+      document.getElementById('adminAlert').classList.add('show');
+    }, 100);
+    
+    // Auto close after 5 seconds
+    setTimeout(() => {
+      closeAdminAlert();
+    }, 6000);
+  }
+
+  // Function to close admin alert
+  function closeAdminAlert() {
+    const alert = document.getElementById('adminAlert');
+    if (alert) {
+      alert.classList.remove('show');
+      setTimeout(() => {
+        alert.remove();
+      }, 600);
+    }
+  }
+
+  // Function to display server error messages
+  function displayServerError(message) {
+    // Check if the error is related to email already existing
+    if (message.toLowerCase().includes('email is already registered') || 
+        message.toLowerCase().includes('email already exists') || 
+        message.toLowerCase().includes('already registered')) {
+      document.getElementById("companyEmailError").textContent = "This Gmail address is already registered. Please use a different Gmail account.";
+      shakeField("company_email");
+      return;
+    }
+    
+    // Check for other specific server errors and map them to appropriate fields
+    if (message.toLowerCase().includes('company name')) {
+      document.getElementById("companyNameError").textContent = "Please enter a valid company name";
+      shakeField("company_name");
+    } else if (message.toLowerCase().includes('industry type')) {
+      document.getElementById("industryTypeError").textContent = "Please select an industry type";
+      shakeField("industry_type");
+    } else if (message.toLowerCase().includes('email') && message.toLowerCase().includes('format')) {
+      document.getElementById("companyEmailError").textContent = "Please enter a valid Gmail address (must end with @gmail.com)";
+      shakeField("company_email");
+    } else if (message.toLowerCase().includes('year') || message.toLowerCase().includes('establishment')) {
+      document.getElementById("yearEstablishedError").textContent = "Please select a valid year of establishment";
+      shakeField("year_established");
+    } else if (message.toLowerCase().includes('contact') && message.toLowerCase().includes('name')) {
+      document.getElementById("contactNameError").textContent = "Please enter a valid contact person name";
+      shakeField("contact_name");
+    } else if (message.toLowerCase().includes('designation')) {
+      document.getElementById("designationError").textContent = "Please enter a valid designation";
+      shakeField("designation");
+    } else if (message.toLowerCase().includes('phone') || message.toLowerCase().includes('contact phone')) {
+      document.getElementById("contactPhoneError").textContent = "Please enter a valid phone number";
+      shakeField("contact_phone");
+    } else if (message.toLowerCase().includes('password')) {
+      document.getElementById("passwordFieldError").textContent = message;
+      shakeField("password");
+    } else {
+      // For generic errors, show under email field as a fallback
+      document.getElementById("companyEmailError").textContent = message;
+      shakeField("company_email");
+    }
+  }
+
+  // Shake field with error styling
+  function shakeField(id) {
+    const field = document.getElementById(id);
+    field.classList.add("shake", "error-border");
+    setTimeout(() => field.classList.remove("shake"), 500);
+  }
+
+  // Clear all error messages and styling
+  function clearErrors() {
+    const errorFields = [
+      'companyNameError','industryTypeError','companyEmailError','yearEstablishedError',
+      'contactNameError','designationError','contactPhoneError','passwordFieldError','passwordError'
+    ];
+    const inputFields = [
+      'company_name','industry_type','company_email','year_established',
+      'contact_name','designation','contact_phone','password','confirm_password'
+    ];
+    
+    errorFields.forEach(field => {
+      document.getElementById(field).textContent = "";
+    });
+    
+    inputFields.forEach(field => {
+      document.getElementById(field).classList.remove('error-border');
+    });
+  }
+
+  // Set loading state
+  function setLoading(isLoading) {
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const loading = document.getElementById('loading');
+    
+    if (isLoading) {
+      submitBtn.disabled = true;
+      btnText.style.display = 'none';
+      loading.style.display = 'block';
+    } else {
+      submitBtn.disabled = false;
+      btnText.style.display = 'inline';
+      loading.style.display = 'none';
+    }
+  }
+
+  // Main form submission handler
+  document.getElementById("registerCompanyForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    
+    console.log("Form submission started"); // Debug log
+    
+    // Clear previous errors
+    clearErrors();
+    
+    let valid = true;
+
+    // Get form values
+    const companyName = document.getElementById("company_name").value.trim();
+    const industryType = document.getElementById("industry_type").value;
+    const companyEmail = document.getElementById("company_email").value.trim();
+    const yearEstablished = document.getElementById("year_established").value;
+    const contactName = document.getElementById("contact_name").value.trim();
+    const designation = document.getElementById("designation").value.trim();
+    const contactPhone = document.getElementById("contact_phone").value.trim();
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm_password").value;
+
+    console.log("Form values:", { companyName, industryType, companyEmail, yearEstablished, contactName, designation, contactPhone, password: "***", confirmPassword: "***" }); // Debug log
+
+    // Client-side validation
+    if (!companyName) {
+      document.getElementById("companyNameError").textContent = "Company name is required";
+      shakeField("company_name");
+      valid = false;
+    }
+    
+    if (!industryType) {
+      document.getElementById("industryTypeError").textContent = "Please select an industry type";
+      shakeField("industry_type");
+      valid = false;
+    }
+    
+    if (!companyEmail) {
+      document.getElementById("companyEmailError").textContent = "Company email is required";
+      shakeField("company_email");
+      valid = false;
+    } else if (!validateEmail(companyEmail)) {
+      document.getElementById("companyEmailError").textContent = "Please enter a valid Gmail address (must end with @gmail.com)";
+      shakeField("company_email");
+      valid = false;
+    }
+    
+    if (!yearEstablished) {
+      document.getElementById("yearEstablishedError").textContent = "Year of establishment is required";
+      shakeField("year_established");
+      valid = false;
+    }
+    
+    if (!contactName) {
+      document.getElementById("contactNameError").textContent = "Contact person name is required";
+      shakeField("contact_name");
+      valid = false;
+    }
+    
+    if (!designation) {
+      document.getElementById("designationError").textContent = "Designation is required";
+      shakeField("designation");
+      valid = false;
+    }
+    
+    if (!contactPhone) {
+      document.getElementById("contactPhoneError").textContent = "Phone number is required";
+      shakeField("contact_phone");
+      valid = false;
+    } else if (!validatePhone(contactPhone)) {
+      document.getElementById("contactPhoneError").textContent = "Please enter a valid phone number";
+      shakeField("contact_phone");
+      valid = false;
+    }
+    
+    if (!password) {
+      document.getElementById("passwordFieldError").textContent = "Password is required";
+      shakeField("password");
+      valid = false;
+    } else if (password.length < 6) {
+      document.getElementById("passwordFieldError").textContent = "Password must be at least 6 characters long";
+      shakeField("password");
+      valid = false;
+    }
+    
+    if (!confirmPassword) {
+      document.getElementById("passwordError").textContent = "Please confirm your password";
+      shakeField("confirm_password");
+      valid = false;
+    } else if (password && password !== confirmPassword) {
+      document.getElementById("passwordError").textContent = "Passwords do not match";
+      shakeField("password");
+      shakeField("confirm_password");
+      valid = false;
+    }
+
+    console.log("Validation result:", valid); // Debug log
+
+    // If validation fails, stop here
+    if (!valid) {
+      console.log("Form validation failed, stopping submission"); // Debug log
+      return;
+    }
+
+    // Show loading state
+    setLoading(true);
+
+    console.log("Sending form data to server..."); // Debug log
+
+    // Submit form via AJAX
+    const formData = new FormData(this);
+    
+    // Log form data being sent
+    console.log("FormData contents:");
+    for (let [key, value] of formData.entries()) {
+      console.log(key, key.includes('password') ? '***' : value);
+    }
+    
+    fetch("registercompany.php", {
+      method: "POST",
+      body: formData
+    })
+    .then(response => {
+      console.log("Response status:", response.status); // Debug log
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.text(); // Get as text first to check for errors
+    })
+    .then(text => {
+      console.log("Raw response:", text); // Debug log
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error("JSON parse error:", e);
+        throw new Error("Invalid JSON response from server: " + text);
+      }
+    })
+    .then(data => {
+      console.log("Parsed response:", data); // Debug log
+      setLoading(false);
+      
+      // Handle success - show admin approval alert instead of redirect
+      if (data.success) {
+        console.log("Registration successful, showing admin approval alert..."); // Debug log
+        showAdminApprovalAlert(data.company_id);
+        
+        // Reset form after successful submission
+        document.getElementById("registerCompanyForm").reset();
+        
+        // Clear any remaining error styling
+        clearErrors();
+        
+        // Redirect after alert is shown (after 6 seconds)
+        setTimeout(() => {
+          window.location.href = "logincompany.html";
+        }, 6000);
+      } else {
+        // Display server error message in appropriate field
+        console.error("Registration failed:", data.message);
+        displayServerError(data.message);
+      }
+    })
+    .catch(error => {
+      console.error("Registration error:", error); // Debug log
+      setLoading(false);
+      // Display generic error message
+      displayServerError("Registration failed. Please check your connection and try again.");
+    });
+  });
+
+  // Real-time email validation for Gmail
+  document.getElementById('company_email').addEventListener('blur', function() {
+    const email = this.value.trim();
+    if (email && !validateEmail(email)) {
+      document.getElementById("companyEmailError").textContent = "Please enter a valid Gmail address (must end with @gmail.com)";
+      this.classList.add('error-border');
+    } else if (email) {
+      document.getElementById("companyEmailError").textContent = "";
+      this.classList.remove('error-border');
+    }
+  });
+
+  // Real-time phone validation
+  document.getElementById('contact_phone').addEventListener('blur', function() {
+    const phone = this.value.trim();
+    if (phone && !validatePhone(phone)) {
+      document.getElementById("contactPhoneError").textContent = "Please enter a valid phone number";
+      this.classList.add('error-border');
+    } else if (phone) {
+      document.getElementById("contactPhoneError").textContent = "";
+      this.classList.remove('error-border');
+    }
+  });
+
+  // Real-time password confirmation
+  document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (confirmPassword && password !== confirmPassword) {
+      document.getElementById("passwordError").textContent = "Passwords do not match";
+      this.classList.add('error-border');
+    } else {
+      document.getElementById("passwordError").textContent = "";
+      this.classList.remove('error-border');
+    }
+  });
+</script>
+</body>
+</html>

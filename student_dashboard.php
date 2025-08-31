@@ -1,9 +1,10 @@
 <?php
+$page = $_GET['page'] ?? 'dashboard';
 session_start();
 
 // Check if student is logged in
 if (!isset($_SESSION['email'])) {
-    header("Location: login.html");
+   header("Location: login.html");
     exit();
 }
 
@@ -29,6 +30,32 @@ $last_name = htmlspecialchars($row['last_name']);
 $contact = htmlspecialchars($row['contact']);
 $gender = htmlspecialchars($row['gender']);
 $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
+
+// Handle mark as read functionality
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_read'])) {
+    $message_id = $_POST['message_id'];
+    $stmt = $conn->prepare("UPDATE student_messages SET is_read = TRUE WHERE id = ? AND receiver_id = ?");
+    $stmt->bind_param("is", $message_id, $student_id);
+    $stmt->execute();
+    $stmt->close();
+    
+    // Redirect to prevent form resubmission
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Fetch messages for the current student
+$messages_stmt = $conn->prepare("SELECT * FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? ORDER BY created_at DESC");
+$messages_stmt->bind_param("s", $student_id);
+$messages_stmt->execute();
+$messages_result = $messages_stmt->get_result();
+
+// Get unread message count
+$unread_stmt = $conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
+$unread_stmt->bind_param("s", $student_id);
+$unread_stmt->execute();
+$unread_result = $unread_stmt->get_result();
+$unread_count = $unread_result->fetch_assoc()['unread_count'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,6 +72,10 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
             --primary-dark: #023d32;
             --secondary: #2e3944;
             --accent: #4ecdc4;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
             --bg-light: #f5fbfa;
             --glass-bg: rgba(255, 255, 255, 0.2);
             --glass-border: rgba(255, 255, 255, 0.3);
@@ -332,6 +363,39 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
             transform: scale(1.15);
         }
 
+        /* Message Badge */
+        .message-badge {
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: auto;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+
+        .sidebar.collapsed .message-badge {
+            position: absolute;
+            top: 0.2rem;
+            right: 0.2rem;
+            margin: 0;
+            width: 18px;
+            height: 18px;
+            font-size: 0.6rem;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
         /* Logout Section */
         .logout-section {
             margin-top: auto;
@@ -424,6 +488,284 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Messages Section Styles */
+        .messages-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .messages-header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .messages-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .messages-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .messages-title i {
+            color: var(--accent);
+        }
+
+        .messages-stats {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stat-badge {
+            background: rgba(78, 205, 196, 0.1);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-badge.unread {
+            background: rgba(231, 76, 60, 0.1);
+            border-color: rgba(231, 76, 60, 0.3);
+            color: var(--danger);
+        }
+
+        /* Messages List */
+        .messages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .message-card.unread {
+            border-left: 4px solid var(--accent);
+            background: rgba(78, 205, 196, 0.05);
+        }
+
+        .message-card.unread::before {
+            content: '';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .message-sender {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sender-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .sender-avatar.admin {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        }
+
+        .sender-avatar.company {
+            background: linear-gradient(135deg, var(--info) 0%, #2980b9 100%);
+        }
+
+        .sender-info h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .sender-type {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            opacity: 0.7;
+            text-transform: capitalize;
+        }
+
+        .message-time {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            opacity: 0.7;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .message-subject {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .message-content {
+            color: var(--secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .message-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-mark-read {
+            background: var(--accent);
+            color: var(--primary-dark);
+        }
+
+        .btn-mark-read:hover {
+            background: #45b7b8;
+            transform: translateY(-1px);
+        }
+
+        .btn-reply {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-reply:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .read-status {
+            margin-left: auto;
+            font-size: 0.8rem;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 3rem;
+            box-shadow: var(--shadow-light);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .empty-state::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 18px 18px 0 0;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            opacity: 0.7;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            color: var(--secondary);
+            opacity: 0.8;
+            font-size: 1rem;
         }
 
         /* Profile Section */
@@ -607,50 +949,6 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
             box-shadow: 0 8px 25px rgba(149, 165, 166, 0.3);
         }
 
-        /* Empty State */
-        .empty-state {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: 18px;
-            padding: 3rem;
-            box-shadow: var(--shadow-light);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .empty-state::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-            border-radius: 18px 18px 0 0;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            color: var(--accent);
-            margin-bottom: 1.5rem;
-            opacity: 0.7;
-        }
-
-        .empty-state h3 {
-            font-size: 1.5rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-
-        .empty-state p {
-            color: var(--secondary);
-            opacity: 0.8;
-            font-size: 1rem;
-        }
-
         /* Section Headers */
         .section-header {
             background: var(--glass-bg);
@@ -705,6 +1003,34 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
                 top: 1rem;
             }
             
+            .messages-header {
+                padding: 1.5rem;
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .messages-title {
+                font-size: 1.6rem;
+            }
+
+            .messages-stats {
+                justify-content: center;
+            }
+            
+            .message-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .message-time {
+                align-items: flex-start;
+            }
+
+            .message-actions {
+                flex-wrap: wrap;
+            }
+
             .profile-header {
                 padding: 1.5rem;
             }
@@ -774,7 +1100,7 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
         
         <div class="nav-section">
             <h4>Dashboard</h4>
-            <a href="#" class="nav-link active" onclick="showTab('profile')">
+            <a href="#" class="nav-link" onclick="showTab('profile')">
                 <i class="fas fa-user"></i>
                 <span>My Profile</span>
             </a>
@@ -790,21 +1116,16 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
                 <i class="fas fa-file-alt"></i>
                 <span>Applications</span>
             </a>
-            <a href="#" class="nav-link" onclick="showTab('shortlisted')">
-                <i class="fas fa-check-circle"></i>
-                <span>Shortlisted</span>
-            </a>
-            <a href="#" class="nav-link" onclick="showTab('offers')">
-                <i class="fas fa-trophy"></i>
-                <span>Offers</span>
-            </a>
         </div>
         
         <div class="nav-section">
             <h4>Communication</h4>
-            <a href="#" class="nav-link" onclick="showTab('messages')">
+            <a href="#" class="nav-link active" onclick="showTab('messages')">
                 <i class="fas fa-envelope"></i>
                 <span>Messages</span>
+                <?php if ($unread_count > 0): ?>
+                    <span class="message-badge"><?php echo $unread_count; ?></span>
+                <?php endif; ?>
             </a>
         </div>
 
@@ -821,7 +1142,7 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
     <!-- Main Content -->
     <main class="main">
         <!-- Profile Tab -->
-        <div id="profile" class="tab-content active loading">
+        <div id="profile" class="tab-content">
             <div class="profile-container">
                 <div class="profile-header">
                     <h1 class="profile-title">Welcome, <?php echo $first_name . ' ' . $last_name; ?></h1>
@@ -905,51 +1226,96 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
             </div>
         </div>
 
-        <!-- Shortlisted Tab -->
-        <div id="shortlisted" class="tab-content">
-            <div class="section-header">
-                <h1 class="section-title">
-                    <i class="fas fa-check-circle"></i>
-                    Shortlisted Applications
-                </h1>
-                <p class="section-subtitle">Applications that have been shortlisted for further review</p>
-            </div>
-            <div class="empty-state">
-                <i class="fas fa-check-circle"></i>
-                <h3>No Shortlisted Applications</h3>
-                <p>Your shortlisted applications will appear here when companies show interest</p>
-            </div>
-        </div>
-
-        <!-- Offers Tab -->
-        <div id="offers" class="tab-content">
-            <div class="section-header">
-                <h1 class="section-title">
-                    <i class="fas fa-trophy"></i>
-                    Internship Offers
-                </h1>
-                <p class="section-subtitle">Manage your internship offers and responses</p>
-            </div>
-            <div class="empty-state">
-                <i class="fas fa-trophy"></i>
-                <h3>No Offers Yet</h3>
-                <p>Your internship offers will be displayed here when you receive them</p>
-            </div>
-        </div>
-
         <!-- Messages Tab -->
-        <div id="messages" class="tab-content">
-            <div class="section-header">
-                <h1 class="section-title">
-                    <i class="fas fa-envelope"></i>
-                    Messages
-                </h1>
-                <p class="section-subtitle">Communicate with recruiters and coordinators</p>
-            </div>
-            <div class="empty-state">
-                <i class="fas fa-envelope"></i>
-                <h3>No Messages</h3>
-                <p>Your messages and communications will appear here</p>
+        <div id="messages" class="tab-content active loading">
+            <div class="messages-container">
+                <div class="messages-header">
+                    <div>
+                        <h1 class="messages-title">
+                            <i class="fas fa-envelope"></i>
+                            Messages
+                        </h1>
+                    </div>
+                    <div class="messages-stats">
+                        <div class="stat-badge">
+                            <i class="fas fa-envelope"></i>
+                            Total: <?php echo $messages_result->num_rows; ?>
+                        </div>
+                        <?php if ($unread_count > 0): ?>
+                            <div class="stat-badge unread">
+                                <i class="fas fa-envelope-open"></i>
+                                Unread: <?php echo $unread_count; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="messages-list">
+                    <?php if ($messages_result->num_rows > 0): ?>
+                        <?php while ($message = $messages_result->fetch_assoc()): ?>
+                            <div class="message-card <?php echo !$message['is_read'] ? 'unread' : ''; ?>">
+                                <div class="message-header">
+                                    <div class="message-sender">
+                                        <div class="sender-avatar <?php echo $message['sender_type']; ?>">
+                                            <?php 
+                                            if ($message['sender_type'] == 'admin') {
+                                                echo '<i class="fas fa-user-shield"></i>';
+                                            } else if ($message['sender_type'] == 'company') {
+                                                echo '<i class="fas fa-building"></i>';
+                                            }
+                                            ?>
+                                        </div>
+                                        <div class="sender-info">
+                                            <h4><?php echo ucfirst($message['sender_type']); ?></h4>
+                                            <div class="sender-type"><?php echo $message['sender_type']; ?></div>
+                                        </div>
+                                    </div>
+                                    <div class="message-time">
+                                        <span><?php echo date('M j, Y', strtotime($message['created_at'])); ?></span>
+                                        <span><?php echo date('g:i A', strtotime($message['created_at'])); ?></span>
+                                        <?php if (!$message['is_read']): ?>
+                                            <span style="color: var(--accent); font-weight: 600;">New</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                
+                                <div class="message-subject">
+                                    <?php echo htmlspecialchars($message['subject']); ?>
+                                </div>
+                                
+                                <div class="message-content">
+                                    <?php echo nl2br(htmlspecialchars($message['message'])); ?>
+                                </div>
+                                
+                                <div class="message-actions">
+                                    <?php if (!$message['is_read']): ?>
+                                        <form method="post" style="display: inline;">
+                                            <input type="hidden" name="message_id" value="<?php echo $message['id']; ?>">
+                                            <button type="submit" name="mark_read" class="message-btn btn-mark-read">
+                                                <i class="fas fa-check"></i>
+                                                Mark as Read
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                   
+                                    
+                                    <?php if ($message['is_read']): ?>
+                                        <div class="read-status">
+                                            <i class="fas fa-check-circle"></i>
+                                            Read
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="fas fa-envelope"></i>
+                            <h3>No Messages</h3>
+                            <p>Your messages and communications will appear here</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </main>
@@ -1003,6 +1369,11 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
             });
             
             event.target.classList.add('active');
+        }
+
+        function replyToMessage(senderType, subject) {
+            // This would typically open a reply modal or redirect to a compose page
+            alert(`Reply functionality would be implemented here.\n\nReplying to: ${senderType}\nSubject: Re: ${subject}`);
         }
 
         function toggleEdit() {
@@ -1165,6 +1536,12 @@ $dob = htmlspecialchars(date('d M Y', strtotime($row['dob'])));
                 }
             });
         });
+
+        // Auto-refresh messages every 30 seconds to check for new messages
+        setInterval(function() {
+            // In a real application, you might want to use AJAX to check for new messages
+            // without refreshing the entire page
+        }, 30000);
     </script>
 </body>
 </html>
