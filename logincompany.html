@@ -277,6 +277,31 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 3px;
 }
 
+/* Status-specific error styling */
+.error-text.status-pending {
+  color: #9b59b6;
+  background: rgba(155, 89, 182, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(155, 89, 182, 0.3);
+}
+
+.error-text.status-rejected {
+  color: #e67e22;
+  background: rgba(230, 126, 34, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(230, 126, 34, 0.3);
+}
+
+.error-text.status-blocked {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
 /* Background Blobs */
 .blob {
   position: absolute;
@@ -350,7 +375,7 @@ h1, h2, h3, h4, h5, h6 {
           <button type="submit" class="submit-btn">Login</button>
         </div>
         <div class="footer-link">
-          <a href="registercmpy.html">Don't have an account? Register as a company</a>
+          <a href="registercompany.html">Don't have an account? Register as a company</a>
         </div>
       </form>
     </div>
@@ -386,11 +411,18 @@ function toggleVisibility(id, icon) {
  * @param {HTMLElement} input - The input field to apply error styling to.
  * @param {HTMLElement} errorElement - The error message element.
  * @param {string} message - The error message to display.
+ * @param {string} status - Optional status for special styling.
  */
-function showError(input, errorElement, message) {
+function showError(input, errorElement, message, status = null) {
   input.classList.add('error-border', 'shake');
   errorElement.textContent = message;
   errorElement.classList.add('show');
+  
+  // Add status-specific styling
+  if (status) {
+    errorElement.classList.add(`status-${status}`);
+  }
+  
   setTimeout(() => {
     input.classList.remove('shake');
   }, 300);
@@ -403,7 +435,7 @@ function showError(input, errorElement, message) {
  */
 function clearError(input, errorElement) {
   input.classList.remove('error-border', 'shake');
-  errorElement.classList.remove('show');
+  errorElement.classList.remove('show', 'status-pending', 'status-rejected', 'status-blocked');
   errorElement.textContent = '';
 }
 
@@ -478,7 +510,7 @@ document.getElementById("loginForm").addEventListener("submit", function(e) {
 
   const formData = new FormData(this);
 
-  fetch("logincompany.php", { // Changed to companylogin.php
+  fetch("logincompany.php", {
     method: "POST",
     body: formData
   })
@@ -489,13 +521,18 @@ document.getElementById("loginForm").addEventListener("submit", function(e) {
     return res.json();
   })
   .then(data => {
-  if (data.success) {
-    window.location.href = data.redirect;
-  }  else {
+    if (data.success) {
+      // Successful login - redirect to dashboard
+      window.location.href = data.redirect;
+    } else {
+      // Handle different types of errors
       if (data.field === "email") {
         showError(emailInput, emailError, data.message || "This email is not registered");
       } else if (data.field === "password") {
         showError(passwordInput, passwordError, data.message || "Incorrect password");
+      } else if (data.field === "status") {
+        // Status-related errors with special styling
+        showError(passwordInput, passwordError, data.message, data.status);
       } else {
         showError(passwordInput, passwordError, data.message || "An unknown error occurred. Please try again.");
       }
@@ -524,4 +561,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-

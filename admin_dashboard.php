@@ -69,7 +69,7 @@
         if ($page === 'students') {
             include 'admin_students.php';
         } elseif ($page === 'companies') {
-            include 'admin_companies.php';
+            include 'admin_company.php';
         } elseif ($page === 'courses') {
             include 'admin_courses.php';
         } elseif ($page === 'about') {
@@ -79,6 +79,24 @@
             // Include content for the new 'Contact' page
             include 'admin_contact.php';
         } else {
+            // Database connection for dashboard statistics
+            $conn = new mysqli("localhost", "root", "", "nexttern_db");
+            if ($conn->connect_error) {
+                die("Connection failed: " . $conn->connect_error);
+            }
+            
+            // Fetch real statistics from database
+            $total_students_result = $conn->query("SELECT COUNT(*) as count FROM students");
+            $total_students = $total_students_result ? $total_students_result->fetch_assoc()['count'] : 0;
+            
+            $active_companies_result = $conn->query("SELECT COUNT(*) as count FROM companies WHERE status = 'active'");
+            $active_companies = $active_companies_result ? $active_companies_result->fetch_assoc()['count'] : 0;
+            
+            $active_courses_result = $conn->query("SELECT COUNT(*) as count FROM courses");
+            $active_courses = $active_courses_result ? $active_courses_result->fetch_assoc()['count'] : 0;
+            
+            $conn->close();
+            
             echo '
             <div class="welcome-container loading">
                 <div class="welcome-header">
@@ -90,7 +108,7 @@
                     <div class="stat-card">
                         <div class="stat-header">
                             <div>
-                                <div class="stat-number">1,247</div>
+                                <div class="stat-number">' . number_format($total_students) . '</div>
                                 <div class="stat-label">Total Students</div>
                             </div>
                             <div class="stat-icon students">
@@ -102,8 +120,8 @@
                     <div class="stat-card">
                         <div class="stat-header">
                             <div>
-                                <div class="stat-number">84</div>
-                                <div class="stat-label">Partner Companies</div>
+                                <div class="stat-number">' . number_format($active_companies) . '</div>
+                                <div class="stat-label">Active Companies</div>
                             </div>
                             <div class="stat-icon companies">
                                 <i class="fas fa-building"></i>
@@ -114,23 +132,11 @@
                     <div class="stat-card">
                         <div class="stat-header">
                             <div>
-                                <div class="stat-number">156</div>
+                                <div class="stat-number">' . number_format($active_courses) . '</div>
                                 <div class="stat-label">Active Courses</div>
                             </div>
                             <div class="stat-icon courses">
                                 <i class="fas fa-book"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-number">342</div>
-                                <div class="stat-label">Active Internships</div>
-                            </div>
-                            <div class="stat-icon active">
-                                <i class="fas fa-briefcase"></i>
                             </div>
                         </div>
                     </div>

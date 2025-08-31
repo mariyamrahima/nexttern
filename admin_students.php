@@ -18,7 +18,35 @@ $conn->query("CREATE TABLE IF NOT EXISTS blocked_students (
   blocked_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
+$message_status = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Handle message sending
+    if (isset($_POST['send_message'])) {
+        $receiver_id = $_POST['receiver_id'] ?? '';
+        $subject = $_POST['message_subject'] ?? '';
+        $message = $_POST['message_content'] ?? '';
+        
+        if (!empty($receiver_id) && !empty($subject) && !empty($message)) {
+            $stmt = $conn->prepare("INSERT INTO student_messages (sender_type, receiver_type, receiver_id, subject, message) VALUES ('admin', 'student', ?, ?, ?)");
+            $stmt->bind_param("sss", $receiver_id, $subject, $message);
+            
+            if ($stmt->execute()) {
+                $message_status = 'success';
+            } else {
+                $message_status = 'error';
+            }
+            $stmt->close();
+        } else {
+            $message_status = 'error';
+        }
+        
+        // Redirect to prevent form resubmission
+        header("Location: admin_dashboard.php?page=students&msg_status=" . $message_status);
+        exit;
+    }
+    
+    // Handle existing actions (delete/block)
     $student_id = $_POST['student_id'] ?? '';
     $student_name = $_POST['student_name'] ?? '';
 
@@ -48,6 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header("Location: admin_dashboard.php?page=students");
     exit;
 }
+
+// Check for message status from URL parameter
+if (isset($_GET['msg_status'])) {
+    $message_status = $_GET['msg_status'];
+}
 ?>
 
 <style>
@@ -69,6 +102,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     --blur: 16px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --border-radius: 16px;
+}
+
+/* Status Messages */
+.status-message {
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: slideInDown 0.5s ease-out forwards;
+}
+
+.status-message.success {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.status-message.error {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+@keyframes slideInDown {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Page Header and Description */
@@ -626,6 +692,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 </style>
 
+<?php if ($message_status === 'success'): ?>
+    <div class="status-message success">
+        <i class="fas fa-check-circle"></i>
+        Message sent successfully!
+    </div>
+<?php elseif ($message_status === 'error'): ?>
+    <div class="status-message error">
+        <i class="fas fa-exclamation-circle"></i>
+        Failed to send message. Please try again.
+    </div>
+<?php endif; ?>
+
 <div class="page-header loading">
     <h1 class="page-title">
         <i class="fas fa-user-graduate"></i>
@@ -806,15 +884,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h3>Send Message</h3>
         <p>Send a message to <span id="messageStudentName"></span></p>
         
-        <form id="messageForm">
+        <form method="post" id="messageForm">
+            <input type="hidden" name="receiver_id" id="messageReceiverId">
+            <input type="hidden" name="send_message" value="1">
+            
             <div class="form-group">
                 <label class="form-label" for="messageSubject">Subject</label>
-                <input type="text" id="messageSubject" class="form-input" placeholder="Enter message subject" required>
+                <input type="text" name="message_subject" id="messageSubject" class="form-input" placeholder="Enter message subject" required>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="messageContent">Message</label>
-                <textarea id="messageContent" class="form-textarea" placeholder="Type your message here..." required></textarea>
+                <textarea name="message_content" id="messageContent" class="form-textarea" placeholder="Type your message here..." required></textarea>
             </div>
             
             <div class="modal-buttons">
@@ -868,6 +949,7 @@ function closeModal() {
 function openMessageModal(studentId, studentName) {
     const modal = document.getElementById("messageModal");
     document.getElementById("messageStudentName").textContent = studentName;
+    document.getElementById("messageReceiverId").value = studentId;
     
     // Clear form
     document.getElementById("messageSubject").value = "";
@@ -887,21 +969,6 @@ function closeMessageModal() {
     modal.classList.remove("show");
     document.body.style.overflow = "auto";
 }
-
-// Handle message form submission
-document.getElementById("messageForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-    
-    const subject = document.getElementById("messageSubject").value;
-    const content = document.getElementById("messageContent").value;
-    const studentName = document.getElementById("messageStudentName").textContent;
-    
-    // Here you would typically send the message via AJAX
-    // For now, we'll just show a success message
-    alert(`Message sent successfully to ${studentName}!\n\nSubject: ${subject}\nMessage: ${content}`);
-    
-    closeMessageModal();
-});
 
 // Close modal when clicking outside
 document.getElementById("confirmModal").addEventListener("click", function(e) {
@@ -930,5 +997,32 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.forEach(el => {
         el.classList.remove('loading');
     });
+    
+    // Auto-hide status messages after 5 seconds
+    const statusMessages = document.querySelectorAll('.status-message');
+    statusMessages.forEach(msg => {
+        setTimeout(() => {
+            msg.style.animation = 'fadeOut 0.5s ease-out forwards';
+            setTimeout(() => {
+                msg.remove();
+            }, 500);
+        }, 5000);
+    });
 });
+
+// Add fadeOut animation for status messages
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+`;
+document.head.appendChild(style);
 </script>

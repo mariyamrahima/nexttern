@@ -38,7 +38,18 @@ $conn->close();
             --shadow-medium: 0 12px 48px rgba(3, 89, 70, 0.15);
             --blur: 14px;
             --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --text-dark: #1f2937;
+            --white: #ffffff;
+            --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.15);
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Roboto', sans-serif;
             background: var(--bg-light);
@@ -49,10 +60,162 @@ $conn->close();
             position: relative;
             overflow-x: hidden;
             padding: 2rem;
+            padding-top: 100px; /* Space for fixed navbar */
         }
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Poppins', sans-serif;
         }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 1rem 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(3, 89, 70, 0.1);
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        background-color 0.3s ease,
+                        box-shadow 0.3s ease;
+            transform: translateY(0);
+        }
+
+        .navbar.scrolled-down {
+            transform: translateY(-100%);
+        }
+
+        .navbar.scrolled-up {
+            transform: translateY(0);
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+            gap: 0.5rem;
+        }
+
+        .nav-logo {
+            height: 50px;
+            width: auto;
+        }
+
+        .nav-logo:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            position: relative;
+            padding: 0.5rem 0;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .nav-cta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-outline {
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            background: transparent;
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Mobile menu toggle */
+        .menu-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .menu-toggle span {
+            width: 25px;
+            height: 3px;
+            background: var(--primary);
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+
         .container {
             max-width: 900px;
             width: 100%;
@@ -163,9 +326,58 @@ $conn->close();
             50% { transform: translate(30px, -30px) scale(1.1); }
             100% { transform: translate(-30px, 30px) scale(0.9); }
         }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+
+            body {
+                padding: 1rem;
+                padding-top: 100px;
+            }
+
+            .content-card {
+                padding: 2rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-brand">
+                <img src="nextternnavbar.png" alt="Nexttern Logo" class="nav-logo">
+            </a>
+            
+            <ul class="nav-menu">
+                <li><a href="ind.html" class="nav-link">Home</a></li>
+                <li><a href="internship1.php" class="nav-link">Internships</a></li>
+                <li><a href="#" class="nav-link">Companies</a></li>
+                <li><a href="aboutus.php" class="nav-link">About</a></li>
+                <li><a href="contactus.php" class="nav-link">Contact</a></li>
+            </ul>
+            
+            <div class="nav-cta">
+                <a href="login.html" class="btn btn-primary">Login</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="blob blob1"></div>
     <div class="blob blob2"></div>
     <div class="blob blob3"></div>
@@ -190,5 +402,31 @@ $conn->close();
             </div>
         </div>
     </div>
+
+    <script>
+        // Navbar scroll behavior
+        let lastScrollTop = 0;
+        const navbar = document.querySelector('.navbar');
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            if (scrollTop > lastScrollTop && scrollTop > 100) {
+                // Scrolling down
+                navbar.classList.add('scrolled-down');
+                navbar.classList.remove('scrolled-up');
+            } else {
+                // Scrolling up
+                navbar.classList.remove('scrolled-down');
+                if (scrollTop > 0) {
+                    navbar.classList.add('scrolled-up');
+                } else {
+                    navbar.classList.remove('scrolled-up');
+                }
+            }
+            
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        });
+    </script>
 </body>
 </html>
