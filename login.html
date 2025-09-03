@@ -455,7 +455,7 @@ document.getElementById("loginForm").addEventListener("submit", function(e) {
   })
   .then(data => {
   if (data.success) {
-    window.location.href = data.redirect;
+    window.location.href = "internship.php";
   }  else {
       if (data.field === "email") {
         showError(emailInput, emailError, data.message || "This email is not registered");
