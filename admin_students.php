@@ -19,15 +19,28 @@ $conn->query("CREATE TABLE IF NOT EXISTS blocked_students (
 )");
 
 $message_status = '';
+$operation_status = '';
+$redirect_url = "admin_dashboard.php?page=students";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Handle message sending
+    // Check if the request is for sending a message
     if (isset($_POST['send_message'])) {
         $receiver_id = $_POST['receiver_id'] ?? '';
         $subject = $_POST['message_subject'] ?? '';
         $message = $_POST['message_content'] ?? '';
         
         if (!empty($receiver_id) && !empty($subject) && !empty($message)) {
+            // Create messages table if it doesn't exist
+            $conn->query("CREATE TABLE IF NOT EXISTS student_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sender_type VARCHAR(20),
+                receiver_type VARCHAR(20),
+                receiver_id VARCHAR(50),
+                subject VARCHAR(200),
+                message TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+            
             $stmt = $conn->prepare("INSERT INTO student_messages (sender_type, receiver_type, receiver_id, subject, message) VALUES ('admin', 'student', ?, ?, ?)");
             $stmt->bind_param("sss", $receiver_id, $subject, $message);
             
@@ -41,45 +54,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_status = 'error';
         }
         
-        // Redirect to prevent form resubmission
-        header("Location: admin_dashboard.php?page=students&msg_status=" . $message_status);
+        // Use JavaScript redirect to maintain the page structure
+        echo '<script>window.location.href = "' . $redirect_url . '&msg_status=' . $message_status . '";</script>';
         exit;
     }
     
-    // Handle existing actions (delete/block)
-    $student_id = $_POST['student_id'] ?? '';
-    $student_name = $_POST['student_name'] ?? '';
-
+    // Check if the request is for an action (delete/block)
     if (isset($_POST['confirm_action'])) {
+        $student_id = $_POST['student_id'] ?? '';
+        $student_name = $_POST['student_name'] ?? '';
         $action = $_POST['confirm_action'];
 
         if ($action === 'delete') {
             $stmt = $conn->prepare("DELETE FROM students WHERE student_id = ?");
             $stmt->bind_param("s", $student_id);
-            $stmt->execute();
-            $stmt->close();
-            
-            $stmt = $conn->prepare("INSERT INTO recent_deleted_students (student_id, name) VALUES (?, ?)");
-            $stmt->bind_param("ss", $student_id, $student_name);
-            $stmt->execute();
-            $stmt->close();
-        }
-
-        if ($action === 'block') {
+            if ($stmt->execute()) {
+                $stmt->close();
+                
+                $stmt = $conn->prepare("INSERT INTO recent_deleted_students (student_id, name) VALUES (?, ?)");
+                $stmt->bind_param("ss", $student_id, $student_name);
+                $stmt->execute();
+                $stmt->close();
+                $operation_status = 'deleted';
+            } else {
+                $operation_status = 'error';
+            }
+        } elseif ($action === 'block') {
             $stmt = $conn->prepare("INSERT INTO blocked_students (student_id, name) VALUES (?, ?)");
             $stmt->bind_param("ss", $student_id, $student_name);
-            $stmt->execute();
-            $stmt->close();
+            if ($stmt->execute()) {
+                $stmt->close();
+                $operation_status = 'blocked';
+            } else {
+                $operation_status = 'error';
+            }
         }
+        
+        // Use JavaScript redirect to maintain the page structure
+        echo '<script>window.location.href = "' . $redirect_url . '&op_status=' . $operation_status . '";</script>';
+        exit;
     }
-
-    header("Location: admin_dashboard.php?page=students");
-    exit;
 }
 
-// Check for message status from URL parameter
+// Check for message status or operation status from URL parameters
 if (isset($_GET['msg_status'])) {
     $message_status = $_GET['msg_status'];
+}
+if (isset($_GET['op_status'])) {
+    $operation_status = $_GET['op_status'];
 }
 ?>
 
@@ -128,6 +150,12 @@ if (isset($_GET['msg_status'])) {
     background: rgba(231, 76, 60, 0.1);
     color: var(--danger);
     border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.status-message.info {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(52, 152, 219, 0.2);
 }
 
 @keyframes slideInDown {
@@ -609,7 +637,7 @@ if (isset($_GET['msg_status'])) {
     color: var(--accent);
 }
 
-/* NEW: Animation Styles */
+/* Loading States */
 .loading {
     opacity: 0;
     animation: fadeIn 0.5s ease-out 0.1s forwards;
@@ -704,6 +732,23 @@ if (isset($_GET['msg_status'])) {
     </div>
 <?php endif; ?>
 
+<?php if ($operation_status === 'deleted'): ?>
+    <div class="status-message info">
+        <i class="fas fa-trash-alt"></i>
+        Student has been successfully deleted.
+    </div>
+<?php elseif ($operation_status === 'blocked'): ?>
+    <div class="status-message info">
+        <i class="fas fa-ban"></i>
+        Student has been successfully blocked.
+    </div>
+<?php elseif ($operation_status === 'error'): ?>
+    <div class="status-message error">
+        <i class="fas fa-exclamation-circle"></i>
+        Operation failed. Please try again.
+    </div>
+<?php endif; ?>
+
 <div class="page-header loading">
     <h1 class="page-title">
         <i class="fas fa-user-graduate"></i>
@@ -723,9 +768,9 @@ if (isset($_GET['msg_status'])) {
         
         <div class="table-container">
             <?php
-            // Fetch all students from the database
-            $result = $conn->query("SELECT student_id, first_name, last_name, email, contact FROM students");
-            if ($result->num_rows > 0): ?>
+            // Fetch all students from the database - refresh data after operations
+            $result = $conn->query("SELECT student_id, first_name, last_name, email, contact FROM students ORDER BY first_name, last_name");
+            if ($result && $result->num_rows > 0): ?>
                 <table class="students-table">
                     <thead>
                         <tr>
@@ -739,7 +784,7 @@ if (isset($_GET['msg_status'])) {
                     </thead>
                     <tbody>
                         <?php $i = 1; while ($row = $result->fetch_assoc()):
-                            $name = $row['first_name'] . " " . $row['last_name']; ?>
+                            $name = trim($row['first_name'] . " " . $row['last_name']); ?>
                             <tr>
                                 <td><?= $i++ ?></td>
                                 <td><span class="student-id"><?= htmlspecialchars($row['student_id']) ?></span></td>
@@ -787,7 +832,7 @@ if (isset($_GET['msg_status'])) {
             <div class="activity-content">
                 <?php
                 $deleted_result = $conn->query("SELECT * FROM recent_deleted_students ORDER BY deleted_at DESC LIMIT 5");
-                if ($deleted_result->num_rows > 0): ?>
+                if ($deleted_result && $deleted_result->num_rows > 0): ?>
                     <table class="activity-table">
                         <thead>
                             <tr>
@@ -825,7 +870,7 @@ if (isset($_GET['msg_status'])) {
             <div class="activity-content">
                 <?php
                 $blocked_result = $conn->query("SELECT * FROM blocked_students ORDER BY blocked_at DESC LIMIT 5");
-                if ($blocked_result->num_rows > 0): ?>
+                if ($blocked_result && $blocked_result->num_rows > 0): ?>
                     <table class="activity-table">
                         <thead>
                             <tr>
@@ -1025,4 +1070,17 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Prevent form resubmission on page refresh
+if (window.history.replaceState) {
+    const url = new URL(window.location);
+    url.searchParams.delete('msg_status');
+    url.searchParams.delete('op_status');
+    window.history.replaceState(null, null, url);
+}
 </script>
+
+<?php
+// Close the database connection
+$conn->close();
+?>
