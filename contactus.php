@@ -462,282 +462,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
         }
 
-        /* Profile Dashboard Modal - Enhanced to match internship page */
-        .profile-dashboard-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .profile-dashboard {
-            background: white;
-            border-radius: 20px;
-            width: 95%;
-            max-width: 1200px;
-            max-height: 95vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            transform: scale(0.8);
-            opacity: 0;
-            transition: all 0.3s ease-out;
-            position: relative;
-        }
-
-        .profile-dashboard.show {
-            transform: scale(1);
-            opacity: 1;
-        }
-
-        .dashboard-header {
-            background: var(--gradient-primary);
-            color: white;
-            padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .dashboard-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-            animation: shimmer 6s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        .dashboard-close {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            color: white;
-            font-size: 1.2rem;
-            z-index: 10;
-        }
-
-        .dashboard-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .dashboard-user-info {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        .dashboard-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: 700;
-            color: white;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            object-fit: cover;
-        }
-
-        .dashboard-user-details h2 {
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-
-        .user-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 0.5rem;
-        }
-
-        .meta-badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .dashboard-content {
-            padding: 2.5rem;
-        }
-
-        .dashboard-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 1rem;
-        }
-
-        .dashboard-tab {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 12px;
-            transition: var(--transition);
-            position: relative;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .dashboard-tab.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
-        }
-
-        .dashboard-tab:not(.active):hover {
-            background: rgba(3, 89, 70, 0.1);
-            color: var(--primary);
-        }
-
-        .dashboard-tab-content {
-            display: none;
-        }
-
-        .dashboard-tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        /* Quick Actions */
-        .quick-actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .quick-action {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            color: var(--primary);
-        }
-
-        .quick-action:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-medium);
-            background: rgba(255, 255, 255, 0.4);
-        }
-
-        .quick-action i {
-            font-size: 2rem;
-            color: var(--accent);
-            margin-bottom: 1rem;
-            display: block;
-        }
-
-        .quick-action h4 {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--primary-dark);
-        }
-
-        .quick-action p {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin: 0;
-        }
-
-        /* Profile Section */
-        .profile-section {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 2.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .profile-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 0.75rem;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .form-group input {
-            padding: 1rem;
-            border: 2px solid rgba(3, 89, 70, 0.1);
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: var(--transition);
-            background: rgba(255, 255, 255, 0.7);
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: white;
-            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
-        }
-
-        .form-group input[readonly] {
-            background: rgba(255, 255, 255, 0.5);
-            color: var(--text-secondary);
-        }
 
         /* Menu Toggle */
         .menu-toggle {
@@ -1390,50 +1114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
                 justify-content: center;
             }
 
-            .profile-dashboard {
-                width: 95%;
-                margin: 1rem;
-                max-height: 95vh;
-            }
-
-            .dashboard-header {
-                padding: 1.5rem;
-            }
-
-            .dashboard-user-info {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            .dashboard-avatar {
-                width: 60px;
-                height: 60px;
-                font-size: 1.5rem;
-            }
-
-            .dashboard-user-details h2 {
-                font-size: 1.5rem;
-            }
-
-            .dashboard-tabs {
-                flex-wrap: wrap;
-                gap: 0.25rem;
-            }
-
-            .dashboard-tab {
-                padding: 0.6rem 1rem;
-                font-size: 0.85rem;
-            }
-
-            .profile-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .quick-actions-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-
             .alert {
                 margin: 1rem;
                 padding: 1rem;
@@ -1513,8 +1193,198 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
         @keyframes successPulse {
             0% { transform: scale(0.95); opacity: 0; }
             50% { transform: scale(1.02); }
+          
             100% { transform: scale(1); opacity: 1; }
         }
+          /* Footer */
+        .footer {
+            background: var(--secondary);
+            color: var(--white);
+            padding: 4rem 0 2rem;
+            position: relative;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 4rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand {
+            max-width: 300px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--white);
+            text-decoration: none;
+            margin-bottom: 1rem;
+        }
+
+        .footer-logo i {
+            color: var(--accent);
+        }
+
+        .footer-brand p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .social-links a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: var(--white);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .social-links a:hover {
+            background: var(--gradient-primary);
+            transform: translateY(-2px);
+        }
+
+        .footer-links {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+
+        .footer-column h4 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--white);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-column ul li a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-column ul li a:hover {
+            color: var(--accent);
+            transform: translateX(5px);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 2rem;
+        }
+
+        .footer-bottom-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-bottom p {
+            color: rgba(255, 255, 255, 0.5);
+            margin: 0;
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-bottom-links a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: var(--transition);
+        }
+
+        .footer-bottom-links a:hover {
+            color: var(--accent);
+        }
+
+        /* AOS Animation Styles */
+        [data-aos] {
+            opacity: 0;
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        [data-aos].aos-animate {
+            opacity: 1;
+        }
+
+        [data-aos="fade-up"] {
+            transform: translateY(40px);
+        }
+
+        [data-aos="fade-up"].aos-animate {
+            transform: translateY(0);
+        }
+
+        [data-aos="fade-right"] {
+            transform: translateX(-40px);
+        }
+
+        [data-aos="fade-right"].aos-animate {
+            transform: translateX(0);
+        }
+
+        [data-aos="fade-left"] {
+            transform: translateX(40px);
+        }
+
+        [data-aos="fade-left"].aos-animate {
+            transform: translateX(0);
+        }
+        :root {
+            --primary: #035946;
+            --primary-light: #0a7058;
+            --primary-dark: #024238;
+            --accent: #4ecdc4;
+            --accent-light: #7dd3d8;
+            --secondary: #2e3944;
+            --text-light: #6b7280;
+            --text-dark: #1f2937;
+            --bg-light: #f8fafc;
+            --white: #ffffff;
+            --gradient-primary: linear-gradient(135deg, #035946 0%, #0a7058 100%);
+            --gradient-accent: linear-gradient(135deg, #4ecdc4 0%, #7dd3d8 100%);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 8px 25px rgba(3, 89, 70, 0.1);
+            --shadow-lg: 0 20px 40px rgba(3, 89, 70, 0.15);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
     </style>
 </head>
 <body>
@@ -1540,187 +1410,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
                 <li><a href="contactus.php" class="nav-link active">Contact</a></li>
             </ul>
             
-            <div class="nav-cta">
-                <?php if ($isLoggedIn): ?>
-                    <div class="nav-profile">
-                        <button class="profile-trigger" onclick="openProfileDashboard()">
-                            <?php if (!empty($user_profile_picture)): ?>
-                                <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
-                            <?php else: ?>
-                                <div class="profile-avatar default">
-                                    <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
-                                </div>
-                            <?php endif; ?>
-                            <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
-                            <?php if ($unread_count > 0): ?>
-                                <span class="message-badge"><?php echo $unread_count; ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </div>
+         <!-- NEW -->
+<div class="nav-cta">
+    <?php if ($isLoggedIn): ?>
+        <div class="nav-profile">
+            <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
+                <?php if (!empty($user_profile_picture)): ?>
+                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
                 <?php else: ?>
-                    <a href="login.html" class="btn btn-primary">Login</a>
+                    <div class="profile-avatar default">
+                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+                    </div>
                 <?php endif; ?>
-            </div>
+                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
+                <?php if ($unread_count > 0): ?>
+                    <span class="message-badge"><?php echo $unread_count; ?></span>
+                <?php endif; ?>
+            </button>
+        </div>
+    <?php else: ?>
+        <a href="login.html" class="btn btn-primary">Login</a>
+    <?php endif; ?>
+</div>
         </div>
     </nav>
-
-    <!-- Profile Dashboard Modal - Enhanced to match internship page -->
-    <?php if ($isLoggedIn): ?>
-    <div id="profileDashboardOverlay" class="profile-dashboard-overlay">
-        <div class="profile-dashboard" id="profileDashboard">
-            <div class="dashboard-header">
-                <button class="dashboard-close" onclick="closeProfileDashboard()">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="dashboard-user-info">
-                    <?php if (!empty($user_profile_picture)): ?>
-                        <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="dashboard-avatar">
-                    <?php else: ?>
-                        <div class="dashboard-avatar">
-                            <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
-                        </div>
-                    <?php endif; ?>
-                    <div class="dashboard-user-details">
-                        <h2><?php echo htmlspecialchars($user_name ?: 'User'); ?></h2>
-                        <p><?php echo htmlspecialchars($user_email); ?></p>
-                        <div class="user-meta">
-                            <span class="meta-badge">
-                                <i class="fas fa-<?php echo $user_role === 'company' ? 'building' : 'graduation-cap'; ?>"></i>
-                                <?php echo ucfirst(htmlspecialchars($user_role ?: 'Student')); ?>
-                            </span>
-                            <?php if (!empty($user_joined)): ?>
-                                <span class="meta-badge">
-                                    <i class="fas fa-calendar"></i>
-                                    Joined <?php echo date('M Y', strtotime($user_joined)); ?>
-                                </span>
-                            <?php endif; ?>
-                            <?php if ($unread_count > 0): ?>
-                                <span class="meta-badge" style="background: rgba(231, 76, 60, 0.2); color: var(--danger);">
-                                    <i class="fas fa-envelope"></i>
-                                    <?php echo $unread_count; ?> New
-                                </span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-content">
-                <!-- Dashboard Tabs -->
-                <div class="dashboard-tabs">
-                    <button class="dashboard-tab active" onclick="showDashboardTab('overview')">
-                        <i class="fas fa-tachometer-alt"></i>
-                        Overview
-                    </button>
-                    <button class="dashboard-tab" onclick="showDashboardTab('profile')">
-                        <i class="fas fa-user"></i>
-                        Profile
-                    </button>
-                    <button class="dashboard-tab" onclick="showDashboardTab('messages')">
-                        <i class="fas fa-envelope"></i>
-                        Messages
-                        <?php if ($unread_count > 0): ?>
-                            <span style="background: var(--danger); color: white; border-radius: 50%; padding: 0.2rem 0.5rem; font-size: 0.7rem; margin-left: 0.5rem;"><?php echo $unread_count; ?></span>
-                        <?php endif; ?>
-                    </button>
-                </div>
-
-                <!-- Overview Tab -->
-                <div id="overview-tab" class="dashboard-tab-content active">
-                    <div class="quick-actions-grid">
-                        <a href="index.php" class="quick-action">
-                            <i class="fas fa-home"></i>
-                            <h4>Dashboard</h4>
-                            <p>Go to main dashboard</p>
-                        </a>
-                        <a href="internship.php" class="quick-action">
-                            <i class="fas fa-search"></i>
-                            <h4>Browse Internships</h4>
-                            <p>Find opportunities</p>
-                        </a>
-                        <a href="#" class="quick-action" onclick="showDashboardTab('profile')">
-                            <i class="fas fa-edit"></i>
-                            <h4>Edit Profile</h4>
-                            <p>Update your information</p>
-                        </a>
-                        <a href="#" class="quick-action" onclick="showDashboardTab('messages')">
-                            <i class="fas fa-envelope"></i>
-                            <h4>Messages</h4>
-                            <p>Check your messages</p>
-                        </a>
-                        <a href="settings.php" class="quick-action">
-                            <i class="fas fa-cog"></i>
-                            <h4>Settings</h4>
-                            <p>Manage preferences</p>
-                        </a>
-                        <a href="logout.php" class="quick-action" style="color: var(--danger);">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <h4>Logout</h4>
-                            <p>End your session</p>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Profile Tab -->
-                <div id="profile-tab" class="dashboard-tab-content">
-                    <div class="profile-section">
-                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.4rem;">
-                            <i class="fas fa-user" style="color: var(--accent); margin-right: 0.5rem;"></i>
-                            Personal Information
-                        </h3>
-                        <form id="profileForm">
-                            <div class="profile-grid">
-                                <div class="form-group">
-                                    <label><i class="fas fa-user"></i>Full Name</label>
-                                    <input type="text" name="name" value="<?php echo htmlspecialchars($user_name); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-envelope"></i>Email Address</label>
-                                    <input type="email" name="email" value="<?php echo htmlspecialchars($user_email); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-phone"></i>Phone Number</label>
-                                    <input type="tel" name="phone" value="<?php echo htmlspecialchars($user_phone); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-map-marker-alt"></i>Location</label>
-                                    <input type="text" name="location" value="<?php echo htmlspecialchars($user_location); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-birthday-cake"></i>Date of Birth</label>
-                                    <input type="date" name="dob" value="<?php echo htmlspecialchars($user_dob); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-user-tag"></i>Role</label>
-                                    <input type="text" name="role" value="<?php echo htmlspecialchars(ucfirst($user_role)); ?>" readonly>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Messages Tab -->
-                <div id="messages-tab" class="dashboard-tab-content">
-                    <div class="profile-section">
-                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.4rem;">
-                            <i class="fas fa-envelope" style="color: var(--accent); margin-right: 0.5rem;"></i>
-                            Messages
-                        </h3>
-                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                            <i class="fas fa-envelope" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                            <p>No new messages.</p>
-                            <?php if ($unread_count > 0): ?>
-                                <p>You have <?php echo $unread_count; ?> unread message(s).</p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
-
-
 
     <div class="contact-container">
         <!-- Alert Messages -->
@@ -1873,7 +1586,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             </div>
         </section>
     </div>
-
+<!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <a href="#" class="footer-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    Nexttern
+                </a>
+                <p>Empowering the next generation of professionals through meaningful internship experiences.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                </div>
+            </div>
+            
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>For Students</h4>
+                    <ul>
+                        <li><a href="internship.php">Find Internships</a></li>
+                        <li><a href="aboutus.php">Career Resources</a></li>
+                        <li><a href="#">Success Stories</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>For Companies</h4>
+                    <ul>
+                        <li><a href="internship_posting.php">Post Internships</a></li>
+                        <li><a href="registercompany.html">Partner with us</a></li>
+                        <li><a href="logincompany.html">Start Journey</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="contactus.php">Contact Us</a></li>
+                        <li><a href="contactus.php">Help Center</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Nexttern</h4>
+                    <ul>
+                        <li><a href="aboutus.php">About Us</a></li>
+                        <li><a href="contactus.php">FAQS</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div class="footer-bottom-container">
+                <p>&copy; 2025 Nexttern. All rights reserved.</p>
+                <div class="footer-bottom-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
     <script>
         // Pass PHP variables to JavaScript
         const isUserLoggedIn = <?php echo json_encode($isLoggedIn); ?>;
@@ -1890,52 +1667,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
         ]); ?>;
         const unreadMessagesCount = <?php echo json_encode($unread_count); ?>;
 
-        // Profile Dashboard Functions (for logged users)
-        <?php if ($isLoggedIn): ?>
-        function openProfileDashboard() {
-            const overlay = document.getElementById('profileDashboardOverlay');
-            const dashboard = document.getElementById('profileDashboard');
-            
-            overlay.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-            
-            setTimeout(() => {
-                dashboard.classList.add('show');
-            }, 10);
-        }
-
-        function closeProfileDashboard() {
-            const overlay = document.getElementById('profileDashboardOverlay');
-            const dashboard = document.getElementById('profileDashboard');
-            
-            dashboard.classList.remove('show');
-            
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            }, 300);
-        }
-
-        function showDashboardTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.dashboard-tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab
-            const selectedTab = document.getElementById(tabName + '-tab');
-            if (selectedTab) {
-                selectedTab.classList.add('active');
-            }
-            
-            // Update tab buttons
-            document.querySelectorAll('.dashboard-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            event.target.classList.add('active');
-        }
-        <?php endif; ?>
 
         // FAQ Toggle Functionality
         document.querySelectorAll('.faq-item').forEach(item => {
@@ -2040,24 +1771,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             });
         });
 
-        // Close modals when clicking outside or with Escape key
-        document.addEventListener('click', function(e) {
-            <?php if ($isLoggedIn): ?>
-            const profileModal = document.getElementById('profileDashboardOverlay');
-            if (e.target === profileModal) {
-                closeProfileDashboard();
-            }
-            <?php endif; ?>
-        });
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                <?php if ($isLoggedIn): ?>
-                closeProfileDashboard();
-                <?php endif; ?>
-            }
-        });
-
+   
         // Form validation enhancements
         document.querySelectorAll('input[required], textarea[required]').forEach(field => {
             field.addEventListener('invalid', function(e) {

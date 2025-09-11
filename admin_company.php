@@ -30,53 +30,105 @@ $conn->query("CREATE TABLE IF NOT EXISTS company_approvals (
   processed_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $company_id = $_POST['company_id'] ?? '';
-    $company_name = $_POST['company_name'] ?? '';
-    $company_email = $_POST['company_email'] ?? '';
-    $admin_notes = $_POST['admin_notes'] ?? '';
+// Create messages table if it doesn't exist
+$conn->query("CREATE TABLE IF NOT EXISTS company_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_type VARCHAR(20),
+    receiver_type VARCHAR(20),
+    receiver_id VARCHAR(50),
+    subject VARCHAR(200),
+    message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
 
+$message_status = '';
+$operation_status = '';
+$redirect_url = "admin_dashboard.php?page=companies";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check if the request is for sending a message
+    if (isset($_POST['send_message'])) {
+        $receiver_id = $_POST['receiver_id'] ?? '';
+        $subject = $_POST['message_subject'] ?? '';
+        $message = $_POST['message_content'] ?? '';
+        
+        if (!empty($receiver_id) && !empty($subject) && !empty($message)) {
+            $stmt = $conn->prepare("INSERT INTO company_messages (sender_type, receiver_type, receiver_id, subject, message) VALUES ('admin', 'company', ?, ?, ?)");
+            $stmt->bind_param("sss", $receiver_id, $subject, $message);
+            
+            if ($stmt->execute()) {
+                $message_status = 'success';
+            } else {
+                $message_status = 'error';
+            }
+            $stmt->close();
+        } else {
+            $message_status = 'error';
+        }
+        
+        // Use JavaScript redirect to maintain the page structure
+        echo '<script>window.location.href = "' . $redirect_url . '&msg_status=' . $message_status . '";</script>';
+        exit;
+    }
+    
+    // Check if the request is for an action (delete/block/unblock/accept/reject)
     if (isset($_POST['confirm_action'])) {
+        $company_id = $_POST['company_id'] ?? '';
+        $company_name = $_POST['company_name'] ?? '';
+        $company_email = $_POST['company_email'] ?? '';
+        $admin_notes = $_POST['admin_notes'] ?? '';
         $action = $_POST['confirm_action'];
 
         if ($action === 'accept') {
             // Update company status to active
             $stmt = $conn->prepare("UPDATE companies SET status = 'active' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
-            $stmt->execute();
-            $stmt->close();
-            
-            // Log the approval
-            $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'accepted', ?)");
-            $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
-            $stmt->execute();
-            $stmt->close();
+            if ($stmt->execute()) {
+                $stmt->close();
+                
+                // Log the approval
+                $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'accepted', ?)");
+                $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
+                $stmt->execute();
+                $stmt->close();
+                $operation_status = 'accepted';
+            } else {
+                $operation_status = 'error';
+            }
         }
 
         if ($action === 'reject') {
             // Update company status to rejected
             $stmt = $conn->prepare("UPDATE companies SET status = 'rejected' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
-            $stmt->execute();
-            $stmt->close();
-            
-            // Log the rejection
-            $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'rejected', ?)");
-            $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
-            $stmt->execute();
-            $stmt->close();
+            if ($stmt->execute()) {
+                $stmt->close();
+                
+                // Log the rejection
+                $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'rejected', ?)");
+                $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
+                $stmt->execute();
+                $stmt->close();
+                $operation_status = 'rejected';
+            } else {
+                $operation_status = 'error';
+            }
         }
 
         if ($action === 'delete') {
             $stmt = $conn->prepare("DELETE FROM companies WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
-            $stmt->execute();
-            $stmt->close();
-            
-            $stmt = $conn->prepare("INSERT INTO recent_deleted_companies (company_id, company_name, company_email) VALUES (?, ?, ?)");
-            $stmt->bind_param("sss", $company_id, $company_name, $company_email);
-            $stmt->execute();
-            $stmt->close();
+            if ($stmt->execute()) {
+                $stmt->close();
+                
+                $stmt = $conn->prepare("INSERT INTO recent_deleted_companies (company_id, company_name, company_email) VALUES (?, ?, ?)");
+                $stmt->bind_param("sss", $company_id, $company_name, $company_email);
+                $stmt->execute();
+                $stmt->close();
+                $operation_status = 'deleted';
+            } else {
+                $operation_status = 'error';
+            }
         }
 
         if ($action === 'block') {
@@ -97,8 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update company status to blocked
             $stmt = $conn->prepare("UPDATE companies SET status = 'blocked' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
-            $stmt->execute();
-            $stmt->close();
+            if ($stmt->execute()) {
+                $stmt->close();
+                $operation_status = 'blocked';
+            } else {
+                $operation_status = 'error';
+            }
         }
 
         if ($action === 'unblock') {
@@ -111,13 +167,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update company status to active
             $stmt = $conn->prepare("UPDATE companies SET status = 'active' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
-            $stmt->execute();
-            $stmt->close();
+            if ($stmt->execute()) {
+                $stmt->close();
+                $operation_status = 'unblocked';
+            } else {
+                $operation_status = 'error';
+            }
         }
+        
+        // Use JavaScript redirect to maintain the page structure
+        echo '<script>window.location.href = "' . $redirect_url . '&op_status=' . $operation_status . '";</script>';
+        exit;
     }
+}
 
-    header("Location: admin_dashboard.php?page=companies");
-    exit;
+// Check for message status or operation status from URL parameters
+if (isset($_GET['msg_status'])) {
+    $message_status = $_GET['msg_status'];
+}
+if (isset($_GET['op_status'])) {
+    $operation_status = $_GET['op_status'];
 }
 ?>
 
@@ -142,6 +211,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     --blur: 16px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --border-radius: 16px;
+}
+
+/* Status Messages */
+.status-message {
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: slideInDown 0.5s ease-out forwards;
+}
+
+.status-message.success {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.status-message.error {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.status-message.info {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+@keyframes slideInDown {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Page Header and Description */
@@ -998,6 +1106,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 </style>
 
+<?php if ($message_status === 'success'): ?>
+    <div class="status-message success">
+        <i class="fas fa-check-circle"></i>
+        Message sent successfully!
+    </div>
+<?php elseif ($message_status === 'error'): ?>
+    <div class="status-message error">
+        <i class="fas fa-exclamation-circle"></i>
+        Failed to send message. Please try again.
+    </div>
+<?php endif; ?>
+
+<?php if ($operation_status === 'accepted'): ?>
+    <div class="status-message info">
+        <i class="fas fa-check-circle"></i>
+        Company application has been accepted successfully.
+    </div>
+<?php elseif ($operation_status === 'rejected'): ?>
+    <div class="status-message info">
+        <i class="fas fa-times-circle"></i>
+        Company application has been rejected successfully.
+    </div>
+<?php elseif ($operation_status === 'deleted'): ?>
+    <div class="status-message info">
+        <i class="fas fa-trash-alt"></i>
+        Company has been successfully deleted.
+    </div>
+<?php elseif ($operation_status === 'blocked'): ?>
+    <div class="status-message info">
+        <i class="fas fa-ban"></i>
+        Company has been successfully blocked.
+    </div>
+<?php elseif ($operation_status === 'unblocked'): ?>
+    <div class="status-message info">
+        <i class="fas fa-check-circle"></i>
+        Company has been successfully unblocked.
+    </div>
+<?php elseif ($operation_status === 'error'): ?>
+    <div class="status-message error">
+        <i class="fas fa-exclamation-circle"></i>
+        Operation failed. Please try again.
+    </div>
+<?php endif; ?>
+
 <div class="page-header loading">
     <h1 class="page-title">
         <i class="fas fa-building"></i>
@@ -1017,7 +1169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <?php
-            // Get statistics
+            // Get statistics - refresh data after operations
             $total_result = $conn->query("SELECT COUNT(*) as total FROM companies");
             $active_result = $conn->query("SELECT COUNT(*) as active FROM companies WHERE status = 'active'");
             $blocked_result = $conn->query("SELECT COUNT(*) as blocked FROM companies WHERE status = 'blocked'");
@@ -1070,7 +1222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class="table-container">
             <?php
-            // Fetch all companies from the database
+            // Fetch all companies from the database - refresh data after operations
             $result = $conn->query("SELECT company_id, company_name, industry_type, company_email, year_established, contact_name, designation, contact_phone, status FROM companies ORDER BY 
                 CASE 
                     WHEN status = 'pending' THEN 1 
@@ -1079,7 +1231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHEN status = 'rejected' THEN 4 
                     ELSE 5 
                 END, id DESC");
-            if ($result->num_rows > 0): ?>
+            if ($result && $result->num_rows > 0): ?>
                 <table class="companies-table">
                     <thead>
                         <tr>
@@ -1182,7 +1334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="activity-content">
                 <?php
                 $deleted_result = $conn->query("SELECT * FROM recent_deleted_companies ORDER BY deleted_at DESC LIMIT 5");
-                if ($deleted_result->num_rows > 0): ?>
+                if ($deleted_result && $deleted_result->num_rows > 0): ?>
                     <table class="activity-table">
                         <thead>
                             <tr>
@@ -1222,7 +1374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="activity-content">
                 <?php
                 $blocked_companies_result = $conn->query("SELECT * FROM blocked_companies ORDER BY blocked_at DESC LIMIT 5");
-                if ($blocked_companies_result->num_rows > 0): ?>
+                if ($blocked_companies_result && $blocked_companies_result->num_rows > 0): ?>
                     <table class="activity-table">
                         <thead>
                             <tr>
@@ -1262,7 +1414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="activity-content">
                 <?php
                 $approvals_result = $conn->query("SELECT * FROM company_approvals ORDER BY processed_at DESC LIMIT 5");
-                if ($approvals_result->num_rows > 0): ?>
+                if ($approvals_result && $approvals_result->num_rows > 0): ?>
                     <table class="activity-table">
                         <thead>
                             <tr>
@@ -1357,15 +1509,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h3>Send Message</h3>
         <p>Send a message to <span id="messageCompanyName"></span></p>
         
-        <form id="messageForm">
+        <form method="post" id="messageForm">
+            <input type="hidden" name="receiver_id" id="messageReceiverId">
+            <input type="hidden" name="send_message" value="1">
+            
             <div class="form-group">
                 <label class="form-label" for="messageSubject">Subject</label>
-                <input type="text" id="messageSubject" class="form-input" placeholder="Enter message subject" required>
+                <input type="text" name="message_subject" id="messageSubject" class="form-input" placeholder="Enter message subject" required>
             </div>
             
             <div class="form-group">
                 <label class="form-label" for="messageContent">Message</label>
-                <textarea id="messageContent" class="form-textarea" placeholder="Type your message here..." required></textarea>
+                <textarea name="message_content" id="messageContent" class="form-textarea" placeholder="Type your message here..." required></textarea>
             </div>
             
             <div class="modal-buttons">
@@ -1476,6 +1631,7 @@ function closeApprovalModal() {
 function openMessageModal(companyId, companyName) {
     const modal = document.getElementById("messageModal");
     document.getElementById("messageCompanyName").textContent = companyName;
+    document.getElementById("messageReceiverId").value = companyId;
     
     // Clear form
     document.getElementById("messageSubject").value = "";
@@ -1495,21 +1651,6 @@ function closeMessageModal() {
     modal.classList.remove("show");
     document.body.style.overflow = "auto";
 }
-
-// Handle message form submission
-document.getElementById("messageForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-    
-    const subject = document.getElementById("messageSubject").value;
-    const content = document.getElementById("messageContent").value;
-    const companyName = document.getElementById("messageCompanyName").textContent;
-    
-    // Here you would typically send the message via AJAX to your messaging system
-    // For now, we'll just show a success message
-    alert(`Message sent successfully to ${companyName}!\n\nSubject: ${subject}\nMessage: ${content}`);
-    
-    closeMessageModal();
-});
 
 // Close modals when clicking outside
 document.getElementById("confirmModal").addEventListener("click", function(e) {
@@ -1550,6 +1691,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize search and filter functionality
     initializeSearchAndFilter();
+    
+    // Auto-hide status messages after 5 seconds
+    const statusMessages = document.querySelectorAll('.status-message');
+    statusMessages.forEach(msg => {
+        setTimeout(() => {
+            msg.style.animation = 'fadeOut 0.5s ease-out forwards';
+            setTimeout(() => {
+                msg.remove();
+            }, 500);
+        }, 5000);
+    });
 });
 
 // Initialize search and filter functionality
@@ -1600,8 +1752,32 @@ function filterTable() {
     });
 }
 
-// Remove old search functionality functions
-// addSearchFunctionality and addStatusFilter functions are no longer needed
+// Add fadeOut animation for status messages
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Prevent form resubmission on page refresh
+if (window.history.replaceState) {
+    const url = new URL(window.location);
+    url.searchParams.delete('msg_status');
+    url.searchParams.delete('op_status');
+    window.history.replaceState(null, null, url);
+}
 </script>
 
-<?php $conn->close(); ?>
+<?php
+// Close the database connection
+$conn->close();
+?>

@@ -2,11 +2,16 @@
 // Start session and check authentication
 session_start();
 
-// Check if admin is logged in (add your authentication logic here)
-// if (!isset($_SESSION['admin_id'])) {
-//     header('Location: admin_login.php');
-//     exit();
-// }
+// Security: Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.html');
+    exit();
+}
+
+// Prevent caching of this page
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
 
 $page = $_GET['page'] ?? 'home';
 
@@ -426,164 +431,25 @@ h1, h2, h3, h4, h5, h6 {
 .nav-link.active i {
     transform: scale(1.15);
 }
+ .logout-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
 
-/* Advanced Logout Button Styles */
-.logout-link {
-    margin-top: 30px;
-    padding: 16px 20px !important;
-    position: relative;
-    background: linear-gradient(135deg, #ff416c 0%, #ff4757 25%, #ff3742 50%, #e84393 75%, #fd79a8 100%);
-    background-size: 300% 300%;
-    color: #fff !important;
-    border-radius: 15px;
-    border: none;
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 
-        0 8px 25px rgba(255, 65, 108, 0.3),
-        0 4px 15px rgba(255, 71, 87, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    animation: gradientShift 4s ease infinite;
-    backdrop-filter: blur(10px);
-}
-
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-.logout-link::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, #ff416c, #ff4757, #e84393, #fd79a8, #ff416c);
-    background-size: 400% 400%;
-    border-radius: 17px;
-    z-index: -1;
-    animation: glowingBorder 3s ease infinite;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-@keyframes glowingBorder {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-.logout-link::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.1) 20%,
-        rgba(255, 255, 255, 0.3) 50%,
-        rgba(255, 255, 255, 0.1) 80%,
-        transparent 100%
-    );
-    transition: left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    z-index: 1;
-}
-
-.logout-link:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 
-        0 20px 40px rgba(255, 65, 108, 0.4),
-        0 10px 25px rgba(255, 71, 87, 0.3),
-        0 5px 15px rgba(232, 67, 147, 0.2),
-        inset 0 2px 0 rgba(255, 255, 255, 0.3);
-    filter: brightness(1.1) saturate(1.2);
-}
-
-.logout-link:hover::before {
-    opacity: 1;
-}
-
-.logout-link:hover::after {
-    left: 100%;
-}
-
-.logout-link:active {
-    transform: translateY(-4px) scale(0.98);
-    transition: all 0.1s ease;
-}
-
-.logout-link i {
-    color: #fff;
-    margin-right: 15px;
-    font-size: 18px;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: relative;
-    z-index: 2;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.logout-link:hover i {
-    transform: translateX(-5px) rotate(-10deg);
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-}
-
-.logout-link span {
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    position: relative;
-    z-index: 2;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-}
-
-.logout-link:hover span {
-    letter-spacing: 1.5px;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.nav-section:last-child .logout-link {
-    border-top: 2px solid rgba(255, 255, 255, 0.1);
-    margin-top: 25px;
-    padding-top: 25px !important;
-    position: relative;
-}
-
-.sidebar.collapsed .logout-link {
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
-    padding: 0 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 25px auto 0 auto;
-    background: linear-gradient(135deg, #ff416c, #ff4757, #e84393);
-    position: relative;
-}
-
-.sidebar.collapsed .logout-link i {
-    margin: 0;
-    font-size: 20px;
-    transform: none;
-}
-
-.sidebar.collapsed .logout-link:hover {
-    transform: scale(1.15) rotate(5deg);
-    box-shadow: 
-        0 15px 30px rgba(255, 65, 108, 0.5),
-        0 8px 20px rgba(255, 71, 87, 0.4);
-}
-
-.sidebar.collapsed .logout-link:hover i {
-    transform: rotate(-15deg);
-}
-
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+        }
 /* Sidebar Toggle - Fixed positioning */
 .sidebar-toggle {
     position: fixed;
@@ -1352,7 +1218,7 @@ h1, h2, h3, h4, h5, h6 {
                     <span>Contact</span>
                 </a>
                 
-                <a href="admin_logout.php" class="nav-link logout-link" onclick="return confirmLogout()">
+                <a href="admin_logout.php" class="logout-btn" onclick="return confirmLogout()">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span>
                 </a>
@@ -1513,9 +1379,20 @@ h1, h2, h3, h4, h5, h6 {
             }
         }
 
-        // Confirm logout function
+        // Enhanced confirm logout function
         function confirmLogout() {
-            return confirm('Are you sure you want to logout?');
+            const confirmed = confirm('Are you sure you want to logout?\n\nYou will be redirected to the login page and your session will be terminated.');
+            if (confirmed) {
+                // Show loading state
+                const logoutLink = document.querySelector('.logout-link');
+                logoutLink.style.opacity = '0.7';
+                logoutLink.style.pointerEvents = 'none';
+                
+                // Add visual feedback
+                const icon = logoutLink.querySelector('i');
+                icon.className = 'fas fa-spinner fa-spin';
+            }
+            return confirmed;
         }
 
         // Close mobile sidebar when clicking outside
@@ -1598,6 +1475,34 @@ h1, h2, h3, h4, h5, h6 {
                 }, 200);
             });
         });
+
+        // Security: Prevent back button access after logout
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Page was loaded from cache, refresh to check session
+                window.location.reload();
+            }
+        });
+
+        // Security: Auto-logout on prolonged inactivity
+        let inactivityTimer;
+        const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                alert('Session expired due to inactivity. You will be logged out.');
+                window.location.href = 'admin_logout.php';
+            }, INACTIVITY_TIMEOUT);
+        }
+
+        // Track user activity
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+            document.addEventListener(event, resetInactivityTimer, true);
+        });
+
+        // Initialize inactivity timer
+        resetInactivityTimer();
 
         // Add keyboard navigation support
         document.addEventListener('keydown', function(e) {
