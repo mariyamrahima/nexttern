@@ -104,9 +104,8 @@ $stmt->close();
 
 // Hash password securely
 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-// Generate unique company_id
-$company_id = "NXCO" . date("Ymd") . sprintf("%04d", rand(1, 9999));
+// Generate unique company_id with format "CO" + 4 random numbers
+$company_id = "CO" . sprintf("%04d", rand(1, 9999));
 
 // Ensure company_id is unique
 $attempts = 0;
@@ -122,7 +121,7 @@ while ($attempts < 10) {
     }
     
     $check_stmt->close();
-    $company_id = "NXCO" . date("Ymd") . sprintf("%04d", rand(1, 9999));
+    $company_id = "CO" . sprintf("%04d", rand(1, 9999));
     $attempts++;
 }
 

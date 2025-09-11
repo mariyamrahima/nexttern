@@ -1,7 +1,5 @@
-<?php 
+<?php
 session_start();
-
-// Just clear and start fresh - no blocking, no warnings
 session_unset();
 session_destroy();
 session_start();
@@ -10,7 +8,18 @@ header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Check if this is a POST request
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode([
+        "success" => false, 
+        "message" => "This endpoint only accepts POST requests"
+    ]);
+    exit;
+}
+
+// Rest of your existing code...
 $conn = new mysqli("localhost", "root", "", "nexttern_db");
+
 if ($conn->connect_error) {
     echo json_encode(["success" => false, "message" => "Database connection failed"]);
     exit;
