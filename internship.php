@@ -108,7 +108,6 @@ if ($isLoggedIn && $user_type === 'student') {
     }
 }
 
-// Rest of your existing database connection and course fetching code...
 // Database connection parameters for courses
 $servername = "localhost";
 $username = "root";
@@ -123,7 +122,6 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Your existing filtering and course fetching logic remains the same...
 // Dynamic filtering logic
 $course_filter = isset($_GET['course']) ? $conn->real_escape_string($_GET['course']) : '';
 $mode_filter = isset($_GET['mode']) ? $conn->real_escape_string($_GET['mode']) : '';
@@ -145,11 +143,24 @@ if (!empty($duration_filter)) {
     $types .= 's';
 }
 
-$sql = "SELECT * FROM courses";
+if (!empty($mode_filter)) {
+    $where_clauses[] = "mode = ?";
+    $params[] = $mode_filter;
+    $types .= 's';
+}
+
+// Updated SQL query to fetch ONLY from Course table (no company joins)
+$sql = "SELECT id, course_title, course_category, duration, difficulty_level, mode, 
+               max_students, course_description, skills_taught, course_price_type, 
+               price_amount, certificate_provided, featured, created_at, course_status
+        FROM Course 
+        WHERE course_status = 'Active'";
 
 if (!empty($where_clauses)) {
-    $sql .= " WHERE " . implode(" AND ", $where_clauses);
+    $sql .= " AND " . implode(" AND ", $where_clauses);
 }
+
+$sql .= " ORDER BY created_at DESC";
 
 // Prepare and execute the statement
 if (!empty($where_clauses)) {
@@ -164,12 +175,6 @@ if (!empty($where_clauses)) {
 $courses_data = [];
 if ($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        $row['posted_date'] = $row['created_at'] ?? 'N/A';
-        
-        // Mock a random mode since it's not in your database table
-        $mock_modes = ['remote', 'onsite', 'hybrid'];
-        $row['mode'] = $row['mode'] ?? $mock_modes[array_rand($mock_modes)];
-        
         $courses_data[] = $row;
     }
 }
@@ -178,46 +183,40 @@ if ($result->num_rows > 0) {
 if (isset($stmt)) $stmt->close();
 $conn->close();
 
-// Filter for `mode` in PHP since it's not in the database schema
-$filtered_internships = $courses_data;
-if (!empty($mode_filter)) {
-    $filtered_internships = array_filter($courses_data, function($course) use ($mode_filter) {
-        return $course['mode'] === $mode_filter;
-    });
-}
-
+// Define available categories and durations for filters
 $courses_categories = [
-    'programming',
-    'design', 
-    'business',
-    'marketing',
-    'data_science',
-    'ai_ml',
-    'cybersecurity'
+    'Programming',
+    'Design', 
+    'Business',
+    'Marketing',
+    'Data Science',
+    'AI/ML',
+    'Cybersecurity',
+    'Finance',
+    'Healthcare',
+    'Engineering'
 ];
 
 $available_durations = [
-    '1_week' => '1 Week',
-    '2_weeks' => '2 Weeks',
-    '1_month' => '1 Month',
-    '2_months' => '2 Months',
-    '3_months' => '3 Months',
-    '6_months' => '6 Months',
-    'self_paced' => 'Self-Paced'
+    '1 Week' => '1 Week',
+    '2 Weeks' => '2 Weeks',
+    '1 Month' => '1 Month',
+    '2 Months' => '2 Months',
+    '3 Months' => '3 Months',
+    '6 Months' => '6 Months',
+    'Self-Paced' => 'Self-Paced'
 ];
 
-$available_modes = ['remote', 'onsite', 'hybrid'];
-sort($courses_categories);
+$available_modes = ['online', 'offline', 'hybrid'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexttern - Internship Opportunities</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>Nexttern - Course Opportunities</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="internship.css">
     <style>
         /* Root Variables */
         :root {
@@ -232,17 +231,151 @@ sort($courses_categories);
             --info: #3498db;
             --text-primary: #2c3e50;
             --text-secondary: #7f8c8d;
-            --bg-light: #f5fbfa;
-            --glass-bg: rgba(255, 255, 255, 0.25);
-            --glass-border: rgba(255, 255, 255, 0.18);
-            --shadow-light: 0 8px 32px rgba(3, 89, 70, 0.1);
-            --shadow-medium: 0 12px 48px rgba(3, 89, 70, 0.15);
+            --text-muted: #95a5a6;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --border-light: #e9ecef;
+            --border-medium: #dee2e6;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(3, 89, 70, 0.08);
+            --shadow-lg: 0 8px 25px rgba(3, 89, 70, 0.12);
+            --shadow-xl: 0 12px 48px rgba(3, 89, 70, 0.15);
             --blur: 14px;
-            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #7dd3d8 100%);
+            --border-radius-sm: 6px;
+            --border-radius: 12px;
+            --border-radius-lg: 16px;
         }
 
-        /* Enhanced Navbar with Profile */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e3f2fd 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Enhanced Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 1000;
+            padding: 0.75rem 0;
+            transition: var(--transition);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand img {
+            height: 50px;
+            width: auto;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+      .nav-link {
+    /* Set the default link color to a dark gray for good contrast */
+    color: var(--text-dark); /* Using a variable is best practice */
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease; /* Transition only the color for a smoother effect */
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.nav-link:hover {
+    /* Change the link text color to the primary green on hover */
+    color: var(--primary);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; /* A slight adjustment to place the line just below the text */
+    left: 50%; /* Start from the center */
+    transform: translateX(-50%); /* Center the line */
+    width: 0;
+    height: 2px;
+    /* Use a solid color or a gradient for the line effect */
+    background: var(--primary); 
+    /* The original code had a gradient, but a solid color looks cleaner for a single line */
+    transition: width 0.3s ease; /* Transition the width for the "grow" effect */
+}
+
+.nav-link:hover::after {
+    /* Make the line grow to full width on hover */
+    width: 100%;
+}
+
+       
+/* Login Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(3, 89, 70, 0.4);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
+}
+
+
+        /* Enhanced Profile Navigation - Matching internship page */
         .nav-profile {
             position: relative;
             display: flex;
@@ -299,6 +432,7 @@ sort($courses_categories);
             color: var(--primary-dark);
         }
 
+
         .message-badge {
             background: var(--danger);
             color: white;
@@ -306,7 +440,6 @@ sort($courses_categories);
             padding: 0.2rem 0.5rem;
             font-size: 0.7rem;
             font-weight: bold;
-            margin-left: auto;
             min-width: 20px;
             height: 20px;
             display: flex;
@@ -321,34 +454,62 @@ sort($courses_categories);
             100% { transform: scale(1); }
         }
 
-        /* Enhanced Welcome Bar */
-        .enhanced-welcome {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            color: var(--primary);
-            padding: 1.5rem 2rem;
-            margin: 1.5rem 2rem;
-            border-radius: 16px;
+        /* Header */
+        .header {
+            padding: 8rem 0 3rem;
             text-align: center;
-            position: relative;
-            box-shadow: 0 4px 20px rgba(3, 89, 70, 0.1);
+            background: linear-gradient(135deg, rgba(3, 89, 70, 0.02) 0%, rgba(78, 205, 196, 0.02) 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        /* Enhanced Welcome */
+        .enhanced-welcome {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: var(--primary);
+            padding: 2rem;
+            margin: 2rem auto;
+            border-radius: var(--border-radius-lg);
+            text-align: center;
+            max-width: 800px;
+            box-shadow: var(--shadow-md);
         }
 
         .enhanced-welcome h2 {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             margin-bottom: 1rem;
             font-weight: 600;
             color: var(--primary-dark);
         }
 
-        .enhanced-welcome .welcome-details {
+        .welcome-details {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 1rem;
+            gap: 1.5rem;
             flex-wrap: wrap;
+            margin-bottom: 1rem;
         }
 
         .welcome-detail {
@@ -358,9 +519,9 @@ sort($courses_categories);
             font-size: 0.9rem;
             font-weight: 500;
             color: var(--primary);
-            background: rgba(3, 89, 70, 0.1);
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
+            background: rgba(3, 89, 70, 0.08);
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--border-radius);
             border: 1px solid rgba(3, 89, 70, 0.15);
         }
 
@@ -369,157 +530,413 @@ sort($courses_categories);
             font-size: 1rem;
         }
 
-        /* Login Modal Styles (for non-logged users) */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 9999;
+        /* Main Container */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Search Section */
+        .search-section {
+            margin-bottom: 3rem;
+        }
+
+        .search-container {
+            display: flex;
+            max-width: 500px;
+            margin: 0 auto;
+            background: var(--bg-white);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+
+        .search-container input {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            background: transparent;
+        }
+
+        .search-btn {
+            padding: 1rem 1.5rem;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
+
+        .search-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: var(--bg-white);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+        }
+
+        .filter-section h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .filter-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .filter-group select {
+            padding: 0.8rem;
+            border: 1px solid var(--border-medium);
+            border-radius: var(--border-radius);
+            font-size: 0.95rem;
+            background: var(--bg-white);
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(3, 89, 70, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 1rem;
             align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.2s ease-out;
         }
 
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 0;
-            max-width: 450px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            transform: scale(0.8);
-            opacity: 0;
-            transition: all 0.2s ease-out;
+        .filter-btn {
+            padding: 0.8rem 1.5rem;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
         }
 
-        .modal-header {
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .clear-btn {
+            padding: 0.8rem 1.5rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .clear-btn:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        /* Results Info */
+        .results-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.5rem 1.5rem 0;
-            border-bottom: 1px solid #f0f0f0;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-header h3 {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-            margin: 0;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            color: #999;
-            padding: 0.5rem;
-            border-radius: 50%;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-        }
-
-        .modal-close:hover {
-            background: #f5f5f5;
-            color: #333;
-        }
-
-        .modal-body {
-            padding: 0 1.5rem 1.5rem;
-            text-align: center;
-        }
-
-        .modal-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            color: white;
-            font-size: 1.5rem;
-        }
-
-        .modal-body p {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            line-height: 1.6;
             margin-bottom: 2rem;
-        }
-
-        .modal-actions {
-            display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
-            margin-bottom: 1.5rem;
         }
 
-        .modal-btn {
-            flex: 1;
-            padding: 0.875rem 1.5rem;
-            border-radius: 12px;
-            text-decoration: none;
+        .results-count {
+            font-size: 1.1rem;
             font-weight: 600;
-            font-size: 0.95rem;
-            text-align: center;
-            transition: all 0.2s ease;
-            border: none;
-            cursor: pointer;
+            color: var(--text-primary);
         }
 
-        .modal-btn-primary {
+        .enhanced-access-badge {
             background: var(--gradient-primary);
             color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-sm);
         }
 
-        .modal-btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(3, 89, 70, 0.3);
+        /* Course Cards Grid - Compact Design */
+       .internships-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); /* was 300px */
+    gap: 1.5rem; /* optional: make gaps a bit larger for breathing room */
+    margin-bottom: 3rem;
+}
+
+
+       .internship-card {
+    background: var(--bg-white);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;                /* was 1.25rem */
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
+    transition: var(--transition);
+    cursor: pointer;
+    position: relative;
+    height: fit-content;
+    min-height: 340px;            /* was 280px */
+}
+
+
+        .internship-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl);
+            border-color: rgba(3, 89, 70, 0.2);
         }
 
-        .modal-btn-secondary {
-            background: transparent;
-            color: var(--primary);
-            border: 2px solid var(--primary);
+        /* Card Header - Simplified */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
         }
 
-        .modal-btn-secondary:hover {
+        .course-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .course-category {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--bg-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .action-icon:hover {
             background: var(--primary);
             color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(3, 89, 70, 0.2);
+            transform: scale(1.1);
         }
 
-        .modal-footer-text {
-            font-size: 0.9rem;
+        /* Card Meta - Compact */
+        .card-meta {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
-            margin: 0;
+            background: var(--bg-light);
+            padding: 0.3rem 0.6rem;
+            border-radius: 15px;
+            font-weight: 500;
         }
 
-        .modal-link {
+        .meta-item i {
+            color: var(--accent);
+            font-size: 0.8rem;
+        }
+
+        /* Card Description - Shorter */
+        .card-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Skills Tags - Compact */
+        .card-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .skill-tag {
+            background: rgba(3, 89, 70, 0.08);
             color: var(--primary);
-            text-decoration: none;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid rgba(3, 89, 70, 0.15);
+        }
+
+        /* Card Footer - Simplified */
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-light);
+            margin-top: auto;
+        }
+
+        .price-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .price-amount {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .price-type {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .apply-btn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--border-radius);
             font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
         }
 
-        .modal-link:hover {
-            text-decoration: underline;
+        .apply-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
-        /* Content Blur Overlay - Enhanced for non-logged users */
+      .mode-badge,
+.status-badge {
+    border-radius: 999px;           /* pill shape */
+    padding: 0.2rem 0.9rem;         /* small, compact look */
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: none;
+    position: static;               /* let container handle position */
+    margin: 0;                      /* remove default margin */
+    display: inline-block;
+    min-width: 64px;                /* optional: ensures consistent width */
+    text-align: center;
+}
+
+
+        .status-featured {
+            background: linear-gradient(135deg, var(--warning) 0%, #ff9500 100%);
+            color: white;
+        }
+
+        .status-new {
+            background: linear-gradient(135deg, var(--success) 0%, #2ecc71 100%);
+            color: white;
+        }
+
+       
+
+        .mode-online {
+            background: rgba(46, 204, 113, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .mode-offline {
+            background: rgba(52, 152, 219, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .mode-hybrid {
+            background: rgba(155, 89, 182, 0.1);
+            color: #9b59b6;
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+
+        /* No Results */
+        .no-results {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .no-results h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        /* Content Blur Overlay for non-logged users */
         .content-blur-overlay {
             position: absolute;
             top: 0;
@@ -532,6 +949,7 @@ sort($courses_categories);
             align-items: center;
             justify-content: center;
             pointer-events: none;
+            border-radius: var(--border-radius-lg);
         }
 
         .blur-message {
@@ -539,9 +957,10 @@ sort($courses_categories);
             text-align: center;
             padding: 2rem;
             max-width: 500px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: var(--bg-white);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-light);
         }
 
         .blur-content i {
@@ -549,7 +968,6 @@ sort($courses_categories);
             color: var(--primary);
             margin-bottom: 1rem;
             opacity: 0.8;
-            display: block;
         }
 
         .blur-content h3 {
@@ -576,11 +994,11 @@ sort($courses_categories);
 
         .blur-btn {
             padding: 0.8rem 1.5rem;
-            border-radius: 10px;
+            border-radius: var(--border-radius);
             text-decoration: none;
             font-weight: 600;
             font-size: 0.9rem;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             min-width: 120px;
             text-align: center;
         }
@@ -588,12 +1006,12 @@ sort($courses_categories);
         .blur-btn-primary {
             background: var(--gradient-primary);
             color: white;
-            box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
+            box-shadow: var(--shadow-md);
         }
 
         .blur-btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(3, 89, 70, 0.4);
+            box-shadow: var(--shadow-lg);
         }
 
         .blur-btn-secondary {
@@ -606,7 +1024,7 @@ sort($courses_categories);
             background: var(--primary);
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
+            box-shadow: var(--shadow-md);
         }
 
         .blurred-content {
@@ -615,8 +1033,8 @@ sort($courses_categories);
             user-select: none;
         }
 
-        /* Profile Dashboard Modal */
-        .profile-dashboard-overlay {
+        /* Login Modal */
+        .modal-overlay {
             display: none;
             position: fixed;
             top: 0;
@@ -627,494 +1045,384 @@ sort($courses_categories);
             z-index: 9999;
             align-items: center;
             justify-content: center;
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.2s ease-out;
         }
 
-        .profile-dashboard {
-            background: white;
-            border-radius: 20px;
-            width: 95%;
-            max-width: 1200px;
-            max-height: 95vh;
+        .modal-content {
+            background: var(--bg-white);
+            border-radius: var(--border-radius-lg);
+            padding: 0;
+            max-width: 450px;
+            width: 90%;
+            max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-xl);
             transform: scale(0.8);
             opacity: 0;
-            transition: all 0.3s ease-out;
-            position: relative;
+            transition: all 0.2s ease-out;
         }
 
-        .profile-dashboard.show {
-            transform: scale(1);
-            opacity: 1;
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 1.5rem 0;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 1.5rem;
         }
 
-        .dashboard-header {
+        .modal-header h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 0 1.5rem 1.5rem;
+            text-align: center;
+        }
+
+        .modal-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-align: center;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+        }
+
+        .modal-btn-primary {
             background: var(--gradient-primary);
             color: white;
-            padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
         }
 
-        .dashboard-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-            animation: shimmer 6s infinite;
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        .dashboard-close {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            color: white;
-            font-size: 1.2rem;
-            z-index: 10;
-        }
-
-        .dashboard-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .dashboard-user-info {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        .dashboard-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: 700;
-            color: white;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            object-fit: cover;
-        }
-
-        .dashboard-user-details h2 {
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-
-        .user-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 0.5rem;
-        }
-
-        .meta-badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .dashboard-content {
-            padding: 2.5rem;
-        }
-
-        .dashboard-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 1rem;
-        }
-
-        .dashboard-tab {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 12px;
-            transition: var(--transition);
-            position: relative;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .dashboard-tab.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
-        }
-
-        .dashboard-tab:not(.active):hover {
-            background: rgba(3, 89, 70, 0.1);
-            color: var(--primary);
-        }
-
-        .dashboard-tab-content {
-            display: none;
-        }
-
-        .dashboard-tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        /* Profile Section */
-        .profile-section {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 2.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .profile-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 0.75rem;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .form-group input {
-            padding: 1rem;
-            border: 2px solid rgba(3, 89, 70, 0.1);
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: var(--transition);
-            background: rgba(255, 255, 255, 0.7);
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: white;
-            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
-        }
-
-        .form-group input[readonly] {
-            background: rgba(255, 255, 255, 0.5);
-            color: var(--text-secondary);
-        }
-
-        /* Quick Actions */
-        .quick-actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .quick-action {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            color: var(--primary);
-        }
-
-        .quick-action:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-medium);
-            background: rgba(255, 255, 255, 0.4);
-        }
-
-        .quick-action i {
-            font-size: 2rem;
-            color: var(--accent);
-            margin-bottom: 1rem;
-            display: block;
-        }
-
-        .quick-action h4 {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--primary-dark);
-        }
-
-        .quick-action p {
-            font-size: 0.85rem;
+        .modal-footer-text {
+            font-size: 0.9rem;
             color: var(--text-secondary);
             margin: 0;
         }
 
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: var(--danger);
+        .modal-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .modal-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--secondary);
             color: white;
-            border-radius: 50%;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.7rem;
-            font-weight: bold;
-            min-width: 20px;
-            height: 20px;
+            padding: 4rem 0 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 4rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand {
+            max-width: 300px;
+        }
+
+        .footer-logo {
             display: flex;
             align-items: center;
-            justify-content: center;
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            transition: var(--transition);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .stat-icon {
-            font-size: 2rem;
-            color: var(--accent);
+            gap: 0.75rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
             margin-bottom: 1rem;
         }
 
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
+        .footer-logo i {
+            color: var(--accent);
         }
 
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
+        .footer-brand p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+            margin-bottom: 2rem;
         }
 
-        /* Enhanced Access Badge for logged users */
-        .enhanced-access-badge {
-            background: var(--gradient-primary);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 600;
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .social-links a {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
         }
 
-        /* Animation */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .social-links a:hover {
+            background: var(--gradient-primary);
+            transform: translateY(-2px);
+        }
+
+        .footer-links {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+
+        .footer-column h4 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-column ul li a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-column ul li a:hover {
+            color: var(--accent);
+            transform: translateX(5px);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 2rem;
+        }
+
+        .footer-bottom-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-bottom p {
+            color: rgba(255, 255, 255, 0.5);
+            margin: 0;
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-bottom-links a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: var(--transition);
+        }
+
+        .footer-bottom-links a:hover {
+            color: var(--accent);
         }
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .profile-dashboard {
-                width: 95%;
-                margin: 1rem;
-                max-height: 95vh;
+            .header h1 {
+                font-size: 2.2rem;
             }
 
-            .dashboard-header {
+            .header p {
+                font-size: 1.1rem;
+            }
+
+            .enhanced-welcome {
                 padding: 1.5rem;
-            }
-
-            .dashboard-user-info {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            .dashboard-avatar {
-                width: 60px;
-                height: 60px;
-                font-size: 1.5rem;
-            }
-
-            .dashboard-user-details h2 {
-                font-size: 1.5rem;
-            }
-
-            .dashboard-tabs {
-                flex-wrap: wrap;
-                gap: 0.25rem;
-            }
-
-            .dashboard-tab {
-                padding: 0.6rem 1rem;
-                font-size: 0.85rem;
-            }
-
-            .profile-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .quick-actions-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-
-            .profile-name {
-                display: none;
-            }
-
-            .enhanced-welcome {
                 margin: 1rem;
-                padding: 2.5rem 2rem;
             }
-            
-            .enhanced-welcome h2 {
-                font-size: 1.8rem;
-                margin-bottom: 1.5rem;
-            }
-            
-            .enhanced-welcome .welcome-details {
+
+            .welcome-details {
+                flex-direction: column;
                 gap: 1rem;
-                margin: 1.5rem 0;
-            }
-            
-            .welcome-detail {
-                font-size: 0.9rem;
-                padding: 0.8rem 1.2rem;
-            }
-
-            .content-blur-overlay {
-                height: 60vh;
-            }
-
-            .blur-message {
-                padding: 2rem 1rem;
-                margin-top: 5rem;
-            }
-
-            .blur-content h3 {
-                font-size: 1.5rem;
-            }
-
-            .blur-content i {
-                font-size: 3rem;
-            }
-
-            .blur-content p {
-                font-size: 1rem;
-            }
-
-            .blur-actions {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .blur-btn {
-                width: 100%;
-                max-width: 280px;
-            }
-
-            .modal-content {
-                margin: 1rem;
-                width: calc(100% - 2rem);
-            }
-
-            .modal-actions {
-                flex-direction: column;
-            }
-
-            .modal-btn {
-                width: 100%;
-            }
-
-            .modal-header h3 {
-                font-size: 1.2rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .enhanced-welcome {
-                margin: 0.5rem;
-                padding: 2rem 1.5rem;
-            }
-
-            .enhanced-welcome .welcome-details {
-                flex-direction: column;
-                gap: 0.8rem;
             }
 
             .welcome-detail {
                 width: 100%;
                 justify-content: center;
             }
+
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+
+            .internships-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .card-meta {
+                gap: 0.5rem;
+            }
+
+            .card-footer {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .apply-btn {
+                width: 100%;
+            }
+
+            .footer-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .footer-links {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .profile-name {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-container {
+                padding: 0 1rem;
+            }
+
+            .header {
+                padding: 6rem 0 2rem;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .enhanced-welcome h2 {
+                font-size: 1.4rem;
+            }
+
+            .blur-message {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+
+            .blur-actions {
+                flex-direction: column;
+            }
+
+            .blur-btn {
+                width: 100%;
+            }
+        }
+
+        /* Animation Utilities */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.6s ease-out;
         }
     </style>
 </head>
 <body>
-    <div class="blob blob1"></div>
-    <div class="blob blob2"></div>
-    <div class="blob blob3"></div>
-    <div class="blob blob4"></div>
-    <div class="blob blob5"></div>
-
-    <!-- Enhanced Navigation with Smart Profile/Login -->
+    <!-- Enhanced Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="#" class="nav-brand">
@@ -1124,46 +1432,46 @@ sort($courses_categories);
             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
                 <li><a href="internship.php" class="nav-link active">Internships</a></li>
-                <li><a href="#" class="nav-link">Companies</a></li>
+              
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
                 <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>
             
-            <div class="nav-cta">
-                <?php if ($isLoggedIn): ?>
-                    <div class="nav-profile">
-                        <button class="profile-trigger" onclick="openProfileDashboard()">
-                            <?php if (!empty($user_profile_picture)): ?>
-                                <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
-                            <?php else: ?>
-                                <div class="profile-avatar default">
-                                    <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
-                                </div>
-                            <?php endif; ?>
-                            <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
-                            <?php if ($unread_count > 0): ?>
-                                <span class="message-badge"><?php echo $unread_count; ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </div>
+          <div class="nav-cta">
+    <?php if ($isLoggedIn): ?>
+        <div class="nav-profile">
+            <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
+                <?php if (!empty($user_profile_picture)): ?>
+                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
                 <?php else: ?>
-                    <a href="login.html" class="btn btn-primary">Login</a>
+                    <div class="profile-avatar default">
+                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+                    </div>
                 <?php endif; ?>
-            </div>
+                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
+                <?php if ($unread_count > 0): ?>
+                    <span class="message-badge"><?php echo $unread_count; ?></span>
+                <?php endif; ?>
+            </button>
+        </div>
+    <?php else: ?>
+        <a href="login.html" class="btn btn-primary">Login</a>
+    <?php endif; ?>
+</div>
         </div>
     </nav>
 
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <h1>Internship Opportunities</h1>
-            <p>Discover your perfect learning path with top companies</p>
+            <h1>Course Opportunities</h1>
+            <p>Master new skills with industry-leading courses and certifications</p>
             <?php if ($isLoggedIn): ?>
                 <div class="enhanced-welcome">
                     <h2>Welcome back, <?php echo htmlspecialchars($user_name ?: 'Student'); ?>!</h2>
                     <div class="welcome-details">
                         <div class="welcome-detail">
-                            <i class="fas fa-<?php echo $user_role === 'company' ? 'building' : 'graduation-cap'; ?>"></i>
+                            <i class="fas fa-graduation-cap"></i>
                             <span>Role: <?php echo ucfirst(htmlspecialchars($user_role ?: 'Student')); ?></span>
                         </div>
                         <div class="welcome-detail">
@@ -1178,179 +1486,14 @@ sort($courses_categories);
                         <?php endif; ?>
                     </div>
                     <div class="welcome-message">
-                        Explore all available opportunities below - no restrictions!
+                        Explore all available courses below - full access enabled!
                     </div>
                 </div>
             <?php endif; ?>
         </div>
     </header>
 
-    <!-- Profile Dashboard Modal (for logged users) -->
-    <?php if ($isLoggedIn): ?>
-    <div id="profileDashboardOverlay" class="profile-dashboard-overlay">
-        <div class="profile-dashboard" id="profileDashboard">
-            <div class="dashboard-header">
-                <button class="dashboard-close" onclick="closeProfileDashboard()">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="dashboard-user-info">
-                    <?php if (!empty($user_profile_picture)): ?>
-                        <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="dashboard-avatar">
-                    <?php else: ?>
-                        <div class="dashboard-avatar">
-                            <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
-                        </div>
-                    <?php endif; ?>
-                    <div class="dashboard-user-details">
-                        <h2><?php echo htmlspecialchars($user_name ?: 'User'); ?></h2>
-                        <p><?php echo htmlspecialchars($user_email); ?></p>
-                        <div class="user-meta">
-                            <span class="meta-badge">
-                                <i class="fas fa-<?php echo $user_role === 'company' ? 'building' : 'graduation-cap'; ?>"></i>
-                                <?php echo ucfirst(htmlspecialchars($user_role ?: 'Student')); ?>
-                            </span>
-                            <?php if (!empty($user_joined)): ?>
-                                <span class="meta-badge">
-                                <i class="fas fa-calendar"></i>
-                                Joined <?php echo date('M Y', strtotime($user_joined)); ?>
-                            </span>
-                            <?php endif; ?>
-                            <?php if ($unread_count > 0): ?>
-                                <span class="meta-badge" style="background: rgba(231, 76, 60, 0.2); color: var(--danger);">
-                                    <i class="fas fa-envelope"></i>
-                                    <?php echo $unread_count; ?> New
-                                </span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-content">
-                <!-- Dashboard Tabs -->
-                <div class="dashboard-tabs">
-                    <button class="dashboard-tab active" onclick="showDashboardTab('overview')">
-                        <i class="fas fa-tachometer-alt"></i>
-                        Overview
-                    </button>
-                    <button class="dashboard-tab" onclick="showDashboardTab('profile')">
-                        <i class="fas fa-user"></i>
-                        Profile
-                    </button>
-                    <button class="dashboard-tab" onclick="showDashboardTab('applications')">
-                        <i class="fas fa-file-alt"></i>
-                        Applications
-                    </button>
-                </div>
-
-                <!-- Overview Tab -->
-                <div id="overview-tab" class="dashboard-tab-content active">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <i class="fas fa-briefcase stat-icon"></i>
-                            <div class="stat-number">0</div>
-                            <div class="stat-label">Applications</div>
-                        </div>
-                        <div class="stat-card">
-                            <i class="fas fa-envelope stat-icon"></i>
-                            <div class="stat-number"><?php echo $unread_count; ?></div>
-                            <div class="stat-label">Unread Messages</div>
-                        </div>
-                        <div class="stat-card">
-                            <i class="fas fa-chart-line stat-icon"></i>
-                            <div class="stat-number">Active</div>
-                            <div class="stat-label">Status</div>
-                        </div>
-                    </div>
-
-                    <div class="quick-actions-grid">
-                        <a href="internship.php" class="quick-action">
-                            <i class="fas fa-search"></i>
-                            <h4>Browse Internships</h4>
-                            <p>Find your perfect opportunity</p>
-                        </a>
-                        <a href="#" class="quick-action" onclick="showDashboardTab('profile')">
-                            <i class="fas fa-edit"></i>
-                            <h4>Edit Profile</h4>
-                            <p>Update your information</p>
-                        </a>
-                        <a href="logout.php" class="quick-action" style="color: var(--danger);">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <h4>Logout</h4>
-                            <p>End your session</p>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Profile Tab -->
-                <div id="profile-tab" class="dashboard-tab-content">
-                    <div class="profile-section">
-                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.4rem;">
-                            <i class="fas fa-user" style="color: var(--accent); margin-right: 0.5rem;"></i>
-                            Personal Information
-                        </h3>
-                        <form id="profileForm">
-                            <div class="profile-grid">
-                                <div class="form-group">
-                                    <label><i class="fas fa-user"></i>Full Name</label>
-                                    <input type="text" name="name" value="<?php echo htmlspecialchars($user_name); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-envelope"></i>Email Address</label>
-                                    <input type="email" name="email" value="<?php echo htmlspecialchars($user_email); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-phone"></i>Phone Number</label>
-                                    <input type="tel" name="phone" value="<?php echo htmlspecialchars($user_phone); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-map-marker-alt"></i>Location</label>
-                                    <input type="text" name="location" value="<?php echo htmlspecialchars($user_location); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-birthday-cake"></i>Date of Birth</label>
-                                    <input type="date" name="dob" value="<?php echo htmlspecialchars($user_dob); ?>" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-user-tag"></i>Role</label>
-                                    <input type="text" name="role" value="<?php echo htmlspecialchars(ucfirst($user_role)); ?>" readonly>
-                                </div>
-                            </div>
-
-                            <div class="profile-actions" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
-                                <button type="button" class="btn btn-primary" id="editBtn" onclick="toggleEdit()">
-                                    <i class="fas fa-edit"></i> Edit Profile
-                                </button>
-                                <button type="button" class="btn btn-success" id="saveBtn" onclick="saveProfile()" style="display: none;">
-                                    <i class="fas fa-save"></i> Save Changes
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="cancelBtn" onclick="cancelEdit()" style="display: none;">
-                                    <i class="fas fa-times"></i> Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Applications Tab -->
-                <div id="applications-tab" class="dashboard-tab-content">
-                    <div class="profile-section">
-                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.4rem;">
-                            <i class="fas fa-file-alt" style="color: var(--accent); margin-right: 0.5rem;"></i>
-                            My Applications
-                        </h3>
-                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                            <i class="fas fa-file-alt" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                            <p>No applications yet. Start exploring internships!</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- Login Modal (for non-logged users) -->
+    <!-- Login Modal -->
     <div id="loginModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -1379,30 +1522,32 @@ sort($courses_categories);
         <!-- Search Section -->
         <section class="search-section">
             <div class="search-container">
-                <input type="text" placeholder="What do you want to learn?" id="search-input">
-                <button type="button" class="search-btn">🔍</button>
+                <input type="text" placeholder="Search for courses, skills, or topics..." id="search-input">
+                <button type="button" class="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
             </div>
         </section>
 
         <!-- Filter Section -->
         <section class="filter-section">
-            <h2>Filter Your Search</h2>
+            <h2>Find Your Perfect Course</h2>
             <form class="filter-form" method="GET" action="">
                 <div class="filter-group">
-                    <label for="course">Course</label>
+                    <label for="course">Category</label>
                     <select id="course" name="course">
-                        <option value="">All Courses</option>
+                        <option value="">All Categories</option>
                         <?php foreach ($courses_categories as $course): ?>
                             <option value="<?php echo htmlspecialchars($course); ?>" 
                                     <?php echo ($_GET['course'] ?? '') === $course ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $course))); ?>
+                                <?php echo htmlspecialchars($course); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="filter-group">
-                    <label for="mode">Mode of Study</label>
+                    <label for="mode">Mode</label>
                     <select id="mode" name="mode">
                         <option value="">All Modes</option>
                         <?php foreach ($available_modes as $mode): ?>
@@ -1429,7 +1574,7 @@ sort($courses_categories);
 
                 <div class="filter-actions">
                     <button type="submit" class="filter-btn">
-                        <span class="btn-text">Filter</span>
+                        <span class="btn-text">Apply Filters</span>
                     </button>
                     <a href="?" class="clear-btn">Clear All</a>
                 </div>
@@ -1440,7 +1585,7 @@ sort($courses_categories);
         <main class="main-content">
             <div class="results-info">
                 <div class="results-count">
-                    <?php echo count($filtered_internships); ?> internship<?php echo count($filtered_internships) !== 1 ? 's' : ''; ?> found
+                    <?php echo count($courses_data); ?> course<?php echo count($courses_data) !== 1 ? 's' : ''; ?> found
                 </div>
                 <?php if ($isLoggedIn): ?>
                     <div class="enhanced-access-badge">
@@ -1449,34 +1594,32 @@ sort($courses_categories);
                 <?php endif; ?>
             </div>
 
-            <?php if (empty($filtered_internships)): ?>
+            <?php if (empty($courses_data)): ?>
                 <div class="no-results">
-                    <h3>No internships found</h3>
-                    <p>Try adjusting your filters to see more opportunities</p>
+                    <h3>No courses found</h3>
+                    <p>Try adjusting your filters to discover more learning opportunities</p>
                 </div>
             <?php else: ?>
                 <div class="internships-grid" style="position: relative;">
                     <?php 
                     $card_index = 0;
-                    $cards_per_row = 3; // Assuming 3 cards per row based on typical grid layout
-                    $cards_before_blur = $cards_per_row * 3; // First 3 complete rows (9 cards)
+                    $cards_per_row = 3; // Updated for smaller cards
+                    $cards_before_blur = $cards_per_row * 2; // Show first 2 rows (8 cards)
                     
-                    foreach ($filtered_internships as $course): 
+                    foreach ($courses_data as $course): 
                         $card_index++;
                         
-                        // Only show blur overlay if user is NOT logged in and we have more than 9 cards
-                        if (!$isLoggedIn && $card_index == $cards_before_blur + 1 && count($filtered_internships) > $cards_before_blur): ?>
+                        // Show blur overlay for non-logged users after 8 cards
+                        if (!$isLoggedIn && $card_index == $cards_before_blur + 1 && count($courses_data) > $cards_before_blur): ?>
                             </div>
                             
-                            <!-- Container for blurred cards -->
                             <div class="internships-grid blurred-content" style="position: relative;">
-                                <!-- Login prompt overlay for 4th row onwards -->
                                 <div class="content-blur-overlay">
                                     <div class="blur-message">
                                         <div class="blur-content">
-                                            <i class="fas fa-lock"></i>
-                                            <h3>Login to See All Courses</h3>
-                                            <p>Join thousands of students and access our complete library of courses and internships</p>
+                                            <i class="fas fa-graduation-cap"></i>
+                                            <h3>Unlock All Courses</h3>
+                                            <p>Join our learning platform to access all courses and track your progress</p>
                                             <div class="blur-actions">
                                                 <a href="login.html" class="blur-btn blur-btn-primary">Login Now</a>
                                                 <a href="registerstudent.html" class="blur-btn blur-btn-secondary">Sign Up Free</a>
@@ -1486,70 +1629,168 @@ sort($courses_categories);
                                 </div>
                         <?php endif; ?>
                         
-                        <div class="internship-card" id="card-<?php echo htmlspecialchars($course['id']); ?>" onclick="<?php echo ($isLoggedIn || $card_index <= $cards_before_blur) ? 'showCourseDetails(' . $course['id'] . ')' : 'showLoginModal(\'view\', ' . $course['id'] . ')'; ?>">
-                            <div class="mode-badge mode-<?php echo htmlspecialchars($course['mode']); ?>">
-                                <?php echo ucfirst(htmlspecialchars($course['mode'])); ?>
+                        <div class="internship-card" id="card-<?php echo htmlspecialchars($course['id']); ?>" 
+                             onclick="<?php echo ($isLoggedIn || $card_index <= $cards_before_blur) ? 'redirectToDetail(' . $course['id'] . ')' : 'showLoginModal(\'view\', ' . $course['id'] . ')'; ?>">
+                            
+                            <!-- Mode Badge -->
+                            <div class="mode-badge mode-<?php echo htmlspecialchars($course['mode'] ?? 'online'); ?>">
+                                <?php echo ucfirst(htmlspecialchars($course['mode'] ?? 'online')); ?>
                             </div>
                             
-                            <div class="card-top">
-                                <div class="card-company-logo">💼</div>
-                                <div class="card-company-info">
-                                    <div class="card-company-name"><?php echo htmlspecialchars($course['company_name']); ?></div>
-                                    <div class="card-posted-date">Posted on <?php echo date('M d, Y', strtotime($course['posted_date'])); ?></div>
+                            <!-- Featured/New Badge -->
+                            <?php if ($course['featured'] == 1): ?>
+                                <div class="status-badge status-featured">Featured</div>
+                            <?php elseif (strtotime($course['created_at']) > strtotime('-7 days')): ?>
+                                <div class="status-badge status-new">New</div>
+                            <?php endif; ?>
+                            
+                            <!-- Card Header - Simplified without company info -->
+                            <div class="card-header">
+                                <div>
+                                    <h4 class="course-title"><?php echo htmlspecialchars($course['course_title']); ?></h4>
+                                    <div class="course-category"><?php echo htmlspecialchars($course['course_category']); ?></div>
                                 </div>
                                 <div class="card-actions">
-                                    <span class="action-icon share-btn" data-id="<?php echo htmlspecialchars($course['id']); ?>"><i class="fas fa-share-alt"></i></span>
+                                    <span class="action-icon share-btn" data-id="<?php echo htmlspecialchars($course['id']); ?>">
+                                        <i class="fas fa-share-alt"></i>
+                                    </span>
                                 </div>
                             </div>
 
-                            <div class="card-header">
-                                <h3 class="card-title"><?php echo htmlspecialchars($course['course_title']); ?></h3>
-                            </div>
-
+                            <!-- Card Meta -->
                             <div class="card-meta">
-                                📚 <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $course['course_category']))); ?>
-                                <div class="meta-item">⏱️ <?php echo htmlspecialchars($course['duration']); ?></div>
-                                <div class="meta-item">📊 <?php echo htmlspecialchars(ucfirst($course['difficulty_level'])); ?></div>
+                                <div class="meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    <?php echo htmlspecialchars($course['duration']); ?>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-signal"></i>
+                                    <?php echo htmlspecialchars(ucfirst($course['difficulty_level'])); ?>
+                                </div>
+                                <?php if ($course['max_students'] > 0): ?>
+                                <div class="meta-item">
+                                    <i class="fas fa-users"></i>
+                                    Max: <?php echo htmlspecialchars($course['max_students']); ?>
+                                </div>
+                                <?php endif; ?>
                             </div>
 
+                            <!-- Description -->
                             <p class="card-description">
                                 <?php echo htmlspecialchars($course['course_description']); ?>
                             </p>
 
+                            <!-- Skills -->
+                            <?php if (!empty($course['skills_taught'])): ?>
                             <div class="card-skills">
                                 <?php 
-                                    $skills = explode(',', $course['skills']);
-                                    foreach ($skills as $skill): 
+                                $skills = array_slice(explode(',', $course['skills_taught']), 0, 3);
+                                foreach ($skills as $skill): 
                                 ?>
                                     <span class="skill-tag"><?php echo htmlspecialchars(trim($skill)); ?></span>
                                 <?php endforeach; ?>
+                                <?php if (count(explode(',', $course['skills_taught'])) > 3): ?>
+                                    <span class="skill-tag">+<?php echo count(explode(',', $course['skills_taught'])) - 3; ?> more</span>
+                                <?php endif; ?>
                             </div>
+                            <?php endif; ?>
 
+                            <!-- Card Footer -->
                             <div class="card-footer">
-                                <div class="stipend">
-                                    <?php 
-                                        if ($course['course_price_type'] === 'free'|| $course['price_amount'] == '0.00') {
-                                            echo 'Free';
-                                        } else {
-                                            echo '₹' . htmlspecialchars($course['price_amount']);
-                                        }
-                                    ?>
+                                <div class="price-info">
+                                    <div class="price-amount">
+                                        <?php 
+                                            if ($course['course_price_type'] === 'free' || $course['price_amount'] == 0) {
+                                                echo 'Free';
+                                            } else {
+                                                echo '₹' . number_format($course['price_amount'], 0);
+                                            }
+                                        ?>
+                                    </div>
+                                    <?php if ($course['certificate_provided']): ?>
+                                        <div class="price-type">Certificate Included</div>
+                                    <?php endif; ?>
                                 </div>
-                                <button class="apply-btn" onclick="event.stopPropagation(); <?php echo $isLoggedIn ? 'applyToCourse(' . $course['id'] . ')' : 'showLoginModal(\'apply\', ' . $course['id'] . ')'; ?>">
-                                    Apply Now
+                                
+                                <button class="apply-btn" onclick="event.stopPropagation(); <?php echo ($isLoggedIn || $card_index <= $cards_before_blur) ? 'redirectToDetail(' . $course['id'] . ')' : 'showLoginModal(\'apply\', ' . $course['id'] . ')'; ?>;">
+                                    <?php echo $course['course_price_type'] === 'free' ? 'Enroll Free' : 'Enroll Now'; ?>
                                 </button>
                             </div>
                         </div>
                     <?php endforeach; ?>
                     
-                    <?php if (!$isLoggedIn && count($filtered_internships) > $cards_before_blur): ?>
-                        </div> <!-- Close blurred internships-grid -->
+                    <?php if (!$isLoggedIn && count($courses_data) > $cards_before_blur): ?>
+                        </div>
                     <?php endif; ?>
-                </div> <!-- Close main internships-grid -->
+                </div>
             <?php endif; ?>
         </main>
     </div>
-    
+<!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <a href="#" class="footer-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    Nexttern
+                </a>
+                <p>Empowering the next generation of professionals through meaningful internship experiences.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                </div>
+            </div>
+            
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>For Students</h4>
+                    <ul>
+                        <li><a href="internship.php">Find Internships</a></li>
+                        <li><a href="aboutus.php">Career Resources</a></li>
+                        <li><a href="#">Success Stories</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>For Companies</h4>
+                    <ul>
+                        <li><a href="internship_posting.php">Post Internships</a></li>
+                        <li><a href="registercompany.html">Partner with us</a></li>
+                        <li><a href="logincompany.html">Start Journey</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="contactus.php">Contact Us</a></li>
+                        <li><a href="contactus.php">Help Center</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Nexttern</h4>
+                    <ul>
+                        <li><a href="aboutus.php">About Us</a></li>
+                        <li><a href="contactus.php">FAQS</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div class="footer-bottom-container">
+                <p>&copy; 2025 Nexttern. All rights reserved.</p>
+                <div class="footer-bottom-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <script>
         // Pass PHP variables to JavaScript
@@ -1566,134 +1807,14 @@ sort($courses_categories);
             'joined' => $user_joined,
             'dob' => $user_dob
         ]); ?>;
+      
         const unreadMessagesCount = <?php echo json_encode($unread_count); ?>;
 
-        // Profile Dashboard Functions (for logged users)
-        <?php if ($isLoggedIn): ?>
-        function openProfileDashboard() {
-            const overlay = document.getElementById('profileDashboardOverlay');
-            const dashboard = document.getElementById('profileDashboard');
-            
-            overlay.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-            
-            setTimeout(() => {
-                dashboard.classList.add('show');
-            }, 10);
+
+        // Redirect function to internship detail page
+        function redirectToDetail(courseId) {
+            window.location.href = 'internship_detail.php?id=' + courseId;
         }
-
-        function closeProfileDashboard() {
-            const overlay = document.getElementById('profileDashboardOverlay');
-            const dashboard = document.getElementById('profileDashboard');
-            
-            dashboard.classList.remove('show');
-            
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            }, 300);
-        }
-
-        function showDashboardTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.dashboard-tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab
-            const selectedTab = document.getElementById(tabName + '-tab');
-            if (selectedTab) {
-                selectedTab.classList.add('active');
-            }
-            
-            // Update tab buttons
-            document.querySelectorAll('.dashboard-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            event.target.classList.add('active');
-        }
-
-        // Profile editing functionality
-        let isEditing = false;
-        let originalValues = {};
-
-        function toggleEdit() {
-            isEditing = true;
-            const form = document.getElementById('profileForm');
-            const editableInputs = form.querySelectorAll('input[name="phone"], input[name="location"], input[name="dob"]');
-            const editBtn = document.getElementById('editBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-
-            // Store original values
-            editableInputs.forEach(input => {
-                originalValues[input.name] = input.value;
-                input.removeAttribute('readonly');
-                input.style.background = 'white';
-                input.style.borderColor = 'var(--accent)';
-            });
-
-            editBtn.style.display = 'none';
-            saveBtn.style.display = 'flex';
-            cancelBtn.style.display = 'flex';
-        }
-
-        function saveProfile() {
-            const saveBtn = document.getElementById('saveBtn');
-            const originalContent = saveBtn.innerHTML;
-            
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            saveBtn.disabled = true;
-            
-            setTimeout(() => {
-                saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
-                
-                setTimeout(() => {
-                    const form = document.getElementById('profileForm');
-                    const editableInputs = form.querySelectorAll('input[name="phone"], input[name="location"], input[name="dob"]');
-                    
-                    editableInputs.forEach(input => {
-                        input.setAttribute('readonly', true);
-                        input.style.background = 'rgba(255, 255, 255, 0.5)';
-                        input.style.borderColor = 'rgba(3, 89, 70, 0.1)';
-                    });
-
-                    document.getElementById('editBtn').style.display = 'flex';
-                    document.getElementById('saveBtn').style.display = 'none';
-                    document.getElementById('cancelBtn').style.display = 'none';
-                    
-                    saveBtn.innerHTML = originalContent;
-                    saveBtn.disabled = false;
-                    isEditing = false;
-                    
-                    showNotification('Profile updated successfully!', 'success');
-                }, 1000);
-            }, 1500);
-        }
-
-        function cancelEdit() {
-            const form = document.getElementById('profileForm');
-            const editableInputs = form.querySelectorAll('input[name="phone"], input[name="location"], input[name="dob"]');
-            
-            // Restore original values
-            editableInputs.forEach(input => {
-                if (originalValues[input.name] !== undefined) {
-                    input.value = originalValues[input.name];
-                }
-                input.setAttribute('readonly', true);
-                input.style.background = 'rgba(255, 255, 255, 0.5)';
-                input.style.borderColor = 'rgba(3, 89, 70, 0.1)';
-            });
-
-            document.getElementById('editBtn').style.display = 'flex';
-            document.getElementById('saveBtn').style.display = 'none';
-            document.getElementById('cancelBtn').style.display = 'none';
-            
-            isEditing = false;
-            originalValues = {};
-        }
-        <?php endif; ?>
 
         // Login Modal Functions (for non-logged users)
         function showLoginModal(action, courseId) {
@@ -1852,110 +1973,13 @@ sort($courses_categories);
 
         // Course details and application functions
         function showCourseDetails(courseId) {
-            if (isUserLoggedIn) {
-                // Show detailed course information
-                const course = coursesData.find(c => c.id == courseId);
-                if (!course) return;
-
-                // Create and show course details modal
-                showCourseDetailsModal(course);
-            } else {
-                showLoginModal('view', courseId);
-            }
-        }
-
-        function showCourseDetailsModal(course) {
-            // Create course details modal dynamically
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.style.display = 'flex';
-            
-            const skills = course.skills.split(',').map(skill => skill.trim());
-            const skillsHtml = skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('');
-            
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
-                        <h3>${course.course_title}</h3>
-                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove(); document.body.style.overflow = 'auto';">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body" style="text-align: left;">
-                        <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <div style="background: var(--primary); color: white; padding: 1rem; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-graduation-cap"></i>
-                                </div>
-                                <div>
-                                    <h4 style="margin: 0; color: var(--primary);">${course.company_name}</h4>
-                                    <p style="margin: 0; color: var(--text-secondary);">Posted on ${new Date(course.posted_date).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                            <div style="text-align: center; padding: 1rem; background: rgba(3, 89, 70, 0.1); border-radius: 10px;">
-                                <i class="fas fa-clock" style="color: var(--primary); font-size: 1.2rem; margin-bottom: 0.5rem;"></i>
-                                <div style="font-weight: 600; color: var(--primary);">${course.duration.replace('_', ' ')}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Duration</div>
-                            </div>
-                            <div style="text-align: center; padding: 1rem; background: rgba(3, 89, 70, 0.1); border-radius: 10px;">
-                                <i class="fas fa-map-marker-alt" style="color: var(--primary); font-size: 1.2rem; margin-bottom: 0.5rem;"></i>
-                                <div style="font-weight: 600; color: var(--primary);">${course.mode.charAt(0).toUpperCase() + course.mode.slice(1)}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Mode</div>
-                            </div>
-                            <div style="text-align: center; padding: 1rem; background: rgba(3, 89, 70, 0.1); border-radius: 10px;">
-                                <i class="fas fa-signal" style="color: var(--primary); font-size: 1.2rem; margin-bottom: 0.5rem;"></i>
-                                <div style="font-weight: 600; color: var(--primary);">${course.difficulty_level.charAt(0).toUpperCase() + course.difficulty_level.slice(1)}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Difficulty</div>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-bottom: 1.5rem;">
-                            <h4 style="color: var(--primary); margin-bottom: 0.5rem;">Description</h4>
-                            <p style="color: var(--text-secondary); line-height: 1.6;">${course.course_description}</p>
-                        </div>
-                        
-                        <div style="margin-bottom: 1.5rem;">
-                            <h4 style="color: var(--primary); margin-bottom: 0.5rem;">Skills You'll Learn</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">${skillsHtml}</div>
-                        </div>
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #f0f0f0;">
-                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">
-                                ${course.course_price_type === 'free' || course.price_amount == '0.00' ? 'Free' : '₹' + course.price_amount}
-                            </div>
-                            <button class="modal-btn modal-btn-primary" onclick="applyToCourse(${course.id}); this.closest('.modal-overlay').remove(); document.body.style.overflow = 'auto';" style="border: none; cursor: pointer;">
-                                Apply Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            document.body.style.overflow = 'hidden';
-            
-            // Add click outside to close
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.remove();
-                    document.body.style.overflow = 'auto';
-                }
-            });
+            // Redirect to detail page instead of showing modal
+            redirectToDetail(courseId);
         }
 
         function applyToCourse(courseId) {
-            if (isUserLoggedIn) {
-                const course = coursesData.find(c => c.id == courseId);
-                if (course) {
-                    showNotification(`Application submitted for "${course.course_title}"!`, 'success');
-                    // Here you can add actual application logic/API call
-                }
-            } else {
-                showLoginModal('apply', courseId);
-            }
+            // Redirect to detail page for application
+            redirectToDetail(courseId);
         }
 
         function showNotification(message, type = 'info') {
@@ -1992,21 +2016,11 @@ sort($courses_categories);
             if (e.target === loginModal) {
                 closeLoginModal();
             }
-            
-            <?php if ($isLoggedIn): ?>
-            const profileModal = document.getElementById('profileDashboardOverlay');
-            if (e.target === profileModal) {
-                closeProfileDashboard();
-            }
-            <?php endif; ?>
         });
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeLoginModal();
-                <?php if ($isLoggedIn): ?>
-                closeProfileDashboard();
-                <?php endif; ?>
             }
         });
 

@@ -1678,7 +1678,7 @@ if ($isLoggedIn) {
 <div class="nav-cta">
     <?php if ($isLoggedIn): ?>
         <div class="nav-profile">
-            <button class="profile-trigger" onclick="window.location.href='internship.php'">
+            <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
                 <?php if (!empty($user_profile_picture)): ?>
                     <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
                 <?php else: ?>
@@ -1803,7 +1803,7 @@ if ($isLoggedIn) {
                         <i class="fas fa-search"></i>
                     </div>
                     <h3>Smart Matching</h3>
-                    <p>Our AI-powered algorithm matches you with internships that align perfectly with your skills, interests, and career goals.</p>
+                    <p>Our smart algorithm matches you with internships that align perfectly with your skills, interests, and career goals.</p>
                     <div class="feature-overlay"></div>
                 </div>
                 
@@ -1830,7 +1830,7 @@ if ($isLoggedIn) {
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <h3>Career Analytics</h3>
-                    <p>Track your application progress, performance metrics, and career growth with detailed analytics dashboard.</p>
+                    <p>Track your application progress, and career growth with detailed dashboard.</p>
                     <div class="feature-overlay"></div>
                 </div>
                 
@@ -1839,7 +1839,7 @@ if ($isLoggedIn) {
                         <i class="fas fa-users"></i>
                     </div>
                     <h3>Community Network</h3>
-                    <p>Connect with fellow interns, alumni, and industry professionals to expand your professional network.</p>
+                    <p>Connect with alumni, and industry professionals to expand your professional network.</p>
                     <div class="feature-overlay"></div>
                 </div>
                 
@@ -2010,81 +2010,8 @@ if ($isLoggedIn) {
         </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="blob blob-7"></div>
-        <div class="blob blob-8"></div>
-        
-        <div class="cta-container">
-            <div class="cta-content">
-                <div class="cta-badge">
-                    <i class="fas fa-lightning-bolt"></i>
-                    Start Today
-                </div>
-                <h2 class="cta-title">Ready to Launch Your <span class="highlight">Career?</span></h2>
-                <p class="cta-description">Join thousands of students who have already found their dream internships through Nexttern. Your future starts here.</p>
-                
-                <div class="cta-buttons">
-                    <a href="registerstudent.html" class="btn btn-primary btn-large">
-                        <i class="fas fa-user-plus"></i>
-                        Sign Up as Student
-                    </a>
-                    <a href="registercompany.html" class="btn btn-outline btn-large">
-                        <i class="fas fa-building"></i>
-                        Register Company
-                    </a>
-                </div>
-                
-                <div class="cta-features">
-                    <div class="cta-feature">
-                        <i class="fas fa-check"></i>
-                        <span>Free to join</span>
-                    </div>
-                    <div class="cta-feature">
-                        <i class="fas fa-check"></i>
-                        <span>Instant matching</span>
-                    </div>
-                    <div class="cta-feature">
-                        <i class="fas fa-check"></i>
-                        <span>24/7 support</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="cta-visual">
-                <div class="cta-card">
-                    <div class="card-header">
-                        <div class="card-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                        <h4>Your Dashboard</h4>
-                    </div>
-                    <div class="card-content">
-                        <div class="progress-item">
-                            <span>Profile Completion</span>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 85%"></div>
-                            </div>
-                        </div>
-                        <div class="progress-item">
-                            <span>Applications Sent</span>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 60%"></div>
-                            </div>
-                        </div>
-                        <div class="notification">
-                            <i class="fas fa-bell"></i>
-                            <span>3 new matches found!</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
+   
+<!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-brand">
@@ -2105,9 +2032,8 @@ if ($isLoggedIn) {
                 <div class="footer-column">
                     <h4>For Students</h4>
                     <ul>
-                        <li><a href="#">Find Internships</a></li>
-                        <li><a href="#">Resume Builder</a></li>
-                        <li><a href="#">Career Resources</a></li>
+                        <li><a href="internship.php">Find Internships</a></li>
+                        <li><a href="aboutus.php">Career Resources</a></li>
                         <li><a href="#">Success Stories</a></li>
                     </ul>
                 </div>
@@ -2115,30 +2041,25 @@ if ($isLoggedIn) {
                 <div class="footer-column">
                     <h4>For Companies</h4>
                     <ul>
-                        <li><a href="#">Post Internships</a></li>
-                        <li><a href="#">Find Talent</a></li>
-                        <li><a href="#">Pricing</a></li>
-                        <li><a href="#">Enterprise</a></li>
+                        <li><a href="internship_posting.php">Post Internships</a></li>
+                        <li><a href="registercompany.html">Partner with us</a></li>
+                        <li><a href="logincompany.html">Start Journey</a></li>
                     </ul>
                 </div>
                 
                 <div class="footer-column">
                     <h4>Support</h4>
                     <ul>
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">Community</a></li>
-                        <li><a href="#">Blog</a></li>
+                        <li><a href="contactus.php">Contact Us</a></li>
+                        <li><a href="contactus.php">Help Center</a></li>
                     </ul>
                 </div>
                 
                 <div class="footer-column">
-                    <h4>Company</h4>
+                    <h4>Nexttern</h4>
                     <ul>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Careers</a></li>
-                        <li><a href="#">Press</a></li>
-                        <li><a href="#">Legal</a></li>
+                        <li><a href="aboutus.php">About Us</a></li>
+                        <li><a href="contactus.php">FAQS</a></li>
                     </ul>
                 </div>
             </div>
@@ -2155,7 +2076,6 @@ if ($isLoggedIn) {
             </div>
         </div>
     </footer>
-
     <script>
         // Navbar scroll effect
         window.addEventListener('scroll', () => {

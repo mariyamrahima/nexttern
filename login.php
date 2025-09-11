@@ -1,10 +1,10 @@
-<?php
+<?php 
 session_start();
 
-// Clear any existing session data to prevent conflicts
+// Just clear and start fresh - no blocking, no warnings
 session_unset();
 session_destroy();
-session_start(); // Start fresh session
+session_start();
 
 header('Content-Type: application/json');
 error_reporting(E_ALL);
@@ -38,9 +38,6 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
     if (password_verify($password, $user['password'])) {
-        // Clear all session data first
-        $_SESSION = array();
-        
         // Set student-specific session variables
         $_SESSION['user_type'] = 'student';
         $_SESSION['email'] = $user['email'];
@@ -48,12 +45,12 @@ if ($result->num_rows > 0) {
         $_SESSION['logged_in'] = true;
         $_SESSION['login_time'] = time();
         
-        // Generate unique session ID for this user
+        // Generate unique session ID for this login
         session_regenerate_id(true);
         
         echo json_encode([
             "success" => true, 
-            "redirect" => "internship.php", 
+            "redirect" => "internship.php",
             "message" => "Student login successful"
         ]);
     } else {
@@ -77,9 +74,6 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $admin = $result->fetch_assoc();
     if (password_verify($password, $admin['password'])) {
-        // Clear all session data first
-        $_SESSION = array();
-        
         // Set admin-specific session variables
         $_SESSION['user_type'] = 'admin';
         $_SESSION['admin_email'] = $admin['email_id'];
@@ -87,12 +81,12 @@ if ($result->num_rows > 0) {
         $_SESSION['logged_in'] = true;
         $_SESSION['login_time'] = time();
         
-        // Generate unique session ID for this user
+        // Generate unique session ID for this login
         session_regenerate_id(true);
         
         echo json_encode([
             "success" => true, 
-            "redirect" => "admin_dashboard.php", 
+            "redirect" => "admin_dashboard.php",
             "message" => "Admin login successful"
         ]);
     } else {
