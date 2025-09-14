@@ -65,8 +65,8 @@ if ($isLoggedIn && $user_type === 'student') {
         $student_id = $_SESSION['student_id'];
         $email = $_SESSION['email'];
         
-        // Get student details with proper error handling
-        $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, '' as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE student_id = ? AND email = ?");
+        // Get student details with proper error handling - FIXED: Include profile_photo column
+        $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE student_id = ? AND email = ?");
         $user_stmt->bind_param("ss", $student_id, $email);
         $user_stmt->execute();
         $user_result = $user_stmt->get_result();
@@ -249,6 +249,10 @@ $available_modes = ['online', 'offline', 'hybrid'];
             --border-radius-sm: 6px;
             --border-radius: 12px;
             --border-radius-lg: 16px;
+            --text-dark: #1f2937;
+            --white: #ffffff;
+            --shadow-light: 0 8px 32px rgba(3, 89, 70, 0.1);
+            --shadow-medium: 0 12px 48px rgba(3, 89, 70, 0.15);
         }
 
         * {
@@ -265,17 +269,30 @@ $available_modes = ['online', 'offline', 'hybrid'];
             min-height: 100vh;
         }
 
-        /* Enhanced Navbar */
+        /* Enhanced Navbar - Updated with About Us Page Styling */
         .navbar {
             position: fixed;
             top: 0;
             width: 100%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(3, 89, 70, 0.1);
             z-index: 1000;
-            padding: 0.75rem 0;
-            transition: var(--transition);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        background-color 0.3s ease,
+                        box-shadow 0.3s ease;
+            transform: translateY(0);
+        }
+
+        .navbar.scrolled-down {
+            transform: translateY(-100%);
+        }
+
+        .navbar.scrolled-up {
+            transform: translateY(0);
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
         }
 
         .nav-container {
@@ -287,9 +304,25 @@ $available_modes = ['online', 'offline', 'hybrid'];
             align-items: center;
         }
 
-        .nav-brand img {
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+            gap: 0.5rem;
+        }
+
+        .nav-logo {
             height: 50px;
             width: auto;
+            transition: var(--transition);
+        }
+
+        .nav-logo:hover {
+            transform: scale(1.05);
         }
 
         .nav-menu {
@@ -299,83 +332,41 @@ $available_modes = ['online', 'offline', 'hybrid'];
             align-items: center;
         }
 
-      .nav-link {
-    /* Set the default link color to a dark gray for good contrast */
-    color: var(--text-dark); /* Using a variable is best practice */
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s ease; /* Transition only the color for a smoother effect */
-    position: relative;
-    padding: 0.5rem 0;
-}
+        .nav-link {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            position: relative;
+            padding: 0.5rem 0;
+        }
 
-.nav-link:hover {
-    /* Change the link text color to the primary green on hover */
-    color: var(--primary);
-}
+        .nav-link:hover {
+            color: var(--primary);
+        }
 
-.nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: -2px; /* A slight adjustment to place the line just below the text */
-    left: 50%; /* Start from the center */
-    transform: translateX(-50%); /* Center the line */
-    width: 0;
-    height: 2px;
-    /* Use a solid color or a gradient for the line effect */
-    background: var(--primary); 
-    /* The original code had a gradient, but a solid color looks cleaner for a single line */
-    transition: width 0.3s ease; /* Transition the width for the "grow" effect */
-}
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transition: width 0.3s ease;
+        }
 
-.nav-link:hover::after {
-    /* Make the line grow to full width on hover */
-    width: 100%;
-}
+        .nav-link:hover::after {
+            width: 100%;
+        }
 
-       
-/* Login Button Styles */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: var(--transition);
-    border: none;
-    cursor: pointer;
-    font-family: 'Poppins', sans-serif;
-}
+        .nav-cta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
-.btn-primary {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(3, 89, 70, 0.4);
-}
-
-.btn-secondary {
-    background: transparent;
-    color: var(--primary);
-    border: 2px solid var(--primary);
-}
-
-.btn-secondary:hover {
-    background: var(--primary);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(3, 89, 70, 0.3);
-}
-
-
-        /* Enhanced Profile Navigation - Matching internship page */
+        /* Enhanced Profile Navigation - From About Us Page */
         .nav-profile {
             position: relative;
             display: flex;
@@ -399,6 +390,7 @@ $available_modes = ['online', 'offline', 'hybrid'];
             font-weight: 500;
             box-shadow: var(--shadow-light);
             border: none;
+            position: relative;
         }
 
         .profile-trigger:hover {
@@ -407,12 +399,17 @@ $available_modes = ['online', 'offline', 'hybrid'];
             background: rgba(255, 255, 255, 0.4);
         }
 
+        .profile-avatar-container {
+            position: relative;
+        }
+
         .profile-avatar {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--primary-light);
+            transition: var(--transition);
         }
 
         .profile-avatar.default {
@@ -422,16 +419,32 @@ $available_modes = ['online', 'offline', 'hybrid'];
             justify-content: center;
             color: white;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-family: 'Poppins', sans-serif;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.1rem;
         }
 
         .profile-name {
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
             color: var(--primary-dark);
+            font-size: 0.9rem;
+            line-height: 1.2;
         }
 
+        .profile-id {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            line-height: 1;
+        }
 
         .message-badge {
             background: var(--danger);
@@ -446,12 +459,71 @@ $available_modes = ['online', 'offline', 'hybrid'];
             align-items: center;
             justify-content: center;
             animation: pulse 2s infinite;
+            position: absolute;
+            top: -5px;
+            right: -5px;
         }
 
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
+        }
+
+        /* Standard Login Button */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: var(--white);
+            box-shadow: var(--shadow-light);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-light);
+        }
+
+        /* Menu Toggle for Mobile */
+        .menu-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .menu-toggle span {
+            width: 25px;
+            height: 3px;
+            background: var(--primary);
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
         }
 
         /* Header */
@@ -482,7 +554,7 @@ $available_modes = ['online', 'offline', 'hybrid'];
             margin: 0 auto 2rem;
         }
 
-        /* Enhanced Welcome */
+        /* Enhanced Welcome - Updated with gradient line */
         .enhanced-welcome {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
@@ -494,6 +566,18 @@ $available_modes = ['online', 'offline', 'hybrid'];
             text-align: center;
             max-width: 800px;
             box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enhanced-welcome::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
         }
 
         .enhanced-welcome h2 {
@@ -501,6 +585,7 @@ $available_modes = ['online', 'offline', 'hybrid'];
             margin-bottom: 1rem;
             font-weight: 600;
             color: var(--primary-dark);
+            font-family: 'Poppins', sans-serif;
         }
 
         .welcome-details {
@@ -528,6 +613,11 @@ $available_modes = ['online', 'offline', 'hybrid'];
         .welcome-detail i {
             color: var(--accent);
             font-size: 1rem;
+        }
+
+        .welcome-message {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
         }
 
         /* Main Container */
@@ -698,27 +788,25 @@ $available_modes = ['online', 'offline', 'hybrid'];
         }
 
         /* Course Cards Grid - Compact Design */
-       .internships-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); /* was 300px */
-    gap: 1.5rem; /* optional: make gaps a bit larger for breathing room */
-    margin-bottom: 3rem;
-}
+        .internships-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
 
-
-       .internship-card {
-    background: var(--bg-white);
-    border-radius: var(--border-radius-lg);
-    padding: 2rem;                /* was 1.25rem */
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-light);
-    transition: var(--transition);
-    cursor: pointer;
-    position: relative;
-    height: fit-content;
-    min-height: 340px;            /* was 280px */
-}
-
+        .internship-card {
+            background: var(--bg-white);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            height: fit-content;
+            min-height: 340px;
+        }
 
         .internship-card:hover {
             transform: translateY(-3px);
@@ -878,20 +966,19 @@ $available_modes = ['online', 'offline', 'hybrid'];
             box-shadow: var(--shadow-md);
         }
 
-      .mode-badge,
-.status-badge {
-    border-radius: 999px;           /* pill shape */
-    padding: 0.2rem 0.9rem;         /* small, compact look */
-    font-size: 0.85rem;
-    font-weight: 600;
-    box-shadow: none;
-    position: static;               /* let container handle position */
-    margin: 0;                      /* remove default margin */
-    display: inline-block;
-    min-width: 64px;                /* optional: ensures consistent width */
-    text-align: center;
-}
-
+        .mode-badge,
+        .status-badge {
+            border-radius: 999px;
+            padding: 0.2rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: none;
+            position: static;
+            margin: 0;
+            display: inline-block;
+            min-width: 64px;
+            text-align: center;
+        }
 
         .status-featured {
             background: linear-gradient(135deg, var(--warning) 0%, #ff9500 100%);
@@ -902,8 +989,6 @@ $available_modes = ['online', 'offline', 'hybrid'];
             background: linear-gradient(135deg, var(--success) 0%, #2ecc71 100%);
             color: white;
         }
-
-       
 
         .mode-online {
             background: rgba(46, 204, 113, 0.1);
@@ -1301,6 +1386,27 @@ $available_modes = ['online', 'offline', 'hybrid'];
 
         /* Responsive Design */
         @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+
+            .profile-info {
+                display: none;
+            }
+
+            .profile-trigger {
+                padding: 0.5rem;
+            }
+
+            .profile-avatar {
+                width: 36px;
+                height: 36px;
+            }
+
             .header h1 {
                 font-size: 2.2rem;
             }
@@ -1360,14 +1466,6 @@ $available_modes = ['online', 'offline', 'hybrid'];
             .footer-links {
                 grid-template-columns: repeat(2, 1fr);
             }
-
-            .nav-menu {
-                display: none;
-            }
-
-            .profile-name {
-                display: none;
-            }
         }
 
         @media (max-width: 480px) {
@@ -1399,6 +1497,14 @@ $available_modes = ['online', 'offline', 'hybrid'];
             .blur-btn {
                 width: 100%;
             }
+
+            .nav-container {
+                padding: 0 1rem;
+            }
+            
+            .nav-logo {
+                height: 45px;
+            }
         }
 
         /* Animation Utilities */
@@ -1425,39 +1531,50 @@ $available_modes = ['online', 'offline', 'hybrid'];
     <!-- Enhanced Navigation -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="#" class="nav-brand">
+            <a href="index.php" class="nav-brand">
                 <img src="nextternnavbar.png" alt="Nexttern Logo" class="nav-logo">
             </a>
+            
+            <div class="menu-toggle" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
             
             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
                 <li><a href="internship.php" class="nav-link active">Internships</a></li>
-              
+                <li><a href="#" class="nav-link">Companies</a></li>
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
                 <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>
             
-          <div class="nav-cta">
-    <?php if ($isLoggedIn): ?>
-        <div class="nav-profile">
-            <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
-                <?php if (!empty($user_profile_picture)): ?>
-                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
-                <?php else: ?>
-                    <div class="profile-avatar default">
-                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+            <div class="nav-cta">
+                <?php if ($isLoggedIn): ?>
+                    <div class="nav-profile">
+                        <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
+                            <div class="profile-avatar-container">
+                                <?php if (!empty($user_profile_picture) && file_exists($user_profile_picture)): ?>
+                                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>?v=<?php echo time(); ?>" alt="Profile" class="profile-avatar">
+                                <?php else: ?>
+                                    <div class="profile-avatar default">
+                                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="profile-info">
+                                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
+                                <span class="profile-id">ID: <?php echo htmlspecialchars($user_id ?: 'N/A'); ?></span>
+                            </div>
+                            <?php if ($unread_count > 0): ?>
+                                <span class="message-badge"><?php echo $unread_count; ?></span>
+                            <?php endif; ?>
+                        </button>
                     </div>
+                <?php else: ?>
+                    <a href="login.html" class="btn btn-primary">Login</a>
                 <?php endif; ?>
-                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
-                <?php if ($unread_count > 0): ?>
-                    <span class="message-badge"><?php echo $unread_count; ?></span>
-                <?php endif; ?>
-            </button>
-        </div>
-    <?php else: ?>
-        <a href="login.html" class="btn btn-primary">Login</a>
-    <?php endif; ?>
-</div>
+            </div>
         </div>
     </nav>
 
@@ -1603,13 +1720,12 @@ $available_modes = ['online', 'offline', 'hybrid'];
                 <div class="internships-grid" style="position: relative;">
                     <?php 
                     $card_index = 0;
-                    $cards_per_row = 3; // Updated for smaller cards
-                    $cards_before_blur = $cards_per_row * 2; // Show first 2 rows (8 cards)
+                    $cards_per_row = 3;
+                    $cards_before_blur = $cards_per_row * 2;
                     
                     foreach ($courses_data as $course): 
                         $card_index++;
                         
-                        // Show blur overlay for non-logged users after 8 cards
                         if (!$isLoggedIn && $card_index == $cards_before_blur + 1 && count($courses_data) > $cards_before_blur): ?>
                             </div>
                             
@@ -1644,7 +1760,7 @@ $available_modes = ['online', 'offline', 'hybrid'];
                                 <div class="status-badge status-new">New</div>
                             <?php endif; ?>
                             
-                            <!-- Card Header - Simplified without company info -->
+                            <!-- Card Header -->
                             <div class="card-header">
                                 <div>
                                     <h4 class="course-title"><?php echo htmlspecialchars($course['course_title']); ?></h4>
@@ -1726,7 +1842,8 @@ $available_modes = ['online', 'offline', 'hybrid'];
             <?php endif; ?>
         </main>
     </div>
-<!-- Footer -->
+
+    <!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-brand">
@@ -1795,7 +1912,6 @@ $available_modes = ['online', 'offline', 'hybrid'];
     <script>
         // Pass PHP variables to JavaScript
         const isUserLoggedIn = <?php echo json_encode($isLoggedIn); ?>;
-        const coursesData = <?php echo json_encode($filtered_internships); ?>;
         const userData = <?php echo json_encode([
             'id' => $user_id,
             'name' => $user_name,
@@ -1807,9 +1923,15 @@ $available_modes = ['online', 'offline', 'hybrid'];
             'joined' => $user_joined,
             'dob' => $user_dob
         ]); ?>;
-      
         const unreadMessagesCount = <?php echo json_encode($unread_count); ?>;
 
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            const navMenu = document.querySelector('.nav-menu');
+            if (navMenu) {
+                navMenu.style.display = navMenu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
 
         // Redirect function to internship detail page
         function redirectToDetail(courseId) {
@@ -1880,15 +2002,13 @@ $available_modes = ['online', 'offline', 'hybrid'];
             let visibleCount = 0;
 
             cards.forEach(card => {
-                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const title = card.querySelector('.course-title').textContent.toLowerCase();
                 const description = card.querySelector('.card-description').textContent.toLowerCase();
                 const skills = Array.from(card.querySelectorAll('.skill-tag')).map(skill => skill.textContent.toLowerCase()).join(' ');
-                const company = card.querySelector('.card-company-name').textContent.toLowerCase();
 
                 if (title.includes(searchLower) || 
                     description.includes(searchLower) || 
-                    skills.includes(searchLower) ||
-                    company.includes(searchLower)) {
+                    skills.includes(searchLower)) {
                     card.style.display = 'flex';
                     visibleCount++;
                 } else {
@@ -1896,7 +2016,7 @@ $available_modes = ['online', 'offline', 'hybrid'];
                 }
             });
 
-            document.querySelector('.results-count').textContent = `${visibleCount} internship${visibleCount !== 1 ? 's' : ''} found`;
+            document.querySelector('.results-count').textContent = `${visibleCount} course${visibleCount !== 1 ? 's' : ''} found`;
 
             const noResults = document.querySelector('.no-results');
             const internshipsGrid = document.querySelector('.internships-grid');
@@ -1906,7 +2026,7 @@ $available_modes = ['online', 'offline', 'hybrid'];
                     const noResultsDiv = document.createElement('div');
                     noResultsDiv.className = 'no-results';
                     noResultsDiv.innerHTML = `
-                        <h3>No internships found</h3>
+                        <h3>No courses found</h3>
                         <p>Try different keywords or clear your search</p>
                     `;
                     internshipsGrid.parentNode.insertBefore(noResultsDiv, internshipsGrid.nextSibling);
@@ -1928,7 +2048,7 @@ $available_modes = ['online', 'offline', 'hybrid'];
                 });
                 
                 const totalCards = document.querySelectorAll('.internship-card').length;
-                document.querySelector('.results-count').textContent = `${totalCards} internship${totalCards !== 1 ? 's' : ''} found`;
+                document.querySelector('.results-count').textContent = `${totalCards} course${totalCards !== 1 ? 's' : ''} found`;
                 
                 const noResults = document.querySelector('.no-results');
                 if (noResults) {
@@ -1944,11 +2064,10 @@ $available_modes = ['online', 'offline', 'hybrid'];
             if (e.target.closest('.share-btn')) {
                 e.stopPropagation();
                 const button = e.target.closest('.share-btn');
-                const internshipId = button.getAttribute('data-id');
-                const card = document.getElementById('card-' + internshipId);
-                const title = card.querySelector('.card-title').textContent;
-                const company = card.querySelector('.card-company-name').textContent;
-                const shareText = `Check out this internship opportunity at ${company}: "${title}"!`;
+                const courseId = button.getAttribute('data-id');
+                const card = document.getElementById('card-' + courseId);
+                const title = card.querySelector('.course-title').textContent;
+                const shareText = `Check out this course opportunity: "${title}"!`;
                 
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(shareText + ' ' + window.location.href)
@@ -1970,17 +2089,6 @@ $available_modes = ['online', 'offline', 'hybrid'];
                 }
             }
         });
-
-        // Course details and application functions
-        function showCourseDetails(courseId) {
-            // Redirect to detail page instead of showing modal
-            redirectToDetail(courseId);
-        }
-
-        function applyToCourse(courseId) {
-            // Redirect to detail page for application
-            redirectToDetail(courseId);
-        }
 
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
@@ -2062,12 +2170,6 @@ $available_modes = ['online', 'offline', 'hybrid'];
 
         // Add scroll event listener with throttling
         window.addEventListener('scroll', throttle(handleScroll, 10));
-
-        // Filter form enhancement
-        document.querySelector('.filter-btn').addEventListener('click', function(e) {
-            const btnText = this.querySelector('.btn-text');
-            btnText.innerHTML = 'Filtering... <span class="loading"></span>';
-        });
 
         // Initialize page based on login status
         document.addEventListener('DOMContentLoaded', function() {

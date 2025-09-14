@@ -1200,9 +1200,9 @@ h1, h2, h3, h4, h5, h6 {
                     <i class="fas fa-building"></i>
                     <span>Companies</span>
                 </a>
-                <a href="?page=courses" class="nav-link <?= ($page === 'courses') ? 'active' : '' ?>">
+                <a href="?page=stories" class="nav-link <?= ($page === 'stories') ? 'active' : '' ?>">
                     <i class="fas fa-book"></i>
-                    <span>Courses</span>
+                    <span>Stories</span>
                 </a>
             </div>
             
@@ -1240,13 +1240,14 @@ h1, h2, h3, h4, h5, h6 {
             } else {
                 echo '<div class="error-message">Company management page not found.</div>';
             }
-        } elseif ($page === 'courses') {
-            if (file_exists('admin_courses.php')) {
-                include 'admin_courses.php';
+        } elseif ($page === 'stories') {
+            if (file_exists('admin_stories.php')) {
+                include 'admin_stories.php';
             } else {
-                echo '<div class="error-message">Course management page not found.</div>';
+                echo '<div class="error-message">story management page not found.</div>';
             }
-        } elseif ($page === 'about') {
+        } 
+        elseif ($page === 'about') {
             if (file_exists('admin_aboutus.php')) {
                 include 'admin_aboutus.php';
             } else {
@@ -1339,14 +1340,14 @@ h1, h2, h3, h4, h5, h6 {
                             <div class="action-desc">Manage company partnerships, review applications, and oversee collaboration agreements.</div>
                         </a>
                         
-                        <a href="?page=courses" class="action-card">
+                        <a href="?page=stories" class="action-card">
                             <div class="action-header">
                                 <div class="action-icon">
                                     <i class="fas fa-chalkboard-teacher"></i>
                                 </div>
-                                <div class="action-title">Course Management</div>
+                                <div class="action-title">stories Management</div>
                             </div>
-                            <div class="action-desc">Create, modify, and organize courses. Track enrollment and monitor course performance.</div>
+                            <div class="action-desc">Publish stories </div>
                         </a>
                     </div>
                 </div>

@@ -14,7 +14,7 @@ function redirectToLogin($message = "Please login to access this page") {
     exit;
 }
 
-// Enhanced user authentication and session validation
+// Enhanced user authentication and session validation - MATCHING ABOUT US PAGE
 $isLoggedIn = false;
 $user_type = '';
 
@@ -39,11 +39,13 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_
         redirectToLogin("Invalid session. Please login again.");
     }
 } elseif (isset($_SESSION['user_id']) || isset($_SESSION['email']) || isset($_SESSION['student_id'])) {
-    // Clear any incomplete/invalid session data
-    redirectToLogin("Session corrupted. Please login again.");
+    // Also check legacy session format from about us page
+    if (isset($_SESSION['user_id']) || isset($_SESSION['logged_in']) || isset($_SESSION['email'])) {
+        $isLoggedIn = true;
+    }
 }
 
-// Initialize user variables with safe defaults
+// Initialize user variables with safe defaults - MATCHING ABOUT US PAGE
 $user_name = '';
 $user_email = '';
 $user_profile_picture = '';
@@ -55,8 +57,8 @@ $user_joined = '';
 $user_dob = '';
 $unread_count = 0;
 
-// Get user details only if properly logged in as student
-if ($isLoggedIn && $user_type === 'student') {
+// Get user details - ENHANCED TO MATCH ABOUT US PAGE LOGIC
+if ($isLoggedIn) {
     // Database connection for user details
     $servername = "localhost";
     $username = "root";
@@ -66,49 +68,59 @@ if ($isLoggedIn && $user_type === 'student') {
     $user_conn = new mysqli($servername, $username, $password, $dbname);
     
     if (!$user_conn->connect_error) {
-        $student_id = $_SESSION['student_id'];
-        $email = $_SESSION['email'];
-        
-        // Get student details with proper error handling
-        $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, '' as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE student_id = ? AND email = ?");
-        $user_stmt->bind_param("ss", $student_id, $email);
-        $user_stmt->execute();
-        $user_result = $user_stmt->get_result();
-        
-        if ($user_result->num_rows > 0) {
-            $user_data = $user_result->fetch_assoc();
-            $user_id = $user_data['id'] ?? '';
-            $user_name = $user_data['name'] ?? 'Student';
-            $user_email = $user_data['email'] ?? '';
-            $user_profile_picture = $user_data['profile_picture'] ?? '';
-            $user_role = 'student';
-            $user_phone = $user_data['phone'] ?? '';
-            $user_location = $user_data['location'] ?? '';
-            $user_joined = $user_data['created_at'] ?? '';
-            $user_dob = $user_data['dob'] ?? '';
-        } else {
-            // Student not found in database, invalid session
-            $user_conn->close();
-            redirectToLogin("User account not found. Please login again.");
+        // Check if user is in users table or students table - MATCHING ABOUT US PAGE
+        if (isset($_SESSION['user_id'])) {
+            $user_id = $_SESSION['user_id'];
+            $user_stmt = $user_conn->prepare("SELECT name, email, profile_picture, role, phone, location, created_at, dob FROM users WHERE id = ?");
+            $user_stmt->bind_param("i", $user_id);
+        } elseif (isset($_SESSION['email'])) {
+            $email = $_SESSION['email'];
+            // FIXED: Include profile_photo column from students table - MATCHING ABOUT US PAGE
+            $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE email = ?");
+            $user_stmt->bind_param("s", $email);
+        } elseif (isset($_SESSION['student_id'])) {
+            $student_id = $_SESSION['student_id'];
+            $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE student_id = ?");
+            $user_stmt->bind_param("s", $student_id);
         }
-        $user_stmt->close();
         
-        // Get unread messages count for the student
-        if ($user_id) {
-            $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
-            $unread_stmt->bind_param("s", $user_id);
-            $unread_stmt->execute();
-            $unread_result = $unread_stmt->get_result();
-            if ($unread_result) {
-                $unread_data = $unread_result->fetch_assoc();
-                $unread_count = $unread_data['unread_count'] ?? 0;
+        if (isset($user_stmt)) {
+            $user_stmt->execute();
+            $user_result = $user_stmt->get_result();
+            
+            if ($user_result->num_rows > 0) {
+                $user_data = $user_result->fetch_assoc();
+                $user_id = $user_data['id'] ?? '';
+                $user_name = $user_data['name'] ?? 'User';
+                $user_email = $user_data['email'] ?? '';
+                $user_profile_picture = $user_data['profile_picture'] ?? '';
+                $user_role = $user_data['role'] ?? 'student';
+                $user_phone = $user_data['phone'] ?? '';
+                $user_location = $user_data['location'] ?? '';
+                $user_joined = $user_data['created_at'] ?? '';
+                $user_dob = $user_data['dob'] ?? '';
             }
-            $unread_stmt->close();
+            $user_stmt->close();
         }
         
+        // Get unread messages count for the user - MATCHING ABOUT US PAGE
+        if ($user_id) {
+            if ($user_role === 'student') {
+                $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
+                $unread_stmt->bind_param("s", $user_id);
+            } else {
+                $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM user_messages WHERE receiver_id = ? AND is_read = FALSE");
+                $unread_stmt->bind_param("i", $user_id);
+            }
+            
+            if (isset($unread_stmt)) {
+                $unread_stmt->execute();
+                $unread_result = $unread_stmt->get_result();
+                $unread_count = $unread_result->fetch_assoc()['unread_count'];
+                $unread_stmt->close();
+            }
+        }
         $user_conn->close();
-    } else {
-        redirectToLogin("Database connection error. Please try again.");
     }
 }
 
@@ -139,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['course_id'])) {
     }
     
     // Get the authenticated student's ID from session
-    $student_id = $_SESSION['student_id'];
+    $student_id = $_SESSION['student_id'] ?? $user_id;
     $submitted_course_id = (int)$_POST['course_id'];
     
     // Collect and validate form data
@@ -327,6 +339,7 @@ $company_location = "Bangalore, India";
     --text-primary: #2c3e50;
     --text-secondary: #64748b;
     --text-muted: #94a3b8;
+    --text-dark: #1f2937;
     --bg-light: #f8fafc;
     --bg-white: #ffffff;
     --bg-gray-50: #f9fafb;
@@ -344,6 +357,11 @@ $company_location = "Bangalore, India";
     --border-radius: 12px;
     --border-radius-lg: 16px;
     --border-radius-xl: 20px;
+    --blur: 14px;
+    --shadow-light: 0 8px 32px rgba(3, 89, 70, 0.1);
+    --shadow-medium: 0 12px 48px rgba(3, 89, 70, 0.15);
+    --white: #ffffff;
+    --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
 }
 
 * {
@@ -356,152 +374,264 @@ $company_location = "Bangalore, India";
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg-light);
+    background: linear-gradient(135deg, var(--bg-light) 0%, #ffffff 100%);
     color: var(--text-primary);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
-/* Revise the main navbar to a more compact, flexible height */
+
+/* Enhanced Navbar - MATCHING ABOUT US PAGE */
 .navbar {
-    background: var(--bg-white);
-    border-bottom: 1px solid var(--border-light);
-    /* Changed position to fixed to be on top of other content */
-    position: fixed; 
+    position: fixed;
     top: 0;
     width: 100%;
-    z-index: 100;
-    box-shadow: var(--shadow-sm);
+    padding: 0.75rem 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(3, 89, 70, 0.1);
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                background-color 0.3s ease,
+                box-shadow 0.3s ease;
+    transform: translateY(0);
+}
+
+.navbar.scrolled-down {
+    transform: translateY(-100%);
+}
+
+.navbar.scrolled-up {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
 .nav-container {
-    max-width: 1280px;
+    max-width: 1200px;
     margin: 0 auto;
-    /* Use padding to control height instead of fixed height */
-    padding: 0.75rem 1.5rem; 
-    /* Removed height: 72px; */
+    padding: 0 2rem;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-}
-
-/* Make the main content container start below the navbar */
-.main-container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
-    /* Add top padding to create space for the fixed navbar */
-    padding-top: calc(72px + 2rem); 
-    /* The 72px value is an example. Adjust this to match the final height of your navbar. 
-    A more robust solution would be to use a variable for the navbar height. */
+    align-items: center;
 }
 
 .nav-brand {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
     text-decoration: none;
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
     font-size: 1.5rem;
     color: var(--primary);
+    gap: 0.5rem;
 }
 
 .nav-logo {
     height: 40px;
     width: auto;
+    transition: var(--transition);
+}
+
+.nav-logo:hover {
+    transform: scale(1.05);
 }
 
 .nav-menu {
     display: flex;
-    align-items: center;
-    gap: 2rem;
     list-style: none;
+    gap: 2rem;
+    align-items: center;
 }
- .nav-link {
-            color: var(--text-dark);
-            text-decoration: none;
-            font-weight: 500;
-            transition: var(--transition);
-            position: relative;
-            padding: 0.5rem 0;
-        }
 
-        .nav-link:hover {
-            color: var(--primary);
-        }
+.nav-link {
+    color: var(--text-dark);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+    position: relative;
+    padding: 0.5rem 0;
+}
 
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: var(--gradient-primary);
-            transition: width 0.3s ease;
-        }
+.nav-link:hover {
+    color: var(--primary);
+}
 
-        .nav-link:hover::after {
-            width: 100%;
-        }
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--gradient-primary);
+    transition: width 0.3s ease;
+}
 
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.nav-cta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Enhanced Profile Navigation with Photo Support - MATCHING ABOUT US PAGE */
 .nav-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-trigger {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 1rem;
-    background: var(--bg-gray-50);
-    border-radius: 50px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 25px;
     cursor: pointer;
     transition: var(--transition);
+    text-decoration: none;
+    color: var(--primary);
+    font-weight: 500;
+    box-shadow: var(--shadow-light);
+    border: none;
+    position: relative;
 }
 
-.nav-profile:hover {
-    background: var(--bg-gray-100);
+.profile-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.profile-avatar-container {
+    position: relative;
 }
 
 .profile-avatar {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: var(--primary);
+    object-fit: cover;
+    border: 2px solid var(--primary-light);
+    transition: var(--transition);
+}
+
+.profile-avatar.default {
+    background: var(--gradient-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
 }
 
-.btn {
-    display: inline-flex;
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+}
+
+.profile-name {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    color: var(--primary-dark);
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+.profile-id {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.message-badge {
+    background: var(--danger);
+    color: white;
+    border-radius: 50%;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: bold;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    animation: pulse 2s infinite;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Standard Login Button */
+.btn {
     padding: 0.75rem 1.5rem;
-    border: none;
     border-radius: var(--border-radius);
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
     transition: var(--transition);
-    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
 }
 
 .btn-primary {
-    background: var(--primary);
-    color: white;
-    box-shadow: var(--shadow-sm);
+    background: var(--gradient-primary);
+    color: var(--white);
+    box-shadow: var(--shadow-light);
 }
 
 .btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
 }
 
+/* Menu Toggle */
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    padding: 0.5rem;
+}
 
+.menu-toggle span {
+    width: 25px;
+    height: 3px;
+    background: var(--primary);
+    margin: 3px 0;
+    transition: 0.3s;
+    border-radius: 2px;
+}
+
+/* Main Container */
+.main-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    padding-top: calc(72px + 2rem);
+}
 
 .breadcrumb {
     display: flex;
@@ -522,7 +652,7 @@ body {
     text-decoration: underline;
 }
 
-/* Hero Section */
+/* Hero Section - ENHANCED WITH GRADIENT LINE */
 .hero-section {
     background: var(--bg-white);
     border-radius: var(--border-radius-xl);
@@ -530,6 +660,20 @@ body {
     margin-bottom: 2rem;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add gradient line above hero section */
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
 }
 
 .hero-header {
@@ -709,7 +853,7 @@ body {
     background-color: var(--border-light);
 }
 
-/* Content Cards */
+/* Content Cards - ENHANCED WITH GRADIENT LINE */
 .content-card {
     background: var(--bg-white);
     border-radius: var(--border-radius-lg);
@@ -718,6 +862,20 @@ body {
     border: 1px solid var(--border-light);
     word-wrap: break-word;
     overflow-wrap: break-word;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add gradient line above content cards */
+.content-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
 }
 
 .content-card h2 {
@@ -729,6 +887,8 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    position: relative;
+    z-index: 2;
 }
 
 .content-card h2 i {
@@ -907,7 +1067,7 @@ body {
     line-height: 1.6;
 }
 
-/* Application Form Fixed Dimensions */
+/* Application Form Fixed Dimensions - ENHANCED WITH GRADIENT LINE */
 .application-form {
     background: var(--bg-white);
     border-radius: var(--border-radius-lg);
@@ -917,6 +1077,7 @@ body {
     position: relative;
     width: 100%;
     max-width: 420px;
+    overflow: hidden;
 }
 
 .application-form::before {
@@ -933,6 +1094,8 @@ body {
 .form-header {
     text-align: center;
     margin-bottom: 2rem;
+    position: relative;
+    z-index: 2;
 }
 
 .form-header h2 {
@@ -993,7 +1156,6 @@ body {
     resize: vertical;
     min-height: 120px;
 }
-
 
 .btn-submit {
     width: 100%;
@@ -1168,8 +1330,21 @@ body {
         display: none;
     }
 
+    .menu-toggle {
+        display: flex;
+    }
+
+    .profile-info {
+        display: none;
+    }
+
+    .profile-trigger {
+        padding: 0.5rem;
+    }
+
     .main-container {
         padding: 1rem;
+        padding-top: calc(60px + 1rem);
     }
 
     .hero-section {
@@ -1225,100 +1400,59 @@ body {
     
     .main-container {
         padding: 0.5rem;
+        padding-top: calc(60px + 0.5rem);
     }
 }
-/* Reduce the vertical padding of the main navbar */
-.navbar {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    /* Reduced vertical padding from 1rem to 0.5rem */
-    padding: 0.5rem 0; 
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(3, 89, 70, 0.1);
-    z-index: 1000;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                background-color 0.3s ease,
-                box-shadow 0.3s ease;
-    transform: translateY(0);
-}
-
-/* Ensure consistent spacing and center alignment */
-.nav-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* Adjust the logo height to be proportional to the new navbar size */
-.nav-logo {
-    /* Reduced height to a more compact size */
-    height: 35px; 
-    width: auto;
-}
-
-/* Make the profile trigger button more compact */
-.profile-trigger {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    /* Reduced padding for a smaller pill shape */
-    padding: 0.3rem 0.8rem; 
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur));
-    border: 1px solid var(--glass-border);
-    border-radius: 25px;
-    cursor: pointer;
-    transition: var(--transition);
-    text-decoration: none;
-    color: var(--primary);
-    font-weight: 500;
-    box-shadow: var(--shadow-light);
-    border: none;
-}
-</style>
+    </style>
 </head>
 <body>
-   <!-- Enhanced Navigation -->
+   <!-- Enhanced Navigation - MATCHING ABOUT US PAGE -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="#" class="nav-brand">
+            <a href="index.php" class="nav-brand">
                 <img src="nextternnavbar.png" alt="Nexttern Logo" class="nav-logo">
             </a>
+            
+            <div class="menu-toggle" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
             
             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
                 <li><a href="internship.php" class="nav-link active">Internships</a></li>
-              
+                <li><a href="#" class="nav-link">Companies</a></li>
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
                 <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>
             
-          <div class="nav-cta">
-    <?php if ($isLoggedIn): ?>
-        <div class="nav-profile">
-            <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
-                <?php if (!empty($user_profile_picture)): ?>
-                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
-                <?php else: ?>
-                    <div class="profile-avatar default">
-                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+            <div class="nav-cta">
+                <?php if ($isLoggedIn): ?>
+                    <div class="nav-profile">
+                        <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
+                            <div class="profile-avatar-container">
+                                <?php if (!empty($user_profile_picture) && file_exists($user_profile_picture)): ?>
+                                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>?v=<?php echo time(); ?>" alt="Profile" class="profile-avatar">
+                                <?php else: ?>
+                                    <div class="profile-avatar default">
+                                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="profile-info">
+                                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
+                                <span class="profile-id">ID: <?php echo htmlspecialchars($user_id ?: 'N/A'); ?></span>
+                            </div>
+                            <?php if ($unread_count > 0): ?>
+                                <span class="message-badge"><?php echo $unread_count; ?></span>
+                            <?php endif; ?>
+                        </button>
                     </div>
+                <?php else: ?>
+                    <a href="login.html" class="btn btn-primary">Login</a>
                 <?php endif; ?>
-                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
-                <?php if ($unread_count > 0): ?>
-                    <span class="message-badge"><?php echo $unread_count; ?></span>
-                <?php endif; ?>
-            </button>
-        </div>
-    <?php else: ?>
-        <a href="login.html" class="btn btn-primary">Login</a>
-    <?php endif; ?>
-</div>
+            </div>
         </div>
     </nav>
 
@@ -1579,8 +1713,6 @@ body {
                             </select>
                         </div>
 
-                       
-
                         <div class="form-group">
                             <label class="form-label" for="cover_letter">Why are you interested?</label>
                             <textarea id="cover_letter" name="cover_letter" class="form-textarea" 
@@ -1647,7 +1779,69 @@ body {
     </main>
 
     <script>
-        // FIXED JavaScript - Added better error handling and debugging
+        // Pass PHP variables to JavaScript - MATCHING ABOUT US PAGE
+        const isUserLoggedIn = <?php echo json_encode($isLoggedIn); ?>;
+        const userData = <?php echo json_encode([
+            'id' => $user_id,
+            'name' => $user_name,
+            'email' => $user_email,
+            'role' => $user_role,
+            'profile_picture' => $user_profile_picture,
+            'phone' => $user_phone,
+            'location' => $user_location,
+            'joined' => $user_joined,
+            'dob' => $user_dob
+        ]); ?>;
+        const unreadMessagesCount = <?php echo json_encode($unread_count); ?>;
+
+        // Toggle mobile menu - MATCHING ABOUT US PAGE
+        function toggleMobileMenu() {
+            const navMenu = document.querySelector('.nav-menu');
+            if (navMenu) {
+                navMenu.style.display = navMenu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
+
+        // Auto-hide navbar functionality - MATCHING ABOUT US PAGE
+        let lastScrollTop = 0;
+        const navbar = document.querySelector('.navbar');
+
+        function handleScroll() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > lastScrollTop && scrollTop > 100) {
+                navbar.style.transform = 'translateY(-100%)';
+                navbar.style.transition = 'transform 0.3s ease-in-out';
+            } else if (scrollTop < lastScrollTop) {
+                navbar.style.transform = 'translateY(0)';
+                navbar.style.transition = 'transform 0.3s ease-in-out';
+            }
+            
+            if (scrollTop <= 10) {
+                navbar.style.transform = 'translateY(0)';
+            }
+            
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        }
+
+        // Throttle scroll events for better performance - MATCHING ABOUT US PAGE
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+
+        // Add scroll event listener with throttling - MATCHING ABOUT US PAGE
+        window.addEventListener('scroll', throttle(handleScroll, 10));
+
+        // ENHANCED Application Form Handler
         document.getElementById('applicationForm').addEventListener('submit', function(event) {
             event.preventDefault();
             
@@ -1735,6 +1929,84 @@ body {
                 submitButton.disabled = false;
             });
         });
+
+        // Initialize page based on login status - MATCHING ABOUT US PAGE
+        document.addEventListener('DOMContentLoaded', function() {
+            if (isUserLoggedIn) {
+                console.log('User is logged in - enhanced experience enabled');
+            }
+            
+            // Add subtle animation delay to content cards
+            document.querySelectorAll('.content-card').forEach((card, index) => {
+                card.style.animationDelay = `${0.2 + (index * 0.1)}s`;
+                card.style.animation = 'fadeInUp 0.6s ease-out both';
+            });
+        });
+
+        // Notification function for user feedback - MATCHING ABOUT US PAGE
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--primary-dark)'};
+                color: white;
+                padding: 12px 24px;
+                border-radius: 25px;
+                z-index: 10000;
+                opacity: 0;
+                transition: opacity 0.5s ease-in-out;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+                font-weight: 500;
+                backdrop-filter: blur(10px);
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.style.opacity = '1';
+            }, 100);
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+
+        // Smooth scrolling for anchor links - MATCHING ABOUT US PAGE
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Enhanced card hover effects - MATCHING ABOUT US PAGE
+        document.querySelectorAll('.content-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Animation keyframes for fade in effects - MATCHING ABOUT US PAGE
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(styleElement);
     </script>
 </body>
 </html>

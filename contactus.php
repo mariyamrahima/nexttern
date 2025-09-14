@@ -34,8 +34,8 @@ if ($isLoggedIn) {
             $user_stmt->bind_param("i", $user_id);
         } elseif (isset($_SESSION['email'])) {
             $email = $_SESSION['email'];
-            // Try students table first
-            $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, '' as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE email = ?");
+            // FIXED: Include profile_photo column from students table
+            $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE email = ?");
             $user_stmt->bind_param("s", $email);
         }
         
@@ -278,14 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
         .nav-logo {
             height: 50px;
             width: auto;
-           /* background: var(--gradient-primary);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            transition: var(--transition);*/
+            transition: var(--transition);
         }
 
         .nav-logo:hover {
@@ -333,7 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             gap: 1rem;
         }
 
-        /* Enhanced Profile Navigation - Matching internship page */
+        /* Enhanced Profile Navigation with Photo Support */
         .nav-profile {
             position: relative;
             display: flex;
@@ -357,6 +350,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             font-weight: 500;
             box-shadow: var(--shadow-light);
             border: none;
+            position: relative;
         }
 
         .profile-trigger:hover {
@@ -365,12 +359,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             background: rgba(255, 255, 255, 0.4);
         }
 
+        .profile-avatar-container {
+            position: relative;
+        }
+
         .profile-avatar {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--primary-light);
+            transition: var(--transition);
         }
 
         .profile-avatar.default {
@@ -380,14 +379,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             justify-content: center;
             color: white;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-family: 'Poppins', sans-serif;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.1rem;
         }
 
         .profile-name {
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
             color: var(--primary-dark);
+            font-size: 0.9rem;
+            line-height: 1.2;
+        }
+
+        .profile-id {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            line-height: 1;
         }
 
         .message-badge {
@@ -397,13 +413,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             padding: 0.2rem 0.5rem;
             font-size: 0.7rem;
             font-weight: bold;
-            margin-left: auto;
             min-width: 20px;
             height: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             animation: pulse 2s infinite;
+            position: absolute;
+            top: -5px;
+            right: -5px;
         }
 
         @keyframes pulse {
@@ -462,7 +480,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
         }
 
-
         /* Menu Toggle */
         .menu-toggle {
             display: none;
@@ -511,62 +528,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
         @keyframes slideInDown {
             from { transform: translateY(-20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
-        }
-
-        /* Enhanced Welcome Bar for Logged Users */
-        .enhanced-welcome {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            color: var(--primary);
-            padding: 2rem;
-            margin: 2rem auto;
-            max-width: 1200px;
-            border-radius: 16px;
-            text-align: center;
-            position: relative;
-            box-shadow: 0 4px 20px rgba(3, 89, 70, 0.1);
-        }
-
-        .enhanced-welcome h2 {
-            font-size: 1.6rem;
-            margin-bottom: 1rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .enhanced-welcome .welcome-details {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .welcome-detail {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--primary);
-            background: rgba(3, 89, 70, 0.1);
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            border: 1px solid rgba(3, 89, 70, 0.15);
-        }
-
-        .welcome-detail i {
-            color: var(--accent);
-            font-size: 1rem;
-        }
-
-        .welcome-message {
-            margin-top: 1rem;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
         }
 
         /* Main Contact Container */
@@ -1043,6 +1004,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
         /* Enhanced Responsive Design */
         @media (max-width: 768px) {
             body {
@@ -1057,8 +1023,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
                 display: flex;
             }
 
-            .profile-name {
+            .profile-name,
+            .profile-id {
                 display: none;
+            }
+
+            .profile-trigger {
+                padding: 0.5rem;
             }
 
             .contact-container {
@@ -1093,25 +1064,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             .hero-image {
                 width: 280px;
                 height: 180px;
-            }
-
-            .enhanced-welcome {
-                margin: 1rem;
-                padding: 2rem 1.5rem;
-            }
-
-            .enhanced-welcome h2 {
-                font-size: 1.4rem;
-            }
-
-            .enhanced-welcome .welcome-details {
-                flex-direction: column;
-                gap: 0.8rem;
-            }
-
-            .welcome-detail {
-                width: 100%;
-                justify-content: center;
             }
 
             .alert {
@@ -1156,11 +1108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             .alert {
                 margin: 0.5rem;
             }
-
-            .enhanced-welcome {
-                margin: 0.5rem;
-                padding: 1.5rem 1rem;
-            }
         }
 
         /* Loading Animation for Form Submission */
@@ -1193,10 +1140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
         @keyframes successPulse {
             0% { transform: scale(0.95); opacity: 0; }
             50% { transform: scale(1.02); }
-          
             100% { transform: scale(1); opacity: 1; }
         }
-          /* Footer */
+
+        /* Footer */
         .footer {
             background: var(--secondary);
             color: var(--white);
@@ -1331,76 +1278,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
         .footer-bottom-links a:hover {
             color: var(--accent);
         }
-
-        /* AOS Animation Styles */
-        [data-aos] {
-            opacity: 0;
-            transition: opacity 0.8s ease, transform 0.8s ease;
-        }
-
-        [data-aos].aos-animate {
-            opacity: 1;
-        }
-
-        [data-aos="fade-up"] {
-            transform: translateY(40px);
-        }
-
-        [data-aos="fade-up"].aos-animate {
-            transform: translateY(0);
-        }
-
-        [data-aos="fade-right"] {
-            transform: translateX(-40px);
-        }
-
-        [data-aos="fade-right"].aos-animate {
-            transform: translateX(0);
-        }
-
-        [data-aos="fade-left"] {
-            transform: translateX(40px);
-        }
-
-        [data-aos="fade-left"].aos-animate {
-            transform: translateX(0);
-        }
-        :root {
-            --primary: #035946;
-            --primary-light: #0a7058;
-            --primary-dark: #024238;
-            --accent: #4ecdc4;
-            --accent-light: #7dd3d8;
-            --secondary: #2e3944;
-            --text-light: #6b7280;
-            --text-dark: #1f2937;
-            --bg-light: #f8fafc;
-            --white: #ffffff;
-            --gradient-primary: linear-gradient(135deg, #035946 0%, #0a7058 100%);
-            --gradient-accent: linear-gradient(135deg, #4ecdc4 0%, #7dd3d8 100%);
-            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 8px 25px rgba(3, 89, 70, 0.1);
-            --shadow-lg: 0 20px 40px rgba(3, 89, 70, 0.15);
-            --border-radius: 12px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
     </style>
 </head>
 <body>
-    <!-- Background Blobs - Enhanced to match internship page -->
+    <!-- Background Blobs -->
     <div class="blob blob1"></div>
     <div class="blob blob2"></div>
     <div class="blob blob3"></div>
     <div class="blob blob4"></div>
     <div class="blob blob5"></div>
 
-    <!-- Enhanced Navigation - Matching internship page exactly -->
+    <!-- Enhanced Navigation with Profile Photo Support -->
     <nav class="navbar">
         <div class="nav-container">
-            <a href="#" class="nav-brand">
+            <a href="index.php" class="nav-brand">
                 <img src="nextternnavbar.png" alt="Nexttern Logo" class="nav-logo">
             </a>
+            
+            <div class="menu-toggle" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
             
             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
@@ -1410,28 +1309,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
                 <li><a href="contactus.php" class="nav-link active">Contact</a></li>
             </ul>
             
-         <!-- NEW -->
-<div class="nav-cta">
-    <?php if ($isLoggedIn): ?>
-        <div class="nav-profile">
-            <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
-                <?php if (!empty($user_profile_picture)): ?>
-                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
-                <?php else: ?>
-                    <div class="profile-avatar default">
-                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+            <div class="nav-cta">
+                <?php if ($isLoggedIn): ?>
+                    <div class="nav-profile">
+                        <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
+                            <div class="profile-avatar-container">
+                                <?php if (!empty($user_profile_picture) && file_exists($user_profile_picture)): ?>
+                                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>?v=<?php echo time(); ?>" alt="Profile" class="profile-avatar">
+                                <?php else: ?>
+                                    <div class="profile-avatar default">
+                                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="profile-info">
+                                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
+                                <span class="profile-id">ID: <?php echo htmlspecialchars($user_id ?: 'N/A'); ?></span>
+                            </div>
+                            <?php if ($unread_count > 0): ?>
+                                <span class="message-badge"><?php echo $unread_count; ?></span>
+                            <?php endif; ?>
+                        </button>
                     </div>
+                <?php else: ?>
+                    <a href="login.html" class="btn btn-primary">Login</a>
                 <?php endif; ?>
-                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
-                <?php if ($unread_count > 0): ?>
-                    <span class="message-badge"><?php echo $unread_count; ?></span>
-                <?php endif; ?>
-            </button>
-        </div>
-    <?php else: ?>
-        <a href="login.html" class="btn btn-primary">Login</a>
-    <?php endif; ?>
-</div>
+            </div>
         </div>
     </nav>
 
@@ -1586,7 +1489,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             </div>
         </section>
     </div>
-<!-- Footer -->
+
+    <!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-brand">
@@ -1651,6 +1555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             </div>
         </div>
     </footer>
+    
     <script>
         // Pass PHP variables to JavaScript
         const isUserLoggedIn = <?php echo json_encode($isLoggedIn); ?>;
@@ -1667,6 +1572,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
         ]); ?>;
         const unreadMessagesCount = <?php echo json_encode($unread_count); ?>;
 
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            const navMenu = document.querySelector('.nav-menu');
+            if (navMenu) {
+                navMenu.style.display = navMenu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
 
         // FAQ Toggle Functionality
         document.querySelectorAll('.faq-item').forEach(item => {
@@ -1771,7 +1683,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
             });
         });
 
-   
         // Form validation enhancements
         document.querySelectorAll('input[required], textarea[required]').forEach(field => {
             field.addEventListener('invalid', function(e) {

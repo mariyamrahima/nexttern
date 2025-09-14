@@ -31,7 +31,7 @@ if ($isLoggedIn) {
         } elseif (isset($_SESSION['email'])) {
             $email = $_SESSION['email'];
             // Try students table first
-            $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, '' as profile_picture, 'student' as role FROM students WHERE email = ?");
+            $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE email = ?");
             $user_stmt->bind_param("s", $email);
         }
         
@@ -69,7 +69,34 @@ if ($isLoggedIn) {
         }
         $user_conn->close();
     }
-}?>
+
+}
+// Database connection for success stories
+$success_stories = [];
+$stories_conn = new mysqli($servername, $username, $password, $dbname);
+
+if (!$stories_conn->connect_error) {
+    // Fetch only approved stories, limit to 3 most recent
+    $stories_stmt = $stories_conn->prepare("
+        SELECT story_title, story_content, feedback_rating, first_name, last_name, updated_date 
+        FROM stories 
+        WHERE status = 'approved' 
+        ORDER BY updated_date DESC 
+        LIMIT 3
+    ");
+    
+    if ($stories_stmt) {
+        $stories_stmt->execute();
+        $stories_result = $stories_stmt->get_result();
+        
+        while ($story = $stories_result->fetch_assoc()) {
+            $success_stories[] = $story;
+        }
+        $stories_stmt->close();
+    }
+    $stories_conn->close();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -198,88 +225,7 @@ if ($isLoggedIn) {
             line-height: 1.6;
         }
 
-        /* Blobs 
-        .blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(120px);
-            z-index: 0;
-            opacity: 0.3;
-            animation: blobMove 20s ease-in-out infinite;
-        }
-
-        .blob-1 {
-            width: 500px;
-            height: 500px;
-            background: var(--gradient-primary);
-            top: -200px;
-            right: -200px;
-            animation-delay: 0s;
-        }
-
-        .blob-2 {
-            width: 400px;
-            height: 400px;
-            background: var(--gradient-accent);
-            bottom: -100px;
-            left: -150px;
-            animation-delay: 5s;
-        }
-
-        .blob-3 {
-            width: 600px;
-            height: 600px;
-            background: var(--gradient-accent);
-            top: -250px;
-            left: -250px;
-            animation-delay: 2s;
-        }
-
-        .blob-4 {
-            width: 350px;
-            height: 350px;
-            background: var(--gradient-primary);
-            bottom: -150px;
-            right: -100px;
-            animation-delay: 7s;
-        }
-
-        .blob-5 {
-            width: 450px;
-            height: 450px;
-            background: var(--gradient-primary);
-            top: -180px;
-            right: -180px;
-            animation-delay: 1s;
-        }
-
-        .blob-6 {
-            width: 380px;
-            height: 380px;
-            background: var(--gradient-accent);
-            bottom: -120px;
-            left: -120px;
-            animation-delay: 6s;
-        }
-
-        .blob-7 {
-            width: 500px;
-            height: 500px;
-            background: var(--gradient-primary);
-            top: -200px;
-            left: -200px;
-            animation-delay: 3s;
-        }
-
-        .blob-8 {
-            width: 400px;
-            height: 400px;
-            background: var(--gradient-accent);
-            bottom: -150px;
-            right: -150px;
-            animation-delay: 8s;
-        }
-
+  
         /* Features Section */
         .features-section {
             padding: 120px 0;
@@ -447,122 +393,115 @@ if ($isLoggedIn) {
             margin-top: 3rem;
         }
 
-        /* Success Stories Section */
-        .success-section {
-            padding: 120px 0;
-            position: relative;
-            background: linear-gradient(135deg, #e0f2f1 0%, #f8fafc 50%, #e0f2f1 100%);
-            overflow: hidden;
-        }
+       /* Success Stories Section - Updated CSS */
+.success-section {
+    padding: 120px 0;
+    position: relative;
+    background: linear-gradient(135deg, #e0f2f1 0%, #f8fafc 50%, #e0f2f1 100%);
+    overflow: hidden;
+}
 
-        .success-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            position: relative;
-            z-index: 2;
-        }
+.success-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    position: relative;
+    z-index: 2;
+}
 
-        .stories-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2.5rem;
-        }
+.stories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2.5rem;
+}
 
-        .story-card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border-radius: 25px;
-            padding: 2rem;
-            transition: var(--transition);
-            position: relative;
-            overflow: hidden;
-        }
+.story-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 25px;
+    padding: 2rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
 
-        .story-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--gradient-primary);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
+.story-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
 
-        .story-card:hover::before {
-            opacity: 0.05;
-        }
+.story-card:hover::before {
+    opacity: 0.05;
+}
 
-        .story-card:hover {
-            transform: translateY(-15px);
-            box-shadow: var(--shadow-lg);
-        }
+.story-card:hover {
+    transform: translateY(-15px);
+    box-shadow: var(--shadow-lg);
+}
 
-        .story-image {
-            position: relative;
-            margin-bottom: 2rem;
-        }
+.story-header {
+    position: relative;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
 
-        .story-image img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
+.story-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    box-shadow: 0 4px 15px rgba(3, 89, 70, 0.2);
+}
 
-        .story-badge {
-            position: absolute;
-            bottom: -5px;
-            right: -5px;
-            width: 30px;
-            height: 30px;
-            background: var(--gradient-primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 3px solid var(--white);
-        }
+.story-icon i {
+    font-size: 1.5rem;
+    color: var(--white);
+}
 
-        .story-badge i {
-            font-size: 0.75rem;
-            color: var(--white);
-        }
+.story-content blockquote {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--text-dark);
+    margin-bottom: 1.5rem;
+    font-style: italic;
+}
 
-        .story-content blockquote {
-            font-size: 1.125rem;
-            line-height: 1.6;
-            color: var(--text-dark);
-            margin-bottom: 1.5rem;
-            font-style: italic;
-        }
+.story-author h4 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
 
-        .story-author h4 {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.25rem;
-        }
+.story-author p {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
 
-        .story-author p {
-            color: var(--text-light);
-            font-size: 0.875rem;
-        }
+.story-rating {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+}
 
-        .story-rating {
-            margin-top: 1rem;
-            display: flex;
-            gap: 0.25rem;
-        }
-
-        .story-rating i {
-            color: #fbbf24;
-            font-size: 0.875rem;
-        }
+.story-rating i {
+    color: #fbbf24;
+    font-size: 0.875rem;
+}
 
         /* CTA Section */
         .cta-section {
@@ -1655,6 +1594,146 @@ if ($isLoggedIn) {
     }
 }
 
+/* Enhanced Profile Trigger with Photo Support */
+.profile-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 25px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    color: var(--primary);
+    font-weight: 500;
+    box-shadow: var(--shadow-light);
+    border: none;
+    position: relative;
+}
+
+.profile-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Profile Avatar Container */
+.profile-avatar-container {
+    position: relative;
+}
+
+/* Profile Avatar Image */
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-light);
+    transition: var(--transition);
+}
+
+/* Default Profile Avatar (when no image) */
+.profile-avatar.default {
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Profile Information Container */
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+}
+
+/* Profile Name */
+.profile-name {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    color: var(--primary-dark);
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+/* Profile ID */
+.profile-id {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+/* Message Badge (notification count) */
+.message-badge {
+    background: var(--danger);
+    color: white;
+    border-radius: 50%;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: bold;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
+
+/* Pulse Animation for Message Badge */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Nav CTA Container */
+.nav-cta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* CSS Variables Used */
+:root {
+    --primary: #035946;
+    --primary-light: #0a7058;
+    --primary-dark: #023d32;
+    --secondary: #2e3944;
+    --text-secondary: #7f8c8d;
+    --danger: #e74c3c;
+    --glass-bg: rgba(255, 255, 255, 0.25);
+    --glass-border: rgba(255, 255, 255, 0.18);
+    --shadow-light: 0 8px 32px rgba(3, 89, 70, 0.1);
+    --shadow-medium: 0 12px 48px rgba(3, 89, 70, 0.15);
+    --blur: 14px;
+    --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+    .profile-name,
+    .profile-id {
+        display: none;
+    }
+
+    .profile-trigger {
+        padding: 0.5rem;
+    }
+}
     </style>
 </head>
 <body>
@@ -1679,19 +1758,24 @@ if ($isLoggedIn) {
     <?php if ($isLoggedIn): ?>
         <div class="nav-profile">
             <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
-                <?php if (!empty($user_profile_picture)): ?>
-                    <img src="<?php echo htmlspecialchars($user_profile_picture); ?>" alt="Profile" class="profile-avatar">
-                <?php else: ?>
-                    <div class="profile-avatar default">
-                        <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
-                    </div>
-                <?php endif; ?>
-                <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
-                <?php if ($unread_count > 0): ?>
-                    <span class="message-badge"><?php echo $unread_count; ?></span>
-                <?php endif; ?>
-            </button>
-        </div>
+    <div class="profile-avatar-container">
+        <?php if (!empty($user_profile_picture) && file_exists($user_profile_picture)): ?>
+            <img src="<?php echo htmlspecialchars($user_profile_picture); ?>?v=<?php echo time(); ?>" alt="Profile" class="profile-avatar">
+        <?php else: ?>
+            <div class="profile-avatar default">
+                <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
+            </div>
+        <?php endif; ?>
+    </div>
+    <div class="profile-info">
+        <span class="profile-name"><?php echo htmlspecialchars($user_name ?: 'User'); ?></span>
+        <span class="profile-id">ID: <?php echo htmlspecialchars($user_id ?: 'N/A'); ?></span>
+    </div>
+    <?php if ($unread_count > 0): ?>
+        <span class="message-badge"><?php echo $unread_count; ?></span>
+    <?php endif; ?>
+</button>
+    </div>
     <?php else: ?>
         <a href="login.html" class="btn btn-primary">Login</a>
     <?php endif; ?>
@@ -1916,7 +2000,6 @@ if ($isLoggedIn) {
         </div>
     </section>
 
-    <!-- Success Stories Section -->
     <section class="success-section">
         <div class="blob blob-5"></div>
         <div class="blob blob-6"></div>
@@ -1932,84 +2015,43 @@ if ($isLoggedIn) {
             </div>
             
             <div class="stories-grid">
-                <div class="story-card" data-aos="fade-right" data-aos-delay="0">
-                    <div class="story-image">
-                        <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" alt="Sarah Johnson">
-                        <div class="story-badge">
-                            <i class="fas fa-star"></i>
+                <?php if (!empty($success_stories)): ?>
+                    <?php 
+                    $story_icons = ['fas fa-trophy', 'fas fa-star', 'fas fa-rocket'];
+                    foreach ($success_stories as $index => $story): 
+                    ?>
+                        <div class="story-card" data-aos="fade-<?php echo $index === 0 ? 'right' : ($index === 1 ? 'up' : 'left'); ?>" data-aos-delay="<?php echo $index * 100; ?>">
+                            <div class="story-header">
+                                <div class="story-icon">
+                                    <i class="<?php echo $story_icons[$index % count($story_icons)]; ?>"></i>
+                                </div>
+                            </div>
+                            <div class="story-content">
+                                <blockquote>
+                                    "<?php echo htmlspecialchars($story['story_content']); ?>"
+                                </blockquote>
+                                <div class="story-author">
+                                    <h4><?php echo htmlspecialchars($story['first_name'] . ' ' . $story['last_name']); ?></h4>
+                                    <p><?php echo htmlspecialchars($story['story_title']); ?></p>
+                                </div>
+                                <?php if (!empty($story['feedback_rating']) && $story['feedback_rating'] > 0): ?>
+                                    <div class="story-rating">
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <i class="fas fa-star<?php echo $i <= $story['feedback_rating'] ? '' : '-o'; ?>" 
+                                               style="<?php echo $i <= $story['feedback_rating'] ? 'color: #fbbf24;' : 'color: #d1d5db;'; ?>"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                    </div>
-                    <div class="story-content">
-                        <blockquote>
-                            "Nexttern connected me with my dream internship at a leading tech company. The mentorship and support I received was incredible!"
-                        </blockquote>
-                        <div class="story-author">
-                            <h4>Sarah Johnson</h4>
-                            <p>Software Engineering Intern at Google</p>
-                        </div>
-                        <div class="story-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="story-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="story-image">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" alt="Michael Chen">
-                        <div class="story-badge">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                    </div>
-                    <div class="story-content">
-                        <blockquote>
-                            "The platform's matching algorithm was spot-on. I found an internship that perfectly matched my skills and career aspirations."
-                        </blockquote>
-                        <div class="story-author">
-                            <h4>Michael Chen</h4>
-                            <p>Data Science Intern at Microsoft</p>
-                        </div>
-                        <div class="story-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="story-card" data-aos="fade-left" data-aos-delay="200">
-                    <div class="story-image">
-                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" alt="Emily Rodriguez">
-                        <div class="story-badge">
-                            <i class="fas fa-rocket"></i>
-                        </div>
-                    </div>
-                    <div class="story-content">
-                        <blockquote>
-                            "From application to offer letter, the entire process was smooth. I'm now a full-time employee at my internship company!"
-                        </blockquote>
-                        <div class="story-author">
-                            <h4>Emily Rodriguez</h4>
-                            <p>Marketing Manager at Adobe</p>
-                        </div>
-                        <div class="story-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                    </div>
-                </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p>No success stories available at the moment. Please check back later.</p>
+                <?php endif; ?>
+
             </div>
         </div>
     </section>
-
    
 <!-- Footer -->
     <footer class="footer">

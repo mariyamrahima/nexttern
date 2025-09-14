@@ -126,6 +126,95 @@ $photo_data = $photo_result->fetch_assoc();
 $current_photo = $photo_data['profile_photo'] ?? '';
 
 
+// Handle resume upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['resume_file']) && $_FILES['resume_file']['error'] === 0) {
+    $upload_dir = 'uploads/resume/';
+    
+    // Create directory if it doesn't exist
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0755, true);
+    }
+    
+    $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    $max_size = 10 * 1024 * 1024; // 10MB
+    
+    $file_type = $_FILES['resume_file']['type'];
+    $file_size = $_FILES['resume_file']['size'];
+    $file_tmp = $_FILES['resume_file']['tmp_name'];
+    
+    if (!in_array($file_type, $allowed_types)) {
+        $error_message = "Invalid file type. Please upload PDF, DOC, or DOCX files only.";
+    } elseif ($file_size > $max_size) {
+        $error_message = "File size too large. Maximum size is 10MB.";
+    } else {
+        $file_extension = pathinfo($_FILES['resume_file']['name'], PATHINFO_EXTENSION);
+        $new_filename = 'resume_' . $student_id . '_' . time() . '.' . $file_extension;
+        $upload_path = $upload_dir . $new_filename;
+        
+        if (move_uploaded_file($file_tmp, $upload_path)) {
+            // Update database with new resume path
+            $stmt_resume = $conn->prepare("UPDATE students SET resume_path = ? WHERE student_id = ?");
+            $stmt_resume->bind_param("ss", $upload_path, $student_id);
+            
+            if ($stmt_resume->execute()) {
+                // Delete old resume if exists
+                $old_resume_stmt = $conn->prepare("SELECT resume_path FROM students WHERE student_id = ?");
+                $old_resume_stmt->bind_param("s", $student_id);
+                $old_resume_stmt->execute();
+                $old_resume_result = $old_resume_stmt->get_result();
+                $old_resume_data = $old_resume_result->fetch_assoc();
+                
+                if ($old_resume_data['resume_path'] && $old_resume_data['resume_path'] !== $upload_path && file_exists($old_resume_data['resume_path'])) {
+                    unlink($old_resume_data['resume_path']);
+                }
+                
+                $success_message = "Resume updated successfully!";
+                header("Location: " . $_SERVER['PHP_SELF'] . "?page=profile&success=1");
+                exit;
+            } else {
+                $error_message = "Error updating resume in database.";
+                unlink($upload_path);
+            }
+            $stmt_resume->close();
+        } else {
+            $error_message = "Error uploading file. Please try again.";
+        }
+    }
+}
+
+// Handle resume removal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_resume'])) {
+    $old_resume_stmt = $conn->prepare("SELECT resume_path FROM students WHERE student_id = ?");
+    $old_resume_stmt->bind_param("s", $student_id);
+    $old_resume_stmt->execute();
+    $old_resume_result = $old_resume_stmt->get_result();
+    $old_resume_data = $old_resume_result->fetch_assoc();
+    
+    if ($old_resume_data['resume_path'] && file_exists($old_resume_data['resume_path'])) {
+        unlink($old_resume_data['resume_path']);
+    }
+    
+    $remove_resume_stmt = $conn->prepare("UPDATE students SET resume_path = NULL WHERE student_id = ?");
+    $remove_resume_stmt->bind_param("s", $student_id);
+    
+    if ($remove_resume_stmt->execute()) {
+        $success_message = "Resume removed successfully!";
+        header("Location: " . $_SERVER['PHP_SELF'] . "?page=profile&success=1");
+        exit;
+    } else {
+        $error_message = "Error removing resume.";
+    }
+    $remove_resume_stmt->close();
+}
+
+// Get current resume
+$resume_stmt = $conn->prepare("SELECT resume_path FROM students WHERE student_id = ?");
+$resume_stmt->bind_param("s", $student_id);
+$resume_stmt->execute();
+$resume_result = $resume_stmt->get_result();
+$resume_data = $resume_result->fetch_assoc();
+$current_resume = $resume_data['resume_path'] ?? '';
+
 // Handle course application submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
     $course_id = $_POST['course_id'];
@@ -156,33 +245,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     }
     $check_stmt->close();
 }
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_story'])) {
-    $story_title = $_POST['story_title'];
-    $story_content = $_POST['story_content'];
-    $story_category = $_POST['story_category'];
-    $feedback_rating = $_POST['feedback_rating'] ?? null;
-    
-    // Insert into stories table including student details for storage
-    $story_stmt = $conn->prepare("INSERT INTO stories (story_title, story_category, story_content, feedback_rating, student_id, first_name, last_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
-    $story_stmt->bind_param("sssssss", $story_title, $story_category, $story_content, $feedback_rating, $student_id, $first_name, $last_name);
-    
-    if ($story_stmt->execute()) {
-        $success_message = "Success story submitted for review!";
-        header("Location: " . $_SERVER['PHP_SELF'] . "?page=stories&success=1");
-        exit;
-    } else {
-        $error_message = "Error submitting story: " . $story_stmt->error;
-    }
-    $story_stmt->close();
-}
-
 // Get student's submitted stories count
 $stories_count_stmt = $conn->prepare("SELECT COUNT(*) as stories_count FROM stories WHERE student_id = ?");
-$stories_count_stmt->bind_param("i", $student_id);
+$stories_count_stmt->bind_param("s", $student_id); // Changed to "s" for string consistency
 $stories_count_stmt->execute();
 $stories_count_result = $stories_count_stmt->get_result();
 $total_stories = $stories_count_result->fetch_assoc()['stories_count'];
+$stories_count_stmt->close();
 
 // Fetch student's submitted stories with status
 $student_stories_stmt = $conn->prepare("
@@ -191,9 +260,17 @@ $student_stories_stmt = $conn->prepare("
     WHERE student_id = ? 
     ORDER BY submission_date DESC
 ");
-$student_stories_stmt->bind_param("i", $student_id);
+$student_stories_stmt->bind_param("s", $student_id); // Changed to "s" for string consistency
 $student_stories_stmt->execute();
 $student_stories_result = $student_stories_stmt->get_result();
+
+// Debug: Check if query is working (remove this after testing)
+echo "<!-- DEBUG: Total stories for student $student_id: $total_stories -->";
+if ($total_stories > 0) {
+    echo "<!-- DEBUG: Stories found for this student -->";
+} else {
+    echo "<!-- DEBUG: No stories found for this student -->";
+}
 
 // Handle mark as read functionality
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_read'])) {
@@ -1485,6 +1562,154 @@ function getStatusBadge($status) {
             outline: 2px solid var(--primary);
             outline-offset: 2px;
         }
+       .resume-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: var(--slate-50);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--slate-200);
+}
+
+.current-resume-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    min-width: 200px;
+}
+
+.resume-display {
+    width: 120px;
+    height: 150px;
+    border-radius: var(--border-radius);
+    border: 3px solid var(--slate-300);
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate-500);
+    font-size: 2.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.resume-display:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.resume-display.has-resume {
+    border-color: var(--success);
+    background: linear-gradient(135deg, var(--success), #059669);
+    color: white;
+}
+
+.resume-info h4 {
+    color: var(--slate-900);
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
+.resume-info p {
+    color: var(--slate-500);
+    font-size: 0.8rem;
+}
+
+.resume-upload-area {
+    flex: 1;
+    border: 2px dashed var(--slate-300);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    text-align: center;
+    background: white;
+    transition: var(--transition);
+    cursor: pointer;
+    position: relative;
+}
+
+.resume-upload-area:hover,
+.resume-upload-area.dragover {
+    border-color: var(--primary);
+    background: rgba(3, 89, 70, 0.05);
+}
+
+.resume-upload-area.has-file {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.resume-file-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.download-resume-btn {
+    background: linear-gradient(135deg, var(--info), #2563eb);
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+}
+
+.download-resume-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+    color: white;
+}
+
+.remove-resume-btn {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.remove-resume-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+}
+
+@media (max-width: 768px) {
+    .resume-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .current-resume-container {
+        min-width: auto;
+        align-self: center;
+    }
+    
+    .resume-file-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+}
     </style>
 </head>
 <body>
@@ -1684,7 +1909,7 @@ function getStatusBadge($status) {
                         </div>
                     </div>
                 </div>
-<!-- Replace your existing profile section form with this updated version -->
+
 <div id="profile" class="content-section <?php echo ($page === 'profile') ? 'active' : ''; ?>">
     <div class="content-card">
         <div class="card-header">
@@ -1753,10 +1978,74 @@ function getStatusBadge($status) {
                 </div>
             </div>
 
+            <!-- Resume Upload Section - ONLY IN PROFILE -->
+            <div class="resume-section">
+                <div class="current-resume-container">
+                    <div class="resume-display <?php echo !empty($current_resume) ? 'has-resume' : ''; ?>" id="currentResumeDisplay">
+                        <?php if (!empty($current_resume) && file_exists($current_resume)): ?>
+                            <i class="fas fa-file-pdf"></i>
+                            <div style="font-size: 0.7rem; margin-top: 0.5rem; font-weight: 600;">RESUME</div>
+                        <?php else: ?>
+                            <i class="fas fa-file-upload"></i>
+                            <div style="font-size: 0.7rem; margin-top: 0.5rem;">NO FILE</div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="resume-info" style="text-align: center;">
+                        <h4>Resume/CV</h4>
+                        <p><?php echo !empty($current_resume) ? 'PDF, DOC, DOCX (Max 10MB)' : 'Upload your resume'; ?></p>
+                        
+                        <?php if (!empty($current_resume) && file_exists($current_resume)): ?>
+                            <div class="resume-file-actions">
+                                <a href="<?php echo htmlspecialchars($current_resume); ?>" target="_blank" class="download-resume-btn">
+                                    <i class="fas fa-download"></i>
+                                    Download
+                                </a>
+                                <button type="button" class="remove-resume-btn" onclick="removeResume()">
+                                    <i class="fas fa-trash"></i>
+                                    Remove
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="resume-upload-area" id="resumeUploadArea" onclick="document.getElementById('resumeFileInput').click()">
+                    <div class="upload-icon" id="resumeUploadIcon">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <div class="upload-text" id="resumeUploadText">
+                        <h4>Upload Resume/CV</h4>
+                        <p>Drag and drop your resume here, or click to browse</p>
+                        <div class="file-input-wrapper">
+                            <button type="button" class="file-select-btn">
+                                <i class="fas fa-file-text"></i>
+                                Choose File
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="file-info" id="resumeFileInfo">
+                        <div class="file-details">
+                            <span class="file-name" id="resumeFileName"></span>
+                            <span class="file-size" id="resumeFileSize"></span>
+                            <button type="button" class="remove-file-btn" id="removeResumeFileBtn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Photo Upload Form -->
             <form id="photo-upload-form" action="student_dashboard.php" method="post" enctype="multipart/form-data" style="display: none;">
                 <input type="file" id="profilePhotoInput" name="profile_photo" accept="image/*">
                 <button type="submit" id="photoSubmitBtn">Upload Photo</button>
+            </form>
+
+            <!-- Resume Upload Form -->
+            <form id="resume-upload-form" action="student_dashboard.php" method="post" enctype="multipart/form-data" style="display: none;">
+                <input type="file" id="resumeFileInput" name="resume_file" accept=".pdf,.doc,.docx">
+                <button type="submit" id="resumeSubmitBtn">Upload Resume</button>
             </form>
 
             <!-- Regular Profile Form -->
@@ -1818,7 +2107,6 @@ function getStatusBadge($status) {
         </div>
     </div>
 </div>
-
 
                 <!-- Messages Section -->
                 <div id="messages" class="content-section <?php echo ($page === 'messages') ? 'active' : ''; ?>">
@@ -2576,7 +2864,133 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+document.addEventListener('DOMContentLoaded', function() {
+    // Resume upload functionality
+    const resumeUploadArea = document.getElementById('resumeUploadArea');
+    const resumeInput = document.getElementById('resumeFileInput');
+    const resumeForm = document.getElementById('resume-upload-form');
+    const resumeFileInfo = document.getElementById('resumeFileInfo');
+    const resumeFileName = document.getElementById('resumeFileName');
+    const resumeFileSize = document.getElementById('resumeFileSize');
+    const removeResumeFileBtn = document.getElementById('removeResumeFileBtn');
+    const resumeUploadIcon = document.getElementById('resumeUploadIcon');
+    const resumeUploadText = document.getElementById('resumeUploadText');
+    const resumeSubmitBtn = document.getElementById('resumeSubmitBtn');
 
+    if (resumeUploadArea && resumeInput) {
+        // Drag and drop functionality for resume
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            resumeUploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            resumeUploadArea.addEventListener(eventName, () => {
+                resumeUploadArea.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            resumeUploadArea.addEventListener(eventName, () => {
+                resumeUploadArea.classList.remove('dragover');
+            }, false);
+        });
+
+        resumeUploadArea.addEventListener('drop', handleResumeDrop, false);
+
+        function handleResumeDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                resumeInput.files = files;
+                handleResumeFileSelect(files[0]);
+            }
+        }
+
+        // Resume file input change
+        resumeInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                handleResumeFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Handle resume file selection
+        function handleResumeFileSelect(file) {
+            // Validate file type
+            const allowedExtensions = ['.pdf', '.doc', '.docx'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!allowedExtensions.includes(fileExtension)) {
+                alert('Please select a valid resume file (PDF, DOC, or DOCX)');
+                return;
+            }
+
+            // Validate file size (10MB limit)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert('File size must be less than 10MB');
+                return;
+            }
+
+            // Show file info
+            resumeFileName.textContent = file.name;
+            resumeFileSize.textContent = formatFileSize(file.size);
+            resumeFileInfo.classList.add('show');
+            resumeUploadArea.classList.add('has-file');
+
+            // Update upload area appearance
+            resumeUploadIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+            resumeUploadText.querySelector('h4').textContent = 'Resume Ready to Upload';
+            resumeUploadText.querySelector('p').innerHTML = 'Click "Upload Now" to save your resume<br><button type="button" class="btn btn-primary" onclick="document.getElementById(\'resumeSubmitBtn\').click()" style="margin-top: 1rem;"><i class="fas fa-upload"></i> Upload Now</button>';
+        }
+
+        // Remove resume file
+        if (removeResumeFileBtn) {
+            removeResumeFileBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                clearResumeFileSelection();
+            });
+        }
+
+        function clearResumeFileSelection() {
+            resumeInput.value = '';
+            resumeFileInfo.classList.remove('show');
+            resumeUploadArea.classList.remove('has-file');
+            
+            // Reset upload area
+            resumeUploadIcon.innerHTML = '<i class="fas fa-file-upload"></i>';
+            resumeUploadText.querySelector('h4').textContent = 'Upload Resume/CV';
+            resumeUploadText.querySelector('p').innerHTML = 'Drag and drop your resume here, or click to browse<br><div class="file-input-wrapper"><button type="button" class="file-select-btn"><i class="fas fa-file-text"></i> Choose File</button></div>';
+        }
+
+        // Auto-submit form when resume file is selected
+        resumeInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                setTimeout(() => {
+                    resumeForm.submit();
+                }, 1000);
+            }
+        });
+    }
+});
+
+// Remove resume function
+function removeResume() {
+    if (confirm('Are you sure you want to remove your current resume? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'student_dashboard.php';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'remove_resume';
+        input.value = '1';
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
     </script>
 </body>
 </html>
