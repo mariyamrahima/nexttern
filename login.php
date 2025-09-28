@@ -59,7 +59,7 @@ if ($result->num_rows > 0) {
         
         echo json_encode([
             "success" => true, 
-            "redirect" => "internship.php",
+            "redirect" => "index.php",
             "message" => "Student login successful"
         ]);
     } else {
@@ -95,7 +95,7 @@ if ($result->num_rows > 0) {
         
         echo json_encode([
             "success" => true, 
-            "redirect" => "admin_dashboard.php",
+            "redirect" => "index.php",
             "message" => "Admin login successful"
         ]);
     } else {

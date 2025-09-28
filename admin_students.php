@@ -769,7 +769,7 @@ if (isset($_GET['op_status'])) {
         <div class="table-container">
             <?php
             // Fetch all students from the database - refresh data after operations
-            $result = $conn->query("SELECT student_id, first_name, last_name, email, contact FROM students ORDER BY first_name, last_name");
+            $result = $conn->query("SELECT student_id, first_name, last_name, email, contact FROM students ORDER BY id DESC");
             if ($result && $result->num_rows > 0): ?>
                 <table class="students-table">
                     <thead>

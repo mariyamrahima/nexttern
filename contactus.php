@@ -1,24 +1,115 @@
 <?php
 // Start session to check login status
 session_start();
+// Prevent caching for proper session handling
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
 
-// Check if user is logged in
-$isLoggedIn = isset($_SESSION['user_id']) || isset($_SESSION['logged_in']) || isset($_SESSION['email']);
+// Enhanced session validation function (same as aboutus.php)
+function validateUserSession() {
+    // Check for admin session first
+    if (isset($_SESSION['admin_id'])) {
+        return [
+            'isLoggedIn' => true,
+            'userType' => 'admin',
+            'userId' => $_SESSION['admin_id'],
+            'userName' => 'Admin User',
+            'userRole' => 'admin'
+        ];
+    }
+    
+    // Check for regular user session
+    if (isset($_SESSION['user_id']) || isset($_SESSION['logged_in']) || isset($_SESSION['email'])) {
+        return validateRegularUser();
+    }
+    
+    return [
+        'isLoggedIn' => false,
+        'userType' => null,
+        'userId' => null,
+        'userName' => '',
+        'userRole' => ''
+    ];
+}
 
-// Get user details if logged in
-$user_name = '';
-$user_email = '';
-$user_profile_picture = '';
-$user_role = '';
+function validateRegularUser() {
+    $servername = "localhost";
+    $username = "root";
+    $password = "";
+    $dbname = "nexttern_db";
+    
+    $user_conn = new mysqli($servername, $username, $password, $dbname);
+    
+    if ($user_conn->connect_error) {
+        return ['isLoggedIn' => false, 'userType' => null, 'userId' => null, 'userName' => '', 'userRole' => ''];
+    }
+    
+    $user_data = null;
+    
+    // Check users table first
+    if (isset($_SESSION['user_id'])) {
+        $user_id = $_SESSION['user_id'];
+        $stmt = $user_conn->prepare("SELECT id, name, email, profile_picture, role FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) {
+            $user_data = $result->fetch_assoc();
+        }
+        $stmt->close();
+    }
+    
+    // Check students table if not found in users
+    if (!$user_data && isset($_SESSION['email'])) {
+        $email = $_SESSION['email'];
+        $stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role FROM students WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) {
+            $user_data = $result->fetch_assoc();
+        }
+        $stmt->close();
+    }
+    
+    $user_conn->close();
+    
+    if ($user_data) {
+        return [
+            'isLoggedIn' => true,
+            'userType' => $user_data['role'],
+            'userId' => $user_data['id'],
+            'userName' => $user_data['name'],
+            'userRole' => $user_data['role'],
+            'userEmail' => $user_data['email'],
+            'userProfilePicture' => $user_data['profile_picture'] ?? ''
+        ];
+    }
+    
+    return ['isLoggedIn' => false, 'userType' => null, 'userId' => null, 'userName' => '', 'userRole' => ''];
+}
+
+// Get user session data
+$sessionData = validateUserSession();
+
+// Extract variables for backward compatibility
+$isLoggedIn = $sessionData['isLoggedIn'];
+$user_id = $sessionData['userId'] ?? '';
+$user_name = $sessionData['userName'] ?? 'User';
+$user_email = $sessionData['userEmail'] ?? '';
+$user_profile_picture = $sessionData['userProfilePicture'] ?? '';
+$user_role = $sessionData['userRole'] ?? 'student';
+
+// Additional user data for existing code compatibility
 $user_phone = '';
 $user_location = '';
-$user_id = '';
 $user_joined = '';
 $user_dob = '';
 $unread_count = 0;
 
-if ($isLoggedIn) {
-    // Database connection for user details
+// Get additional user details and unread messages only if user is logged in and not admin
+if ($isLoggedIn && $user_id && $user_role !== 'admin') {
     $servername = "localhost";
     $username = "root";
     $password = "";
@@ -27,58 +118,52 @@ if ($isLoggedIn) {
     $user_conn = new mysqli($servername, $username, $password, $dbname);
     
     if (!$user_conn->connect_error) {
-        // Check if user is in users table or students table
-        if (isset($_SESSION['user_id'])) {
-            $user_id = $_SESSION['user_id'];
-            $user_stmt = $user_conn->prepare("SELECT name, email, profile_picture, role, phone, location, created_at, dob FROM users WHERE id = ?");
+        // Get additional user details
+        if ($user_role === 'student') {
+            $user_stmt = $user_conn->prepare("SELECT contact as phone, '' as location, created_at, dob FROM students WHERE student_id = ?");
+            $user_stmt->bind_param("s", $user_id);
+        } else {
+            $user_stmt = $user_conn->prepare("SELECT phone, location, created_at, dob FROM users WHERE id = ?");
             $user_stmt->bind_param("i", $user_id);
-        } elseif (isset($_SESSION['email'])) {
-            $email = $_SESSION['email'];
-            // FIXED: Include profile_photo column from students table
-            $user_stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role, contact as phone, '' as location, created_at, dob FROM students WHERE email = ?");
-            $user_stmt->bind_param("s", $email);
         }
         
         if (isset($user_stmt)) {
             $user_stmt->execute();
             $user_result = $user_stmt->get_result();
-            
             if ($user_result->num_rows > 0) {
-                $user_data = $user_result->fetch_assoc();
-                $user_id = $user_data['id'] ?? '';
-                $user_name = $user_data['name'] ?? 'User';
-                $user_email = $user_data['email'] ?? '';
-                $user_profile_picture = $user_data['profile_picture'] ?? '';
-                $user_role = $user_data['role'] ?? 'student';
-                $user_phone = $user_data['phone'] ?? '';
-                $user_location = $user_data['location'] ?? '';
-                $user_joined = $user_data['created_at'] ?? '';
-                $user_dob = $user_data['dob'] ?? '';
+                $additional_data = $user_result->fetch_assoc();
+                $user_phone = $additional_data['phone'] ?? '';
+                $user_location = $additional_data['location'] ?? '';
+                $user_joined = $additional_data['created_at'] ?? '';
+                $user_dob = $additional_data['dob'] ?? '';
             }
             $user_stmt->close();
         }
         
-        // Get unread messages count for the user
-        if ($user_id) {
-            if ($user_role === 'student') {
-                $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
-                $unread_stmt->bind_param("s", $user_id);
-            } else {
-                $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM user_messages WHERE receiver_id = ? AND is_read = FALSE");
-                $unread_stmt->bind_param("i", $user_id);
-            }
-            
-            if (isset($unread_stmt)) {
-                $unread_stmt->execute();
-                $unread_result = $unread_stmt->get_result();
-                $unread_count = $unread_result->fetch_assoc()['unread_count'];
-                $unread_stmt->close();
-            }
+        // Get unread messages count
+        if ($user_role === 'student') {
+            $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
+            $unread_stmt->bind_param("s", $user_id);
+        } else {
+            $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM user_messages WHERE receiver_id = ? AND is_read = FALSE");
+            $unread_stmt->bind_param("i", $user_id);
         }
+        
+        if (isset($unread_stmt)) {
+            $unread_stmt->execute();
+            $unread_result = $unread_stmt->get_result();
+            if ($unread_result) {
+                $unread_data = $unread_result->fetch_assoc();
+                $unread_count = $unread_data['unread_count'] ?? 0;
+            }
+            $unread_stmt->close();
+        }
+        
         $user_conn->close();
     }
 }
 
+// Continue with your existing contact form handling code...
 // Handle contact form submission
 $form_success = false;
 $form_error = '';
@@ -1301,18 +1386,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
                 <span></span>
             </div>
             
-            <ul class="nav-menu">
+             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
-                <li><a href="internship.php" class="nav-link">Internships</a></li>
+<li><a href="course.php" class="nav-link">Internships</a></li>
                 <li><a href="#" class="nav-link">Companies</a></li>
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
-                <li><a href="contactus.php" class="nav-link active">Contact</a></li>
+                <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>
             
             <div class="nav-cta">
                 <?php if ($isLoggedIn): ?>
                     <div class="nav-profile">
-                        <button class="profile-trigger" onclick="window.location.href='student_dashboard.php'">
+                        <button class="profile-trigger" onclick="redirectToDashboard('<?php echo $user_role; ?>')">
                             <div class="profile-avatar-container">
                                 <?php if (!empty($user_profile_picture) && file_exists($user_profile_picture)): ?>
                                     <img src="<?php echo htmlspecialchars($user_profile_picture); ?>?v=<?php echo time(); ?>" alt="Profile" class="profile-avatar">
@@ -1780,6 +1865,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
                 showNotification('Opening email client...', 'info');
             });
         });
+        // Add this function to handle role-based dashboard redirection
+function redirectToDashboard(userRole) {
+    // Add debugging
+    console.log('Redirecting user with role:', userRole);
+    
+    switch(userRole) {
+        case 'admin':
+            window.location.href = 'admin_dashboard.php';
+            break;
+        case 'company':
+            window.location.href = 'company_dashboard.php';
+            break;
+        case 'student':
+        default:
+            window.location.href = 'student_dashboard.php';
+            break;
+    }
+}
     </script>
 </body>
 </html>

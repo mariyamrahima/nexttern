@@ -1,13 +1,19 @@
 <?php 
+
+   ini_set('display_errors', 1);
+   ini_set('display_startup_errors', 1);
+   error_reporting(E_ALL);
 // Start session and check authentication
 session_start();
 
 // Security: Check if admin is logged in
 if (!isset($_SESSION['admin_id'])) {
+    // Clear any conflicting session data
+    session_unset();
+    session_destroy();
     header('Location: login.html');
     exit();
 }
-
 // Prevent caching of this page
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -59,7 +65,7 @@ if ($page === 'home') {
             $total_students = getCount($conn, "SELECT COUNT(*) as count FROM students");
             $active_companies = getCount($conn, "SELECT COUNT(*) as count FROM companies WHERE status = 'active'");
             $active_courses = getCount($conn, "SELECT COUNT(*) as count FROM course");
-            
+            $total_payments = getCount($conn, "SELECT COUNT(*) as count FROM company_payment");
         } catch (Exception $e) {
             error_log("Error fetching statistics: " . $e->getMessage());
             // Keep default values (0) if there's an error
@@ -201,7 +207,23 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 500;
 }
 
-/* Sidebar - Fixed to extend full height */
+/* Mobile Overlay */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* Enhanced Sidebar Styles */
 .sidebar {
     width: var(--sidebar-width);
     background: var(--primary-dark);
@@ -210,66 +232,73 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.1);
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
-    z-index: 10;
-    transition: var(--transition);
+    z-index: 1000;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
     overflow-x: hidden;
 }
 
+/* Sidebar States */
 .sidebar.collapsed {
     width: var(--sidebar-collapsed);
     padding: 1.5rem 0.8rem;
 }
 
-.logo {
+/* Mobile Sidebar */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        width: 300px;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .sidebar.collapsed {
+        width: 300px;
+        padding: 1.5rem;
+    }
+}
+
+/* Sidebar Header with Toggle Button */
+.sidebar-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: space-between;
     margin-bottom: 1rem;
-    transition: var(--transition);
-    padding: 0.75rem;
-    border-radius: 15px;
+    padding: 0.5rem 0;
+}
+
+.sidebar-toggle-btn {
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    flex-shrink: 0;
-}
-
-.sidebar.collapsed .logo {
-    justify-content: center;
-    gap: 0;
-}
-
-.sidebar.collapsed .logo h2 {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-    transition: var(--transition);
-}
-
-.logo i {
-    font-size: 1.75rem;
-    color: var(--accent);
-    transition: var(--transition);
-}
-
-.sidebar.collapsed .logo i {
-    font-size: 1.5rem;
-}
-
-.logo h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
+    border: none;
     color: white;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
     transition: var(--transition);
+    font-size: 1.1rem;
 }
 
-/* Admin Profile Section */
+.sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.sidebar.collapsed .sidebar-toggle-btn {
+    margin: 0 auto;
+}
+
+/* Admin Profile Section - Clickable */
 .admin-profile {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -280,6 +309,16 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 1rem;
     transition: var(--transition);
     flex-shrink: 0;
+    text-decoration: none;
+    color: white;
+    cursor: pointer;
+}
+
+.admin-profile:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.02);
+    text-decoration: none;
+    color: white;
 }
 
 .sidebar.collapsed .admin-profile {
@@ -371,7 +410,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 500;
     padding: 0.8rem 1rem;
     border-radius: 12px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -406,20 +445,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav-link:hover {
     background: var(--primary-light);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     transform: translateX(5px);
     color: white;
 }
 
 .sidebar.collapsed .nav-link:hover {
     transform: scale(1.08);
-    box-shadow: 0 6px 25px rgba(0,0,0,0.2);
 }
 
 .nav-link.active {
     background: var(--accent);
     color: var(--primary-dark);
-    box-shadow: 0 8px 32px rgba(78, 205, 196, 0.3);
     transform: translateX(5px);
 }
 
@@ -431,60 +467,33 @@ h1, h2, h3, h4, h5, h6 {
 .nav-link.active i {
     transform: scale(1.15);
 }
- .logout-btn {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.25rem;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
 
-        .logout-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
-        }
-/* Sidebar Toggle - Fixed positioning */
-.sidebar-toggle {
-    position: fixed;
-    top: 20px;
-    left: var(--sidebar-width);
-    z-index: 1001;
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur));
-    border: 1px solid var(--glass-border);
-    border-radius: 50%;
-    padding: 0;
+/* Logout Button */
+.logout-btn {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
     cursor: pointer;
-    color: var(--primary);
-    font-size: 1.1rem;
-    box-shadow: var(--shadow-light);
+    font-weight: 600;
     transition: var(--transition);
-    width: 45px;
-    height: 45px;
     display: flex;
     align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    width: 100%;
     justify-content: center;
-    transform: translateX(10px);
-    border-left: none;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
 }
 
-.sidebar.collapsed ~ .main .sidebar-toggle {
-    left: var(--sidebar-collapsed);
+.logout-btn:hover {
+    transform: translateY(-2px);
 }
 
-.sidebar-toggle:hover {
-    background: rgba(255, 255, 255, 0.4);
-    transform: translateX(10px) scale(1.1);
-    box-shadow: var(--shadow-medium);
+.sidebar.collapsed .logout-btn span {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
 }
 
 /* Main Content - Adjusted for sidebar */
@@ -495,13 +504,55 @@ h1, h2, h3, h4, h5, h6 {
     overflow-y: auto;
     background: transparent;
     position: relative;
-    transition: var(--transition);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
     min-height: 100vh;
 }
 
 .sidebar.collapsed ~ .main {
     margin-left: var(--sidebar-collapsed);
+}
+
+@media (max-width: 768px) {
+    .main {
+        margin-left: 0;
+        padding: 1.5rem;
+        width: 100%;
+    }
+    
+    .sidebar.collapsed ~ .main {
+        margin-left: 0;
+    }
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1001;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: var(--transition);
+    display: none;
+}
+
+.mobile-menu-btn:hover {
+    background: var(--primary-light);
+    transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 /* Welcome Container */
@@ -991,6 +1042,39 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+/* Smooth Transitions */
+.sidebar,
+.main,
+.nav-link,
+.admin-profile,
+.sidebar-toggle-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus States for Accessibility */
+.sidebar-toggle-btn:focus,
+.nav-link:focus,
+.btn:focus {
+    outline: 2px solid rgba(78, 205, 196, 0.5);
+    outline-offset: 2px;
+}
+
+/* Prevent text selection during transitions */
+.sidebar * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.sidebar input,
+.sidebar textarea {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .stats-grid {
@@ -1019,13 +1103,6 @@ h1, h2, h3, h4, h5, h6 {
         margin-left: 0;
         padding: 1.5rem;
         width: 100%;
-    }
-    
-    .sidebar-toggle {
-        left: 15px;
-        top: 15px;
-        transform: translateX(0);
-        border-radius: 50%;
     }
     
     .welcome-header {
@@ -1112,12 +1189,14 @@ h1, h2, h3, h4, h5, h6 {
 /* Print Styles */
 @media print {
     .sidebar,
-    .sidebar-toggle,
+    .sidebar-toggle-btn,
+    .mobile-menu-btn,
     .blob,
     .blob1,
     .blob2,
     .blob3,
-    .blob4 {
+    .blob4,
+    .mobile-overlay {
         display: none !important;
     }
     
@@ -1151,12 +1230,6 @@ h1, h2, h3, h4, h5, h6 {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
-
-.nav-link:focus,
-.btn:focus {
-    outline: 2px solid rgba(78, 205, 196, 0.5);
-    outline-offset: 2px;
-}
 </style>
 </head>
 <body>
@@ -1165,21 +1238,25 @@ h1, h2, h3, h4, h5, h6 {
     <div class="blob blob3"></div>
     <div class="blob blob4"></div>
     
-    <button class="sidebar-toggle" onclick="toggleSidebar()">
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
         <i class="fas fa-bars"></i>
     </button>
 
     <nav class="sidebar" id="sidebar">
-        <div class="logo">
-            <i class="fas fa-graduation-cap"></i>
-            <h2>Nexttern Admin</h2>
+        <!-- Sidebar Header with Toggle -->
+        <div class="sidebar-header">
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
         
-        <div class="admin-profile">
+        <!-- Admin Profile Section - Clickable -->
+        <a href="index.php" class="admin-profile" title="Go to Homepage">
             <div class="admin-avatar">A</div>
             <div class="admin-name">Admin User</div>
             <div class="admin-role">System Administrator</div>
-        </div>
+        </a>
         
         <div class="nav-content">
             <div class="nav-section">
@@ -1205,7 +1282,10 @@ h1, h2, h3, h4, h5, h6 {
                     <span>Stories</span>
                 </a>
             </div>
-            
+            <a href="?page=payments" class="nav-link <?= ($page === 'payments') ? 'active' : '' ?>">
+    <i class="fas fa-credit-card"></i>
+    <span>Payments</span>
+</a>
             <div class="nav-section">
                 <h4>General</h4>
                 <a href="?page=about" class="nav-link <?= ($page === 'about') ? 'active' : '' ?>">
@@ -1247,6 +1327,13 @@ h1, h2, h3, h4, h5, h6 {
                 echo '<div class="error-message">story management page not found.</div>';
             }
         } 
+        elseif ($page === 'payments') {
+    if (file_exists('admin_payment.php')) {
+        include 'admin_payment.php';
+    } else {
+        echo '<div class="error-message">Payments management page not found.</div>';
+    }
+}
         elseif ($page === 'about') {
             if (file_exists('admin_aboutus.php')) {
                 include 'admin_aboutus.php';
@@ -1292,7 +1379,17 @@ h1, h2, h3, h4, h5, h6 {
                             </div>
                         </div>
                     </div>
-                    
+                    <div class="stat-card">
+    <div class="stat-header">
+        <div>
+            <div class="stat-number"><?= number_format($total_payments) ?></div>
+            <div class="stat-label">Total Payments</div>
+        </div>
+        <div class="stat-icon" style="background: linear-gradient(135deg, var(--info) 0%, #2980b9 100%);">
+            <i class="fas fa-credit-card"></i>
+        </div>
+    </div>
+</div>
                     <div class="stat-card">
                         <div class="stat-header">
                             <div>
@@ -1356,178 +1453,354 @@ h1, h2, h3, h4, h5, h6 {
         }
         ?>
     </main>
+<script>
+// Enhanced Sidebar Toggle Functionality for Admin Dashboard
+let sidebarCollapsed = false;
 
-    <script>
-        let sidebarCollapsed = false;
+// Desktop sidebar toggle function
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.querySelector('.sidebar-toggle-btn i');
+    
+    // For mobile screens, use mobile toggle instead
+    if (window.innerWidth <= 768) {
+        toggleMobileSidebar();
+        return;
+    }
+    
+    // Toggle collapsed state
+    sidebarCollapsed = !sidebarCollapsed;
+    sidebar.classList.toggle('collapsed', sidebarCollapsed);
+    
+    // Update toggle button icon
+    if (sidebarCollapsed) {
+        toggleBtn.className = 'fas fa-chevron-right';
+    } else {
+        toggleBtn.className = 'fas fa-bars';
+    }
+}
+
+// Mobile sidebar toggle
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    const mobileBtn = document.querySelector('.mobile-menu-btn i');
+    
+    const isOpen = sidebar.classList.contains('show');
+    
+    if (isOpen) {
+        sidebar.classList.remove('show');
+        if (overlay) overlay.classList.remove('active');
+        mobileBtn.className = 'fas fa-bars';
+    } else {
+        sidebar.classList.add('show');
+        if (overlay) overlay.classList.add('active');
+        mobileBtn.className = 'fas fa-times';
+    }
+}
+
+// Handle window resize to manage sidebar state
+function handleResize() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    const toggleBtn = document.querySelector('.sidebar-toggle-btn i');
+    const mobileBtn = document.querySelector('.mobile-menu-btn i');
+    
+    if (window.innerWidth > 768) {
+        // Desktop mode
+        sidebar.classList.remove('show');
+        if (overlay) overlay.classList.remove('active');
         
-        function toggleSidebar() {
+        // Restore collapsed state or default state
+        if (sidebarCollapsed) {
+            sidebar.classList.add('collapsed');
+            toggleBtn.className = 'fas fa-chevron-right';
+        } else {
+            sidebar.classList.remove('collapsed');
+            toggleBtn.className = 'fas fa-bars';
+        }
+        
+        if (mobileBtn) mobileBtn.className = 'fas fa-bars';
+    } else {
+        // Mobile mode
+        sidebar.classList.remove('collapsed');
+        sidebarCollapsed = false;
+        toggleBtn.className = 'fas fa-bars';
+        
+        if (sidebar.classList.contains('show')) {
+            if (mobileBtn) mobileBtn.className = 'fas fa-times';
+        } else {
+            if (mobileBtn) mobileBtn.className = 'fas fa-bars';
+        }
+    }
+}
+
+// Close mobile sidebar when clicking outside
+function closeMobileSidebarOnOutsideClick(e) {
+    const sidebar = document.getElementById('sidebar');
+    const mobileBtn = document.querySelector('.mobile-menu-btn');
+    const sidebarToggleBtn = document.querySelector('.sidebar-toggle-btn');
+    
+    if (window.innerWidth <= 768 && 
+        sidebar.classList.contains('show') &&
+        !sidebar.contains(e.target) && 
+        !mobileBtn?.contains(e.target) &&
+        !sidebarToggleBtn?.contains(e.target)) {
+        toggleMobileSidebar();
+    }
+}
+
+// Initialize sidebar functionality
+function initializeSidebar() {
+    // Create mobile overlay if it doesn't exist
+    if (!document.getElementById('mobile-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'mobile-overlay';
+        overlay.className = 'mobile-overlay';
+        overlay.addEventListener('click', toggleMobileSidebar);
+        document.body.appendChild(overlay);
+    }
+    
+    // Set initial state based on screen size
+    handleResize();
+    
+    // Add event listeners
+    window.addEventListener('resize', handleResize);
+    document.addEventListener('click', closeMobileSidebarOnOutsideClick);
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + B to toggle sidebar
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault();
+            toggleSidebar();
+        }
+        
+        // Escape to close mobile sidebar
+        if (e.key === 'Escape' && window.innerWidth <= 768) {
             const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.sidebar-toggle i');
-            const isMobile = window.innerWidth <= 768;
-            
-            if (isMobile) {
-                sidebar.classList.toggle('show');
-                toggleBtn.className = sidebar.classList.contains('show') ? 'fas fa-times' : 'fas fa-bars';
-            } else {
-                sidebarCollapsed = !sidebarCollapsed;
-                sidebar.classList.toggle('collapsed');
-                
-                if (sidebarCollapsed) {
-                    toggleBtn.className = 'fas fa-arrow-right';
-                } else {
-                    toggleBtn.className = 'fas fa-bars';
-                }
+            if (sidebar.classList.contains('show')) {
+                toggleMobileSidebar();
             }
         }
+    });
+}
 
-        // Enhanced confirm logout function
-        function confirmLogout() {
-            const confirmed = confirm('Are you sure you want to logout?\n\nYou will be redirected to the login page and your session will be terminated.');
-            if (confirmed) {
-                // Show loading state
-                const logoutLink = document.querySelector('.logout-link');
-                logoutLink.style.opacity = '0.7';
-                logoutLink.style.pointerEvents = 'none';
-                
-                // Add visual feedback
-                const icon = logoutLink.querySelector('i');
+// Enhanced confirm logout function
+function confirmLogout() {
+    const confirmed = confirm('Are you sure you want to logout?\n\nYou will be redirected to the login page and your session will be terminated.');
+    if (confirmed) {
+        // Show loading state
+        const logoutBtn = document.querySelector('.logout-btn');
+        if (logoutBtn) {
+            logoutBtn.style.opacity = '0.7';
+            logoutBtn.style.pointerEvents = 'none';
+            
+            // Add visual feedback
+            const icon = logoutBtn.querySelector('i');
+            if (icon) {
                 icon.className = 'fas fa-spinner fa-spin';
             }
-            return confirmed;
         }
+    }
+    return confirmed;
+}
 
-        // Close mobile sidebar when clicking outside
-        document.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.sidebar-toggle');
-            
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(e.target) && 
-                !toggleBtn.contains(e.target) && 
-                sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                document.querySelector('.sidebar-toggle i').className = 'fas fa-bars';
-            }
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.sidebar-toggle i');
-            
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('show');
-                if (sidebarCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    toggleBtn.className = 'fas fa-arrow-right';
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    toggleBtn.className = 'fas fa-bars';
-                }
-            } else {
-                sidebar.classList.remove('collapsed');
-                toggleBtn.className = 'fas fa-bars';
-            }
-        });
-
-        // Add loading animations and refresh stats
-        document.addEventListener('DOMContentLoaded', function() {
-            const elements = document.querySelectorAll('.loading');
-            elements.forEach(el => {
-                el.classList.remove('loading');
-            });
-
-            // Auto-refresh statistics every 30 seconds
-            if (window.location.search.includes('page=home') || !window.location.search) {
-                refreshStats();
-                setInterval(refreshStats, 30000);
-            }
-        });
-
-        // Function to refresh statistics without page reload
-        function refreshStats() {
-            fetch('get_stats.php')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('students-count').textContent = data.students.toLocaleString();
-                        document.getElementById('companies-count').textContent = data.companies.toLocaleString();
-                        document.getElementById('courses-count').textContent = data.courses.toLocaleString();
-                    }
-                })
-                .catch(error => {
-                    console.log('Stats refresh failed:', error);
-                });
-        }
-
-        // Smooth scrolling for action cards
-        document.querySelectorAll('.action-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                e.preventDefault();
-                const href = this.getAttribute('href');
+// Function to refresh statistics without page reload
+function refreshStats() {
+    fetch('get_stats.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const studentsCount = document.getElementById('students-count');
+                const companiesCount = document.getElementById('companies-count');
+                const coursesCount = document.getElementById('courses-count');
                 
-                // Add a loading class
-                this.style.opacity = '0.7';
-                this.style.pointerEvents = 'none';
-                
-                // Navigate after a short delay for smooth transition
-                setTimeout(() => {
-                    window.location.href = href;
-                }, 200);
-            });
-        });
-
-        // Security: Prevent back button access after logout
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                // Page was loaded from cache, refresh to check session
-                window.location.reload();
+                if (studentsCount) studentsCount.textContent = data.students.toLocaleString();
+                if (companiesCount) companiesCount.textContent = data.companies.toLocaleString();
+                if (coursesCount) coursesCount.textContent = data.courses.toLocaleString();
             }
+        })
+        .catch(error => {
+            console.log('Stats refresh failed:', error);
         });
+}
 
-        // Security: Auto-logout on prolonged inactivity
-        let inactivityTimer;
-        const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSidebar();
+    
+    // Remove loading animations
+    const elements = document.querySelectorAll('.loading');
+    elements.forEach(el => {
+        el.classList.remove('loading');
+    });
 
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            inactivityTimer = setTimeout(() => {
-                alert('Session expired due to inactivity. You will be logged out.');
-                window.location.href = 'admin_logout.php';
-            }, INACTIVITY_TIMEOUT);
-        }
+    // Auto-refresh statistics every 30 seconds
+    if (window.location.search.includes('page=home') || !window.location.search) {
+        refreshStats();
+        setInterval(refreshStats, 30000);
+    }
+    
+    // Add smooth transitions after initial load
+    setTimeout(() => {
+        const sidebar = document.getElementById('sidebar');
+        const main = document.querySelector('.main');
+        if (sidebar) sidebar.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        if (main) main.style.transition = 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    }, 100);
+});
 
-        // Track user activity
-        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
-            document.addEventListener(event, resetInactivityTimer, true);
+// Smooth scrolling for action cards
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.action-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            e.preventDefault();
+            const href = this.getAttribute('href');
+            
+            // Add a loading class
+            this.style.opacity = '0.7';
+            this.style.pointerEvents = 'none';
+            
+            // Navigate after a short delay for smooth transition
+            setTimeout(() => {
+                window.location.href = href;
+            }, 200);
         });
+    });
+});
 
-        // Initialize inactivity timer
-        resetInactivityTimer();
+// Security: Prevent back button access after logout
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // Page was loaded from cache, refresh to check session
+        window.location.reload();
+    }
+});
 
-        // Add keyboard navigation support
-        document.addEventListener('keydown', function(e) {
-            // Alt + S for Students
-            if (e.altKey && e.key === 's') {
+// Security: Auto-logout on prolonged inactivity
+let inactivityTimer;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        alert('Session expired due to inactivity. You will be logged out.');
+        window.location.href = 'admin_logout.php';
+    }, INACTIVITY_TIMEOUT);
+}
+
+// Track user activity
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, resetInactivityTimer, true);
+});
+
+// Initialize inactivity timer
+resetInactivityTimer();
+
+// Add keyboard navigation support
+document.addEventListener('keydown', function(e) {
+    // Navigation shortcuts
+    if (e.altKey) {
+        switch(e.key) {
+            case 's':
                 e.preventDefault();
                 window.location.href = '?page=students';
-            }
-            // Alt + C for Companies
-            if (e.altKey && e.key === 'c') {
+                break;
+            case 'c':
                 e.preventDefault();
                 window.location.href = '?page=companies';
-            }
-            // Alt + R for Courses
-            if (e.altKey && e.key === 'r') {
+                break;
+            case 'r':
                 e.preventDefault();
-                window.location.href = '?page=courses';
-            }
-            // Alt + H for Home
-            if (e.altKey && e.key === 'h') {
+                window.location.href = '?page=stories';
+                break;
+            case 'h':
                 e.preventDefault();
                 window.location.href = '?page=home';
+                break;
+            case 'p':
+                e.preventDefault();
+                window.location.href = '?page=payments';
+                break;
+        }
+    }
+});
+
+// Enhanced form validation (if forms exist)
+function validateForm(formElement) {
+    if (!formElement) return true;
+    
+    let isValid = true;
+    const requiredFields = formElement.querySelectorAll('[required]');
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.style.borderColor = 'var(--danger)';
+            field.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+            isValid = false;
+            
+            // Remove error styling when user starts typing
+            field.addEventListener('input', function() {
+                this.style.borderColor = '';
+                this.style.boxShadow = '';
+            }, { once: true });
+        } else {
+            field.style.borderColor = 'var(--success)';
+            field.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+        }
+    });
+    
+    return isValid;
+}
+
+// Apply form validation to all forms
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!validateForm(this)) {
+                e.preventDefault();
+                const firstErrorField = this.querySelector('[required]:invalid, [required][value=""]');
+                if (firstErrorField) {
+                    firstErrorField.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    firstErrorField.focus();
+                }
             }
         });
-    </script>
+    });
+});
+
+// Add loading states to form submissions
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                const originalHtml = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
+                // Re-enable after 5 seconds as fallback
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalHtml;
+                }, 5000);
+            }
+        });
+    });
+});
+
+// Handle responsive behavior on window resize
+window.addEventListener('resize', function() {
+    // Debounce resize events
+    clearTimeout(window.resizeTimer);
+    window.resizeTimer = setTimeout(function() {
+        handleResize();
+    }, 100);
+});
+</script>
 </body>
 </html>

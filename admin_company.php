@@ -43,9 +43,37 @@ $conn->query("CREATE TABLE IF NOT EXISTS company_messages (
 
 $message_status = '';
 $operation_status = '';
+$cleanup_status = '';
 $redirect_url = "admin_dashboard.php?page=companies";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check if the request is for cleanup
+    if (isset($_POST['cleanup_action'])) {
+        $cleanup_action = $_POST['cleanup_action'];
+        
+        if ($cleanup_action === 'cleanup_deleted') {
+            $stmt = $conn->prepare("DELETE FROM recent_deleted_companies");
+            if ($stmt->execute()) {
+                $cleanup_status = 'deleted_cleared';
+            } else {
+                $cleanup_status = 'error';
+            }
+            $stmt->close();
+        } elseif ($cleanup_action === 'cleanup_blocked') {
+            $stmt = $conn->prepare("DELETE FROM blocked_companies");
+            if ($stmt->execute()) {
+                $cleanup_status = 'blocked_cleared';
+            } else {
+                $cleanup_status = 'error';
+            }
+            $stmt->close();
+        }
+        
+        // Use JavaScript redirect to maintain the page structure
+        echo '<script>window.location.href = "' . $redirect_url . '&cleanup_status=' . $cleanup_status . '";</script>';
+        exit;
+    }
+    
     // Check if the request is for sending a message
     if (isset($_POST['send_message'])) {
         $receiver_id = $_POST['receiver_id'] ?? '';
@@ -87,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
                 
                 // Log the approval
-                $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'accepted', ?)");
+                $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'accept', ?)");
                 $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
                 $stmt->execute();
                 $stmt->close();
@@ -99,13 +127,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'reject') {
             // Update company status to rejected
-            $stmt = $conn->prepare("UPDATE companies SET status = 'rejected' WHERE company_id = ?");
+            $stmt = $conn->prepare("UPDATE companies SET status = 'reject' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
             if ($stmt->execute()) {
                 $stmt->close();
                 
                 // Log the rejection
-                $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'rejected', ?)");
+                $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'reject', ?)");
                 $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
                 $stmt->execute();
                 $stmt->close();
@@ -187,6 +215,9 @@ if (isset($_GET['msg_status'])) {
 }
 if (isset($_GET['op_status'])) {
     $operation_status = $_GET['op_status'];
+}
+if (isset($_GET['cleanup_status'])) {
+    $cleanup_status = $_GET['cleanup_status'];
 }
 ?>
 
@@ -441,13 +472,13 @@ if (isset($_GET['op_status'])) {
     overflow-x: auto;
 }
 
-.companies-table {
+.companies-table, .activity-table {
     width: 100%;
     border-collapse: collapse;
     background: transparent;
 }
 
-.companies-table th {
+.companies-table th, .activity-table th {
     padding: 1rem 1.5rem;
     text-align: left;
     font-weight: 600;
@@ -459,18 +490,18 @@ if (isset($_GET['op_status'])) {
     letter-spacing: 0.05em;
 }
 
-.companies-table td {
+.companies-table td, .activity-table td {
     padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--glass-border);
     color: var(--secondary);
     vertical-align: middle;
 }
 
-.companies-table tbody tr {
+.companies-table tbody tr, .activity-table tbody tr {
     transition: var(--transition);
 }
 
-.companies-table tbody tr:hover {
+.companies-table tbody tr:hover, .activity-table tbody tr:hover {
     background: rgba(78, 205, 196, 0.05);
 }
 
@@ -551,7 +582,8 @@ if (isset($_GET['op_status'])) {
     border: 1px solid rgba(155, 89, 182, 0.3);
 }
 
-.status-rejected {
+.status-rejected,
+.status-reject {
     background: rgba(230, 126, 34, 0.1);
     color: var(--rejected);
     border: 1px solid rgba(230, 126, 34, 0.3);
@@ -637,6 +669,27 @@ if (isset($_GET['op_status'])) {
 
 .btn-delete:hover {
     background: #c0392b;
+}
+
+.btn-cleanup {
+    background: var(--warning);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-cleanup:hover {
+    background: #e67e22;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .no-data {
@@ -736,6 +789,10 @@ if (isset($_GET['op_status'])) {
 
 .modal-icon.reject {
     background: linear-gradient(135deg, var(--rejected) 0%, #d35400 100%);
+}
+
+.modal-icon.cleanup {
+    background: linear-gradient(135deg, var(--warning) 0%, #e67e22 100%);
 }
 
 .modal h3 {
@@ -858,11 +915,21 @@ if (isset($_GET['op_status'])) {
     transform: translateY(-1px);
 }
 
-/* Recent Activities */
+.btn-cleanup-confirm {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-cleanup-confirm:hover {
+    background: #e67e22;
+    transform: translateY(-1px);
+}
+
+/* Recent Activities - Stack Layout */
 .recent-activities {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
     margin-top: 2rem;
 }
 
@@ -879,6 +946,12 @@ if (isset($_GET['op_status'])) {
     padding: 1.5rem 2rem;
     border-bottom: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.activity-header-left {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -918,32 +991,6 @@ if (isset($_GET['op_status'])) {
     padding: 1.5rem 2rem;
 }
 
-.activity-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.activity-table th {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-weight: 600;
-    color: var(--primary);
-    background: rgba(3, 89, 70, 0.05);
-    border-bottom: 1px solid var(--glass-border);
-    font-size: 0.875rem;
-}
-
-.activity-table td {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--secondary);
-    font-size: 0.9rem;
-}
-
-.activity-table tr:last-child td {
-    border-bottom: none;
-}
-
 .timestamp {
     color: var(--secondary);
     opacity: 0.7;
@@ -968,11 +1015,13 @@ if (isset($_GET['op_status'])) {
     text-transform: capitalize;
 }
 
-.approval-action.accepted {
+.approval-action.accepted,
+.approval-action.accept {
     color: var(--success);
 }
 
-.approval-action.rejected {
+.approval-action.rejected,
+.approval-action.reject {
     color: var(--rejected);
 }
 
@@ -980,10 +1029,10 @@ if (isset($_GET['op_status'])) {
     font-style: italic;
     color: var(--secondary);
     opacity: 0.8;
-    max-width: 200px;
+    max-width: 800px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    
+   
 }
 
 /* Animation Styles */
@@ -1060,7 +1109,9 @@ if (isset($_GET['op_status'])) {
     }
     
     .companies-table th,
-    .companies-table td {
+    .companies-table td,
+    .activity-table th,
+    .activity-table td {
         padding: 0.75rem;
         font-size: 0.875rem;
     }
@@ -1075,8 +1126,10 @@ if (isset($_GET['op_status'])) {
         justify-content: center;
     }
     
-    .recent-activities {
-        grid-template-columns: 1fr;
+    .activity-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
     }
     
     .modal {
@@ -1091,7 +1144,9 @@ if (isset($_GET['op_status'])) {
     }
     
     .companies-table th,
-    .companies-table td {
+    .companies-table td,
+    .activity-table th,
+    .activity-table td {
         padding: 0.5rem;
     }
     
@@ -1150,6 +1205,23 @@ if (isset($_GET['op_status'])) {
     </div>
 <?php endif; ?>
 
+<?php if ($cleanup_status === 'deleted_cleared'): ?>
+    <div class="status-message success">
+        <i class="fas fa-trash-alt"></i>
+        All deleted company records have been cleared successfully.
+    </div>
+<?php elseif ($cleanup_status === 'blocked_cleared'): ?>
+    <div class="status-message success">
+        <i class="fas fa-broom"></i>
+        All blocked company records have been cleared successfully.
+    </div>
+<?php elseif ($cleanup_status === 'error'): ?>
+    <div class="status-message error">
+        <i class="fas fa-exclamation-circle"></i>
+        Cleanup operation failed. Please try again.
+    </div>
+<?php endif; ?>
+
 <div class="page-header loading">
     <h1 class="page-title">
         <i class="fas fa-building"></i>
@@ -1174,7 +1246,7 @@ if (isset($_GET['op_status'])) {
             $active_result = $conn->query("SELECT COUNT(*) as active FROM companies WHERE status = 'active'");
             $blocked_result = $conn->query("SELECT COUNT(*) as blocked FROM companies WHERE status = 'blocked'");
             $pending_result = $conn->query("SELECT COUNT(*) as pending FROM companies WHERE status = 'pending'");
-            $rejected_result = $conn->query("SELECT COUNT(*) as rejected FROM companies WHERE status = 'rejected'");
+            $rejected_result = $conn->query("SELECT COUNT(*) as rejected FROM companies WHERE status = 'reject'");
             
             $total = $total_result->fetch_assoc()['total'];
             $active = $active_result->fetch_assoc()['active'];
@@ -1214,7 +1286,7 @@ if (isset($_GET['op_status'])) {
                         <option value="pending">Pending</option>
                         <option value="active">Active</option>
                         <option value="blocked">Blocked</option>
-                        <option value="rejected">Rejected</option>
+                        <option value="reject">Rejected</option>
                     </select>
                 </div>
             </div>
@@ -1270,7 +1342,7 @@ if (isset($_GET['op_status'])) {
                                             ($row['status'] === 'pending' ? 'clock' : 
                                             ($row['status'] === 'blocked' ? 'ban' : 'times-circle')) 
                                         ?>"></i>
-                                        <?= ucfirst($row['status']) ?>
+                                        <?= $row['status'] === 'reject' ? 'Rejected' : ucfirst($row['status']) ?>
                                     </span>
                                 </td>
                                 <td>
@@ -1324,126 +1396,166 @@ if (isset($_GET['op_status'])) {
     </div>
 
     <div class="recent-activities">
+        <!-- Recently Deleted Companies -->
         <div class="activity-card loading">
             <div class="activity-header">
-                <div class="activity-icon deleted">
-                    <i class="fas fa-trash-alt"></i>
+                <div class="activity-header-left">
+                    <div class="activity-icon deleted">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                    <h3 class="activity-title">Recently Deleted Companies</h3>
                 </div>
-                <h3 class="activity-title">Recently Deleted Companies</h3>
+                <?php
+                $deleted_count_result = $conn->query("SELECT COUNT(*) as count FROM recent_deleted_companies");
+                $deleted_count = $deleted_count_result->fetch_assoc()['count'];
+                if ($deleted_count > 0): ?>
+                    <button class="btn-cleanup" onclick="openCleanupModal('deleted')">
+                        <i class="fas fa-broom"></i>
+                        Clear Up
+                    </button>
+                <?php endif; ?>
             </div>
             <div class="activity-content">
-                <?php
-                $deleted_result = $conn->query("SELECT * FROM recent_deleted_companies ORDER BY deleted_at DESC LIMIT 5");
-                if ($deleted_result && $deleted_result->num_rows > 0): ?>
-                    <table class="activity-table">
-                        <thead>
-                            <tr>
-                                <th>Company ID</th>
-                                <th>Company Name</th>
-                                <th>Email</th>
-                                <th>Deleted At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($row = $deleted_result->fetch_assoc()): ?>
+                <div class="table-container">
+                    <?php
+                    $deleted_result = $conn->query("SELECT * FROM recent_deleted_companies ORDER BY deleted_at DESC");
+                    if ($deleted_result && $deleted_result->num_rows > 0): ?>
+                        <table class="activity-table">
+                            <thead>
                                 <tr>
-                                    <td><span class="company-id"><?= htmlspecialchars($row['company_id']) ?></span></td>
-                                    <td><?= htmlspecialchars($row['company_name']) ?></td>
-                                    <td class="company-email"><?= htmlspecialchars($row['company_email']) ?></td>
-                                    <td><span class="timestamp"><?= date('M j, Y g:i A', strtotime($row['deleted_at'])) ?></span></td>
+                                    <th>#</th>
+                                    <th>Company ID</th>
+                                    <th>Company Name</th>
+                                    <th>Email</th>
+                                    <th>Deleted At</th>
                                 </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>No recent deletions</p>
-                    </div>
-                <?php endif; ?>
+                            </thead>
+                            <tbody>
+                                <?php $i = 1; while ($row = $deleted_result->fetch_assoc()): ?>
+                                    <tr>
+                                        <td><?= $i++ ?></td>
+                                        <td><span class="company-id"><?= htmlspecialchars($row['company_id']) ?></span></td>
+                                        <td class="company-name"><?= htmlspecialchars($row['company_name']) ?></td>
+                                        <td class="company-email"><?= htmlspecialchars($row['company_email']) ?></td>
+                                        <td><span class="timestamp"><?= date('M j, Y g:i A', strtotime($row['deleted_at'])) ?></span></td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No recent deletions</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
+        <!-- Blocked Companies -->
         <div class="activity-card loading">
             <div class="activity-header">
-                <div class="activity-icon blocked">
-                    <i class="fas fa-building-lock"></i>
+                <div class="activity-header-left">
+                    <div class="activity-icon blocked">
+                        <i class="fas fa-building-lock"></i>
+                    </div>
+                    <h3 class="activity-title">Blocked Companies</h3>
                 </div>
-                <h3 class="activity-title">Blocked Companies</h3>
+                <?php
+                $blocked_count_result = $conn->query("SELECT COUNT(*) as count FROM blocked_companies");
+                $blocked_count = $blocked_count_result->fetch_assoc()['count'];
+                if ($blocked_count > 0): ?>
+                    <button class="btn-cleanup" onclick="openCleanupModal('blocked')">
+                        <i class="fas fa-broom"></i>
+                        Clear Up
+                    </button>
+                <?php endif; ?>
             </div>
             <div class="activity-content">
-                <?php
-                $blocked_companies_result = $conn->query("SELECT * FROM blocked_companies ORDER BY blocked_at DESC LIMIT 5");
-                if ($blocked_companies_result && $blocked_companies_result->num_rows > 0): ?>
-                    <table class="activity-table">
-                        <thead>
-                            <tr>
-                                <th>Company ID</th>
-                                <th>Company Name</th>
-                                <th>Email</th>
-                                <th>Blocked At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($row = $blocked_companies_result->fetch_assoc()): ?>
+                <div class="table-container">
+                    <?php
+                    $blocked_companies_result = $conn->query("SELECT * FROM blocked_companies ORDER BY blocked_at DESC");
+                    if ($blocked_companies_result && $blocked_companies_result->num_rows > 0): ?>
+                        <table class="activity-table">
+                            <thead>
                                 <tr>
-                                    <td><span class="company-id"><?= htmlspecialchars($row['company_id']) ?></span></td>
-                                    <td><?= htmlspecialchars($row['company_name']) ?></td>
-                                    <td class="company-email"><?= htmlspecialchars($row['company_email']) ?></td>
-                                    <td><span class="timestamp"><?= date('M j, Y g:i A', strtotime($row['blocked_at'])) ?></span></td>
+                                    <th>#</th>
+                                    <th>Company ID</th>
+                                    <th>Company Name</th>
+                                    <th>Email</th>
+                                    <th>Blocked At</th>
                                 </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-shield-alt"></i>
-                        <p>No blocked companies</p>
-                    </div>
-                <?php endif; ?>
+                            </thead>
+                            <tbody>
+                                <?php $i = 1; while ($row = $blocked_companies_result->fetch_assoc()): ?>
+                                    <tr>
+                                        <td><?= $i++ ?></td>
+                                        <td><span class="company-id"><?= htmlspecialchars($row['company_id']) ?></span></td>
+                                        <td class="company-name"><?= htmlspecialchars($row['company_name']) ?></td>
+                                        <td class="company-email"><?= htmlspecialchars($row['company_email']) ?></td>
+                                        <td><span class="timestamp"><?= date('M j, Y g:i A', strtotime($row['blocked_at'])) ?></span></td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="fas fa-shield-alt"></i>
+                            <p>No blocked companies</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
+        <!-- Recent Approvals -->
         <div class="activity-card loading">
             <div class="activity-header">
-                <div class="activity-icon approvals">
-                    <i class="fas fa-clipboard-check"></i>
+                <div class="activity-header-left">
+                    <div class="activity-icon approvals">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <h3 class="activity-title">Recent Approvals</h3>
                 </div>
-                <h3 class="activity-title">Recent Approvals</h3>
             </div>
             <div class="activity-content">
-                <?php
-                $approvals_result = $conn->query("SELECT * FROM company_approvals ORDER BY processed_at DESC LIMIT 5");
-                if ($approvals_result && $approvals_result->num_rows > 0): ?>
-                    <table class="activity-table">
-                        <thead>
-                            <tr>
-                                <th>Company</th>
-                                <th>Action</th>
-                                <th>Notes</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($row = $approvals_result->fetch_assoc()): ?>
+                <div class="table-container">
+                    <?php
+                    $approvals_result = $conn->query("SELECT * FROM company_approvals ORDER BY processed_at DESC");
+                    if ($approvals_result && $approvals_result->num_rows > 0): ?>
+                        <table class="activity-table">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <div class="company-name" style="font-size: 0.9rem;"><?= htmlspecialchars($row['company_name']) ?></div>
-                                        <div class="company-email" style="font-size: 0.8rem;"><?= htmlspecialchars($row['company_email']) ?></div>
-                                    </td>
-                                    <td><span class="approval-action <?= $row['action'] ?>"><?= ucfirst($row['action']) ?></span></td>
-                                    <td><span class="approval-notes" title="<?= htmlspecialchars($row['admin_notes']) ?>"><?= htmlspecialchars($row['admin_notes'] ? $row['admin_notes'] : 'No notes') ?></span></td>
-                                    <td><span class="timestamp"><?= date('M j, Y g:i A', strtotime($row['processed_at'])) ?></span></td>
+                                    <th>#</th>
+                                    <th>Company ID</th>
+                                    <th>Company Name</th>
+                                    <th>Email</th>
+                                    <th>Action</th>
+                                    <th>Notes</th>
+                                    <th>Date</th>
                                 </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-clipboard"></i>
-                        <p>No recent approvals</p>
-                    </div>
-                <?php endif; ?>
+                            </thead>
+                            <tbody>
+                                <?php $i = 1; while ($row = $approvals_result->fetch_assoc()): ?>
+                                    <tr>
+                                        <td><?= $i++ ?></td>
+                                        <td><span class="company-id"><?= htmlspecialchars($row['company_id']) ?></span></td>
+                                        <td class="company-name"><?= htmlspecialchars($row['company_name']) ?></td>
+                                        <td class="company-email"><?= htmlspecialchars($row['company_email']) ?></td>
+                                        <td><span class="approval-action <?= $row['action'] ?>"><?= $row['action'] === 'accept' ? 'Accepted' : ($row['action'] === 'reject' ? 'Rejected' : ucfirst($row['action'])) ?></span></td>
+                                        <td><span class="approval-notes" title="<?= htmlspecialchars($row['admin_notes']) ?>"><?= htmlspecialchars($row['admin_notes'] ? $row['admin_notes'] : 'No notes') ?></span></td>
+                                        <td><span class="timestamp"><?= date('M j, Y g:i A', strtotime($row['processed_at'])) ?></span></td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard"></i>
+                            <p>No recent approvals</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
@@ -1467,6 +1579,26 @@ if (isset($_GET['op_status'])) {
             <div class="modal-buttons">
                 <button type="submit" class="modal-btn btn-confirm">Yes, Continue</button>
                 <button type="button" class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Cleanup Modal -->
+<div class="modal-overlay" id="cleanupModal">
+    <div class="modal">
+        <div class="modal-icon cleanup">
+            <i class="fas fa-broom"></i>
+        </div>
+        <h3 id="cleanupModalTitle">Clear Up Records</h3>
+        <p id="cleanupModalMessage">Are you sure you want to clear all records? This action cannot be undone.</p>
+        
+        <form method="post" id="cleanupForm">
+            <input type="hidden" name="cleanup_action" id="cleanupAction">
+            
+            <div class="modal-buttons">
+                <button type="submit" class="modal-btn btn-cleanup-confirm">Yes, Clear All</button>
+                <button type="button" class="modal-btn btn-cancel" onclick="closeCleanupModal()">Cancel</button>
             </div>
         </form>
     </div>
@@ -1560,7 +1692,6 @@ function openModal(companyId, companyName, companyEmail, action) {
     } else if (action === 'block') {
         modalIcon.className = "modal-icon block";
         modalIcon.innerHTML = '<i class="fas fa-ban"></i>';
-        modalTitle.textContent = "Block Company";
         modalMessage.textContent = `Are you sure you want to block ${companyName}? They will no longer be able to access their account or post internships.`;
     } else if (action === 'unblock') {
         modalIcon.className = "modal-icon unblock";
@@ -1575,6 +1706,32 @@ function openModal(companyId, companyName, companyEmail, action) {
 
 function closeModal() {
     const modal = document.getElementById("confirmModal");
+    modal.classList.remove("show");
+    document.body.style.overflow = "auto";
+}
+
+// Cleanup modal functions
+function openCleanupModal(type) {
+    const modal = document.getElementById("cleanupModal");
+    const modalTitle = document.getElementById("cleanupModalTitle");
+    const modalMessage = document.getElementById("cleanupModalMessage");
+    
+    if (type === 'deleted') {
+        document.getElementById("cleanupAction").value = "cleanup_deleted";
+        modalTitle.textContent = "Clear Deleted Records";
+        modalMessage.textContent = "Are you sure you want to clear all deleted company records? This action cannot be undone.";
+    } else if (type === 'blocked') {
+        document.getElementById("cleanupAction").value = "cleanup_blocked";
+        modalTitle.textContent = "Clear Blocked Records";
+        modalMessage.textContent = "Are you sure you want to clear all blocked company records? This action cannot be undone.";
+    }
+    
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden";
+}
+
+function closeCleanupModal() {
+    const modal = document.getElementById("cleanupModal");
     modal.classList.remove("show");
     document.body.style.overflow = "auto";
 }
@@ -1659,6 +1816,12 @@ document.getElementById("confirmModal").addEventListener("click", function(e) {
     }
 });
 
+document.getElementById("cleanupModal").addEventListener("click", function(e) {
+    if (e.target === this) {
+        closeCleanupModal();
+    }
+});
+
 document.getElementById("approvalModal").addEventListener("click", function(e) {
     if (e.target === this) {
         closeApprovalModal();
@@ -1675,6 +1838,7 @@ document.getElementById("messageModal").addEventListener("click", function(e) {
 document.addEventListener("keydown", function(e) {
     if (e.key === "Escape") {
         closeModal();
+        closeCleanupModal();
         closeApprovalModal();
         closeMessageModal();
     }
@@ -1773,6 +1937,7 @@ if (window.history.replaceState) {
     const url = new URL(window.location);
     url.searchParams.delete('msg_status');
     url.searchParams.delete('op_status');
+    url.searchParams.delete('cleanup_status');
     window.history.replaceState(null, null, url);
 }
 </script>

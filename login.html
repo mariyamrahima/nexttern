@@ -489,7 +489,7 @@ document.getElementById("loginForm").addEventListener("submit", function(e) {
   })
   .then(data => {
   if (data.success) {
-    window.location.href = "internship.php";
+    window.location.href = "index.php";
   }  else {
       if (data.field === "email") {
         showError(emailInput, emailError, data.message || "This email is not registered");

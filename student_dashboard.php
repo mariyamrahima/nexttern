@@ -1,3 +1,4 @@
+new student dashboard 
 <?php
 $page = $_GET['page'] ?? 'dashboard';
 session_start();
@@ -325,15 +326,18 @@ $total_applications = $app_count_result->fetch_assoc()['app_count'];
 
 // Fetch student's applications with course details
 $student_apps_stmt = $conn->prepare("
-    SELECT ca.*, c.course_title, c.course_description as course_description
+    SELECT ca.*, 
+           c.course_title, 
+           c.course_description, 
+           c.company_name
     FROM course_applications ca 
     JOIN course c ON ca.course_id = c.id 
     WHERE ca.student_id = ? 
     ORDER BY ca.created_at DESC
-");
-$student_apps_stmt->bind_param("s", $student_id);
+");$student_apps_stmt->bind_param("s", $student_id);
 $student_apps_stmt->execute();
 $student_apps_result = $student_apps_stmt->get_result();
+
 
 // Function to get sender display name
 function getSenderDisplayName($sender_type) {
@@ -386,6 +390,17 @@ function getStatusBadge($status) {
     ];
     return $badges[$status] ?? '<span class="status-badge">' . ucfirst($status) . '</span>';
 }
+
+// Determine page title
+$titles = [
+    'dashboard' => 'Student Dashboard',
+    'profile' => 'My Profile', 
+    'messages' => 'Messages',
+    'applications' => 'Applications',
+    'stories' => 'Success Stories',
+    'saved_courses' => 'Saved Courses'
+];
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -829,18 +844,29 @@ function getStatusBadge($status) {
             transition: var(--transition);
         }
 
-        .nav-badge {
-            margin-left: auto;
-            background-color: var(--danger);
-            color: white;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.125rem 0.5rem;
-            border-radius: 12px;
-            min-width: 20px;
-            text-align: center;
-            transition: var(--transition);
-        }
+       .nav-badge {
+    margin-left: auto;
+    background-color: var(--danger);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    min-width: 20px;
+    text-align: center;
+    transition: var(--transition);
+    position: absolute; /* Add this */
+    right: 8px; /* Add this */
+    top: 50%; /* Add this */
+    transform: translateY(-50%); /* Add this */
+}
+.sidebar.collapsed .nav-badge {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    right: 50%; /* Add this for centered alignment when collapsed */
+    transform: translate(50%, -50%); /* Modify this */
+}
 
         .sidebar.collapsed .nav-text,
         .sidebar.collapsed .nav-badge {
@@ -1444,38 +1470,157 @@ function getStatusBadge($status) {
 
         /* Responsive Design */
         @media (max-width: 1024px) {
-            .sidebar {
-                width: var(--sidebar-collapsed-width);
-            }
-            
-            .sidebar .logo-text,
-            .sidebar .nav-text,
-            .sidebar .nav-badge,
-            .sidebar .user-details {
-                opacity: 0;
-                width: 0;
-                overflow: hidden;
-            }
+            /* Updated CSS for sidebar without arrow - replace the existing sidebar styles */
 
-            .sidebar .nav-link {
-                justify-content: center;
-                padding: 0.875rem;
-            }
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--slate-200);
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center the logo since no arrow button */
+    height: var(--header-height);
+}
 
-            .main-content {
-                margin-left: var(--sidebar-collapsed-width);
-            }
-        }
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--primary);
+    transition: var(--transition);
+}
 
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                z-index: 100;
-            }
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
 
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
+.logo-text {
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+/* Remove arrow button styles */
+.sidebar-toggle {
+    display: none; /* Hide any remaining arrow buttons in sidebar */
+}
+
+/* Collapsed state styles - now only triggered by hamburger */
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.collapsed .logo-text {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .nav-text,
+.sidebar.collapsed .nav-badge,
+.sidebar.collapsed .user-details {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 0.875rem;
+}
+
+.sidebar.collapsed .logout-btn .logout-text {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-header {
+    justify-content: center;
+}
+
+/* Enhanced mobile styles */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        z-index: 100;
+        width: 280px; /* Fixed width on mobile */
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    /* Reset collapsed state on mobile */
+    .sidebar.collapsed {
+        width: 280px;
+    }
+    
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed .nav-text,
+    .sidebar.collapsed .nav-badge,
+    .sidebar.collapsed .user-details {
+        opacity: 1;
+        width: auto;
+        overflow: visible;
+    }
+    
+    .sidebar.collapsed .nav-link {
+        justify-content: flex-start;
+        padding: 0.875rem 1.5rem;
+    }
+    
+    .sidebar.collapsed .logout-btn .logout-text {
+        display: inline;
+    }
+    
+    .sidebar.collapsed .sidebar-header {
+        justify-content: center;
+    }
+}
+
+/* Tablet responsive behavior */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: var(--sidebar-collapsed-width);
+    }
+    
+    .sidebar .logo-text,
+    .sidebar .nav-text,
+    .sidebar .nav-badge,
+    .sidebar .user-details {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+    }
+
+    .sidebar .nav-link {
+        justify-content: center;
+        padding: 0.875rem;
+    }
+    
+    .sidebar .logout-btn .logout-text {
+        display: none;
+    }
+}
+
+/* Desktop behavior - expandable via hamburger */
+@media (min-width: 1025px) {
+    .main-content {
+        margin-left: var(--sidebar-width);
+    }
+    
+    .sidebar.collapsed ~ .main-content {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+}
 
             .main-content {
                 margin-left: 0;
@@ -1710,6 +1855,233 @@ function getStatusBadge($status) {
         align-items: center;
     }
 }
+/* Enhanced Application Item Styles */
+.enhanced-application {
+    border-left: 4px solid var(--primary);
+    transition: var(--transition);
+}
+
+.enhanced-application:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.company-info-small {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.course-meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.meta-tag.duration {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--info);
+}
+
+.meta-tag.price {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+}
+
+.meta-tag.difficulty.beginner {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+}
+
+.meta-tag.difficulty.intermediate {
+    background: rgba(243, 156, 18, 0.1);
+    color: var(--warning);
+}
+
+.meta-tag.difficulty.advanced {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.meta-tag.start-date {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+}
+
+.course-description-section {
+    border-left: 4px solid var(--accent);
+    background: var(--slate-50);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+.application-details-section {
+    margin-top: 1rem;
+}
+
+.detail-item {
+    margin-bottom: 1rem;
+}
+
+.btn-link {
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+    color: var(--primary-light);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .course-meta-tags {
+        justify-content: flex-start;
+    }
+    
+    .meta-tag {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+    }
+    
+    .enhanced-application {
+        border-left-width: 3px;
+    }
+}
+/* Saved Courses Styles */
+.saved-course-item {
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: var(--transition);
+}
+
+.saved-course-item:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+}
+
+.saved-course-item .course-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.saved-course-item .course-info h4 {
+    color: var(--slate-900);
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+}
+
+.saved-course-item .course-category {
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+}
+
+.saved-course-item .course-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.saved-course-item .course-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.saved-course-item .course-description {
+    margin-bottom: 1rem;
+}
+
+.saved-course-item .course-description p {
+    color: var(--slate-600);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.saved-course-item .course-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.saved-course-item .course-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--slate-200);
+}
+
+.certificate-badge {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .saved-course-item .course-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .saved-course-item .course-actions {
+        width: 100%;
+    }
+    
+    .saved-course-item .course-actions .btn {
+        flex: 1;
+    }
+    
+    .saved-course-item .course-footer {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+}
+.skill-tag {
+    background: rgba(3, 89, 70, 0.1);
+    color: var(--primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
     </style>
 </head>
 <body>
@@ -1717,98 +2089,103 @@ function getStatusBadge($status) {
         <!-- Mobile Overlay -->
         <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileSidebar()"></div>
 
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <span class="logo-text">Nexttern</span>
-                </div>
-                <button class="sidebar-toggle" onclick="toggleSidebar()">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
+       <!-- Updated Sidebar HTML - Remove the arrow button -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-graduation-cap"></i>
             </div>
-
-          <div class="sidebar-user">
-    <div class="user-info">
-        <div class="user-avatar" id="sidebarAvatar">
-            <?php if (!empty($current_photo) && file_exists($current_photo)): ?>
-                <img src="<?php echo htmlspecialchars($current_photo); ?>?v=<?php echo time(); ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
-            <?php else: ?>
-                <?php echo strtoupper(substr($first_name, 0, 1)); ?>
-            <?php endif; ?>
+            <span class="logo-text">Nexttern</span>
         </div>
-        <div class="user-details">
-            <div class="user-name"><?php echo $first_name . ' ' . $last_name; ?></div>
-            <div class="user-id">ID: <?php echo $student_id; ?></div>
+        <!-- Arrow button removed -->
+    </div>
+
+    <div class="sidebar-user">
+        <div class="user-info">
+            <div class="user-avatar" id="sidebarAvatar">
+                <?php if (!empty($current_photo) && file_exists($current_photo)): ?>
+                    <img src="<?php echo htmlspecialchars($current_photo); ?>?v=<?php echo time(); ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
+                <?php else: ?>
+                    <?php echo strtoupper(substr($first_name, 0, 1)); ?>
+                <?php endif; ?>
+            </div>
+            <div class="user-details">
+                <div class="user-name"><?php echo $first_name . ' ' . $last_name; ?></div>
+                <div class="user-id">ID: <?php echo $student_id; ?></div>
+            </div>
         </div>
     </div>
-</div>
 
+    <nav class="sidebar-nav">
+        <div class="nav-item">
+            <a href="#" class="nav-link <?php echo ($page === 'dashboard' || !isset($_GET['page'])) ? 'active' : ''; ?>" onclick="showSection('dashboard', this)">
+                <div class="nav-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <span class="nav-text">Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="#" class="nav-link <?php echo ($page === 'profile') ? 'active' : ''; ?>" onclick="showSection('profile', this)">
+                <div class="nav-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span class="nav-text">Profile</span>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="#" class="nav-link <?php echo ($page === 'messages') ? 'active' : ''; ?>" onclick="showSection('messages', this)">
+                <div class="nav-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <span class="nav-text">Messages</span>
+                <?php if ($unread_count > 0): ?>
+                <span class="nav-badge"><?php echo $unread_count; ?></span>
+                <?php endif; ?>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="#" class="nav-link <?php echo ($page === 'applications') ? 'active' : ''; ?>" onclick="showSection('applications', this)">
+                <div class="nav-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <span class="nav-text">Applications</span>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="#" class="nav-link <?php echo ($page === 'saved_courses') ? 'active' : ''; ?>" onclick="enhancedShowSection('saved_courses', this)">
+                <div class="nav-icon">
+                    <i class="fas fa-bookmark"></i>
+                </div>
+                <span class="nav-text">Saved Courses</span>
+                <span class="nav-badge" id="savedCoursesCount" style="display: none;">0</span>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="#" class="nav-link <?php echo ($page === 'stories') ? 'active' : ''; ?>" onclick="showSection('stories', this)">
+                <div class="nav-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <span class="nav-text">Success Stories</span>
+            </a>
+        </div>
+    </nav>
 
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="#" class="nav-link <?php echo ($page === 'dashboard' || !isset($_GET['page'])) ? 'active' : ''; ?>" onclick="showSection('dashboard', this)">
-                        <div class="nav-icon">
-                            <i class="fas fa-home"></i>
-                        </div>
-                        <span class="nav-text">Dashboard</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="#" class="nav-link <?php echo ($page === 'profile') ? 'active' : ''; ?>" onclick="showSection('profile', this)">
-                        <div class="nav-icon">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <span class="nav-text">Profile</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="#" class="nav-link <?php echo ($page === 'messages') ? 'active' : ''; ?>" onclick="showSection('messages', this)">
-                        <div class="nav-icon">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <span class="nav-text">Messages</span>
-                        <?php if ($unread_count > 0): ?>
-                        <span class="nav-badge"><?php echo $unread_count; ?></span>
-                        <?php endif; ?>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="#" class="nav-link <?php echo ($page === 'applications') ? 'active' : ''; ?>" onclick="showSection('applications', this)">
-                        <div class="nav-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <span class="nav-text">Applications</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="#" class="nav-link <?php echo ($page === 'stories') ? 'active' : ''; ?>" onclick="showSection('stories', this)">
-                        <div class="nav-icon">
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <span class="nav-text">Success Stories</span>
-                    </a>
-                </div>
-                
-            </nav>
-
-            <div class="sidebar-footer">
-                <form action="logout.php" method="post">
-                    <button type="submit" class="logout-btn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span class="logout-text">Logout</span>
-                    </button>
-                </form>
-            </div>
-        </aside>
-
+    <div class="sidebar-footer">
+        <form action="logout.php" method="post">
+            <button type="submit" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span class="logout-text">Logout</span>
+            </button>
+        </form>
+    </div>
+</aside>
         <!-- Main Content -->
         <main class="main-content">
             <header class="top-header">
@@ -2088,7 +2465,7 @@ function getStatusBadge($status) {
                         <label class="form-label">Educational Qualifications</label>
                         <select class="form-input" name="qualifications">
                             <option value="">Select Qualification</option>
-                            <option value="High School" <?php echo ($qualifications === 'High School') ? 'selected' : ''; ?>>High School</option>
+                        <!--    <option value="High School" <?php echo ($qualifications === 'High School') ? 'selected' : ''; ?>>High School</option>-->
                             <option value="Undergraduate" <?php echo ($qualifications === 'Undergraduate') ? 'selected' : ''; ?>>Undergraduate</option>
                             <option value="Graduate" <?php echo ($qualifications === 'Graduate') ? 'selected' : ''; ?>>Graduate</option>
                             <option value="Postgraduate" <?php echo ($qualifications === 'Postgraduate') ? 'selected' : ''; ?>>Postgraduate</option>
@@ -2206,67 +2583,116 @@ function getStatusBadge($status) {
                     </div>
                 </div>
 
-                <!-- Applications Section -->
-                <div id="applications" class="content-section <?php echo ($page === 'applications') ? 'active' : ''; ?>">
-                    <div class="content-card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-file-alt"></i>
-                                My Applications
+              <!-- Enhanced Applications Section HTML -->
+<div id="applications" class="content-section <?php echo ($page === 'applications') ? 'active' : ''; ?>">
+    <div class="content-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-file-alt"></i>
+                My Applications
+            </div>
+        </div>
+        <div class="card-body">
+            <?php if (!empty($error_message) && $page === 'applications'): ?>
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <?php echo $error_message; ?>
+                </div>
+            <?php elseif (!empty($success_message) && $page === 'applications'): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <?php echo $success_message; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($total_applications > 0): ?>
+                <?php while ($app = $student_apps_result->fetch_assoc()): 
+                    $formatted_date = date('M j, Y g:i A', strtotime($app['created_at']));
+                    $learning_objective_display = str_replace('_', ' ', ucwords($app['learning_objective'], '_'));
+                ?>
+                    <div class="application-item">
+                        <div class="application-header">
+                            <div class="application-course">
+                                <h4><?php echo htmlspecialchars($app['course_title']); ?></h4>
+                                
+                                <!-- Company Information -->
+                                <?php if (!empty($app['company_name'])): ?>
+                                <div style="margin-top: 0.5rem; display: flex; align-items: center; color: var(--slate-600);">
+                                    <i class="fas fa-building" style="margin-right: 0.5rem; color: var(--primary);"></i>
+                                    <span style="font-weight: 500;"><?php echo htmlspecialchars($app['company_name']); ?></span>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="application-meta">
+                                <div class="application-date">Applied: <?php echo $formatted_date; ?></div>
+                                <?php echo getStatusBadge($app['application_status']); ?>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <?php if (!empty($error_message) && $page === 'applications'): ?>
-                                <div class="alert alert-error">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <?php echo $error_message; ?>
-                                </div>
-                            <?php elseif (!empty($success_message) && $page === 'applications'): ?>
-                                <div class="alert alert-success">
-                                    <i class="fas fa-check-circle"></i>
-                                    <?php echo $success_message; ?>
-                                </div>
-                            <?php endif; ?>
 
-                            <?php if ($total_applications > 0): ?>
-                                <?php while ($app = $student_apps_result->fetch_assoc()): 
-                                    $formatted_date = date('M j, Y g:i A', strtotime($app['created_at']));
-                                    $learning_objective_display = str_replace('_', ' ', ucwords($app['learning_objective'], '_'));
-                                ?>
-                                    <div class="application-item">
-                                        <div class="application-header">
-                                            <div class="application-course">
-                                                <h4><?php echo htmlspecialchars($app['course_title']); ?></h4>
-                                            </div>
-                                            <div class="application-meta">
-                                                <div class="application-date">Applied: <?php echo $formatted_date; ?></div>
-                                                <?php echo getStatusBadge($app['application_status']); ?>
-                                            </div>
-                                        </div>
+                        <!-- Course Description -->
+                        <?php if (!empty($app['course_description'])): ?>
+                            <div style="margin-bottom: 1rem; padding: 1rem; background: var(--slate-50); border-radius: var(--border-radius); border-left: 4px solid var(--primary);">
+                                <h5 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-info-circle"></i>
+                                    Course Description
+                                </h5>
+                                <p style="color: var(--slate-600); line-height: 1.6; margin: 0;">
+                                    <?php echo nl2br(htmlspecialchars($app['course_description'])); ?>
+                                </p>
+                            </div>
+                        <?php endif; ?>
 
-                                        <div class="message-content">
-                                            <strong>Learning Objective:</strong> <?php echo htmlspecialchars($learning_objective_display); ?>
-                                        </div>
-
-                                        <?php if (!empty($app['cover_letter'])): ?>
-                                            <div class="message-content">
-                                                <strong>Cover Letter:</strong><br>
-                                                <?php echo nl2br(htmlspecialchars($app['cover_letter'])); ?>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <div class="empty-state">
-                                    <i class="fas fa-file-alt"></i>
-                                    <h3>No Applications Yet</h3>
-                                    <p>You haven't submitted any course applications yet. Your application history will appear here once you start applying for courses!</p>
-                                </div>
-                            <?php endif; ?>
+                        <div class="message-content">
+                            <strong>Learning Objective:</strong> <?php echo htmlspecialchars($learning_objective_display); ?>
                         </div>
-                    </div>
-                </div>
 
+                        <?php if (!empty($app['cover_letter'])): ?>
+                            <div class="message-content">
+                                <strong>Cover Letter:</strong><br>
+                                <?php echo nl2br(htmlspecialchars($app['cover_letter'])); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>No Applications Yet</h3>
+                    <p>You haven't submitted any course applications yet. Your application history will appear here once you start applying for courses!</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<!-- Saved Courses Section -->
+<div id="saved_courses" class="content-section <?php echo ($page === 'saved_courses') ? 'active' : ''; ?>">
+    <div class="content-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-bookmark"></i>
+                My Saved Courses
+            </div>
+            <button class="btn btn-secondary" onclick="refreshSavedCourses()" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="savedCoursesContainer">
+                <div class="empty-state" id="savedCoursesEmpty">
+                    <i class="fas fa-bookmark"></i>
+                    <h3>No Saved Courses Yet</h3>
+                    <p>Start exploring courses and bookmark your favorites to see them here!</p>
+                </div>
+                
+                <div id="savedCoursesList" style="display: none;">
+                    <!-- Saved courses will be loaded here dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                <div id="stories" class="content-section <?php echo ($page === 'stories') ? 'active' : ''; ?>">
     <!-- Submit New Story Form -->
     <div class="content-card">
@@ -2424,105 +2850,372 @@ function getStatusBadge($status) {
     </div>
     
     <script>
-        // Toggle sidebar from header (for both desktop and mobile)
-        function toggleSidebarFromHeader() {
-            const sidebar = document.getElementById('sidebar');
+// Initialize user data from PHP - Add this at the very top of your script section
+const userData = {
+    id: '<?php echo $student_id; ?>',
+    role: 'student'
+};
+
+// Enhanced showSection function that handles page refresh
+function showSection(sectionId, linkElement) {
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+
+    // Remove active class from all navigation links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Show the selected section and add active class to the link
+    document.getElementById(sectionId).classList.add('active');
+    linkElement.classList.add('active');
+    
+    // Update page title in header
+    const titles = {
+        'dashboard': 'Dashboard',
+        'profile': 'My Profile', 
+        'messages': 'Messages',
+        'applications': 'Applications',
+        'stories': 'Success Stories',
+        'saved_courses': 'My Saved Courses'
+    };
+    document.querySelector('.header-title').textContent = titles[sectionId];
+    
+    // Load saved courses when section is accessed (always refresh data)
+    if (sectionId === 'saved_courses') {
+        setTimeout(() => {
+            loadSavedCourses();
+        }, 100); // Small delay to ensure DOM is ready
+    }
+    
+    // Update URL without reloading
+    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?page=" + sectionId;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+
+    // Close mobile sidebar if open
+    if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobile-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+}
+
+// Enhanced function specifically for saved courses
+function enhancedShowSection(sectionId, linkElement) {
+    showSection(sectionId, linkElement);
+}
+
+// Fixed loadSavedCourses function with better error handling
+function loadSavedCourses() {
+    const savedCoursesList = document.getElementById('savedCoursesList');
+    const savedCoursesEmpty = document.getElementById('savedCoursesEmpty');
+    const savedCoursesCount = document.getElementById('savedCoursesCount');
+    
+    // Check if elements exist
+    if (!savedCoursesList || !savedCoursesEmpty || !savedCoursesCount) {
+        console.error('Required DOM elements not found for saved courses');
+        return;
+    }
+    
+    // Show loading state
+    savedCoursesList.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading saved courses...</div>';
+    savedCoursesList.style.display = 'block';
+    savedCoursesEmpty.style.display = 'none';
+    
+    // Use the student_id from PHP session
+    const userId = userData.id;
+    const userType = userData.role;
+    
+    console.log('Loading saved courses for user:', userId, 'type:', userType);
+    
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const url = `get_saved_courses_detailed.php?user_id=${encodeURIComponent(userId)}&user_type=${encodeURIComponent(userType)}&t=${timestamp}`;
+    
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        },
+        cache: 'no-store' // Force no caching
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text(); // Get as text first to debug
+    })
+    .then(text => {
+        console.log('Raw response:', text);
+        try {
+            const data = JSON.parse(text);
+            console.log('Parsed data:', data);
             
-            // For mobile screens (768px and below)
-            if (window.innerWidth <= 768) {
-                toggleMobileSidebar();
-            } else {
-                // For desktop screens - toggle collapse/expand
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                
-                if (isCollapsed) {
-                    // Expand the sidebar
-                    sidebar.classList.remove('collapsed');
+            if (data.success) {
+                if (data.saved_courses && data.saved_courses.length > 0) {
+                    displaySavedCourses(data.saved_courses);
+                    
+                    // Update badge count
+                    savedCoursesCount.textContent = data.saved_courses.length;
+                    savedCoursesCount.style.display = 'inline-block';
+                    
+                    savedCoursesEmpty.style.display = 'none';
+                    savedCoursesList.style.display = 'block';
                 } else {
-                    // Collapse the sidebar
-                    sidebar.classList.add('collapsed');
+                    // No saved courses found
+                    console.log('No saved courses found');
+                    savedCoursesEmpty.style.display = 'block';
+                    savedCoursesList.style.display = 'none';
+                    savedCoursesCount.style.display = 'none';
+                }
+            } else {
+                throw new Error(data.message || 'Unknown error from server');
+            }
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            throw new Error('Invalid JSON response from server');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading saved courses:', error);
+        savedCoursesList.innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i> 
+                Error loading saved courses: ${error.message}
+                <button onclick="loadSavedCourses()" class="btn btn-secondary" style="margin-left: 1rem;">
+                    <i class="fas fa-retry"></i> Try Again
+                </button>
+            </div>`;
+        savedCoursesEmpty.style.display = 'none';
+        savedCoursesList.style.display = 'block';
+    });
+}
+
+function displaySavedCourses(courses) {
+    const savedCoursesList = document.getElementById('savedCoursesList');
+    
+    if (!courses || courses.length === 0) {
+        document.getElementById('savedCoursesEmpty').style.display = 'block';
+        savedCoursesList.style.display = 'none';
+        return;
+    }
+    
+    savedCoursesList.innerHTML = courses.map(course => `
+        <div class="saved-course-item" data-course-id="${course.id}">
+            <div class="course-header">
+                <div class="course-info">
+                    <h4 class="course-title">${course.course_title}</h4>
+                    <p class="course-category">${course.course_category}</p>
+                    <div class="course-meta">
+                        <span class="meta-tag duration">
+                            <i class="fas fa-clock"></i> ${course.duration}
+                        </span>
+                        <span class="meta-tag difficulty ${course.difficulty_level.toLowerCase()}">
+                            <i class="fas fa-signal"></i> ${course.difficulty_level}
+                        </span>
+                        <span class="meta-tag price">
+                            <i class="fas fa-tag"></i> ${course.course_price_type === 'free' || course.price_amount == 0 ? 'Free' : '₹' + parseInt(course.price_amount).toLocaleString()}
+                        </span>
+                    </div>
+                </div>
+                <div class="course-actions">
+                    <button class="btn btn-secondary" onclick="viewCourseDetail(${course.id})">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    <button class="btn" onclick="unsaveCourse(${course.id})" style="background: var(--danger); color: white;">
+                        <i class="fas fa-bookmark"></i> Remove
+                    </button>
+                </div>
+            </div>
+            
+            <div class="course-description">
+                <p>${course.course_description}</p>
+            </div>
+            
+            ${course.skills_taught ? `
+                <div class="course-skills">
+                    ${course.skills_taught.split(',').slice(0, 5).map(skill => 
+                        `<span class="skill-tag">${skill.trim()}</span>`
+                    ).join('')}
+                    ${course.skills_taught.split(',').length > 5 ? 
+                        `<span class="skill-tag">+${course.skills_taught.split(',').length - 5} more</span>` : ''
+                    }
+                </div>
+            ` : ''}
+            
+            <div class="course-footer">
+                <div class="saved-info">
+                    <small style="color: var(--slate-500);">
+                        <i class="fas fa-bookmark"></i> 
+                        Saved on ${new Date(course.saved_at).toLocaleDateString()}
+                    </small>
+                </div>
+                ${course.certificate_provided ? 
+                    '<div class="certificate-badge"><i class="fas fa-certificate"></i> Certificate Included</div>' : ''
+                }
+            </div>
+        </div>
+    `).join('');
+}
+
+function refreshSavedCourses() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (!refreshBtn) return;
+    
+    const originalHtml = refreshBtn.innerHTML;
+    
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    refreshBtn.disabled = true;
+    
+    // Force a fresh load
+    loadSavedCourses();
+    
+    setTimeout(() => {
+        refreshBtn.innerHTML = originalHtml;
+        refreshBtn.disabled = false;
+    }, 1000);
+}
+
+function unsaveCourse(courseId) {
+    if (!confirm('Remove this course from your saved list?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'unsave');
+    formData.append('course_id', courseId);
+    formData.append('user_id', userData.id);
+    formData.append('user_type', userData.role);
+    
+    fetch('save_course.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the course item with animation
+            const courseItem = document.querySelector(`[data-course-id="${courseId}"]`);
+            if (courseItem) {
+                courseItem.style.transform = 'translateX(-100%)';
+                courseItem.style.opacity = '0';
+                setTimeout(() => {
+                    courseItem.remove();
+                    
+                    // Check if any courses left
+                    const remainingCourses = document.querySelectorAll('.saved-course-item');
+                    if (remainingCourses.length === 0) {
+                        document.getElementById('savedCoursesEmpty').style.display = 'block';
+                        document.getElementById('savedCoursesList').style.display = 'none';
+                        document.getElementById('savedCoursesCount').style.display = 'none';
+                    } else {
+                        document.getElementById('savedCoursesCount').textContent = remainingCourses.length;
+                    }
+                }, 300);
+            }
+        } else {
+            console.error('Failed to remove course:', data.message || 'Unknown error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function viewCourseDetail(courseId) {
+    window.open('internship_detail.php?id=' + courseId, '_blank');
+}
+
+// Initialize saved courses count and handle page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, user data:', userData);
+    
+    // Check current page and load saved courses if needed
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPage = urlParams.get('page');
+    
+    if (currentPage === 'saved_courses') {
+        // If we're on saved courses page, load them immediately
+        setTimeout(() => {
+            loadSavedCourses();
+        }, 500);
+    }
+    
+    // Load initial saved courses count
+    if (userData && userData.id) {
+        const timestamp = new Date().getTime();
+        fetch(`get_saved_courses.php?user_id=${encodeURIComponent(userData.id)}&user_type=${encodeURIComponent(userData.role)}&t=${timestamp}`, {
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.saved_courses.length > 0) {
+                const savedCoursesCount = document.getElementById('savedCoursesCount');
+                if (savedCoursesCount) {
+                    savedCoursesCount.textContent = data.saved_courses.length;
+                    savedCoursesCount.style.display = 'inline-block';
                 }
             }
+        })
+        .catch(error => console.error('Error loading saved courses count:', error));
+    }
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', function(event) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const page = urlParams.get('page') || 'dashboard';
+        const linkElement = document.querySelector(`.nav-link[onclick*="${page}"]`);
+        if (linkElement) {
+            showSection(page, linkElement);
         }
-
-        // Sidebar toggle functionality
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            
-            if (isCollapsed) {
-                // Expand the sidebar
-                sidebar.classList.remove('collapsed');
-            } else {
-                // Collapse the sidebar
-                sidebar.classList.add('collapsed');
-            }
+    });
+});
+// Add notification system for better user feedback
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(n => n.remove());
+    
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = `notification alert alert-${type === 'error' ? 'error' : 'success'}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        min-width: 300px;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    const icon = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+    notification.innerHTML = `
+        <i class="fas ${icon}"></i>
+        ${message}
+        <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; color: inherit; cursor: pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
         }
-
-        function toggleMobileSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobile-overlay');
-            
-            sidebar.classList.toggle('mobile-open');
-            overlay.classList.toggle('active');
-        }
-
-        // Function to handle section navigation
-        function showSection(sectionId, linkElement) {
-            // Hide all sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-
-            // Remove active class from all navigation links
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-
-            // Show the selected section and add active class to the link
-            document.getElementById(sectionId).classList.add('active');
-            linkElement.classList.add('active');
-            
-            // Update page title in header
-            const titles = {
-                'dashboard': 'Dashboard',
-                'profile': 'My Profile', 
-                'messages': 'Messages',
-                'applications': 'Applications',
-                'stories': 'Success Stories'
-            };
-            document.querySelector('.header-title').textContent = titles[sectionId];
-            
-            // Update URL without reloading
-            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?page=" + sectionId;
-            window.history.pushState({ path: newUrl }, '', newUrl);
-
-            // Close mobile sidebar if open
-            if (window.innerWidth <= 768) {
-                toggleMobileSidebar();
-            }
-        }
-
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', function(event) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const page = urlParams.get('page') || 'dashboard';
-            const linkElement = document.querySelector(`.nav-link[onclick*="${page}"]`);
-            if (linkElement) {
-                showSection(page, linkElement);
-            }
-        });
-
-        // Initial setup on page load
-        window.addEventListener('load', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const page = urlParams.get('page') || 'dashboard';
-            const linkElement = document.querySelector(`.nav-link[onclick*="${page}"]`);
-            if (linkElement) {
-                showSection(page, linkElement);
-            }
-        });
-
+    }, 5000);
+}
         // Enhanced form validation
         function validateForm(formElement) {
             let isValid = true;
@@ -2991,6 +3684,390 @@ function removeResume() {
         form.submit();
     }
 }
+// JavaScript functions for Read More functionality
+function toggleDescription(button) {
+    const applicationItem = button.closest('.application-item');
+    const shortDesc = applicationItem.querySelector('.description-short');
+    const fullDesc = applicationItem.querySelector('.description-full');
+    
+    if (shortDesc.style.display === 'none') {
+        // Currently showing full, switch to short
+        shortDesc.style.display = 'inline';
+        fullDesc.style.display = 'none';
+        button.textContent = 'Read More';
+    } else {
+        // Currently showing short, switch to full
+        shortDesc.style.display = 'none';
+        fullDesc.style.display = 'inline';
+        button.textContent = 'Read Less';
+    }
+}
+
+function toggleCoverLetter(button) {
+    const applicationItem = button.closest('.application-item');
+    const shortCover = applicationItem.querySelector('.cover-short');
+    const fullCover = applicationItem.querySelector('.cover-full');
+    
+    if (shortCover.style.display === 'none') {
+        // Currently showing full, switch to short
+        shortCover.style.display = 'block';
+        fullCover.style.display = 'none';
+        button.textContent = 'Read More';
+    } else {
+        // Currently showing short, switch to full
+        shortCover.style.display = 'none';
+        fullCover.style.display = 'block';
+        button.textContent = 'Read Less';
+    }
+}
+// Saved Courses Functionality
+function loadSavedCourses() {
+    const savedCoursesList = document.getElementById('savedCoursesList');
+    const savedCoursesEmpty = document.getElementById('savedCoursesEmpty');
+    const savedCoursesCount = document.getElementById('savedCoursesCount');
+    
+    // Show loading state
+    savedCoursesList.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading saved courses...</div>';
+    savedCoursesList.style.display = 'block';
+    savedCoursesEmpty.style.display = 'none';
+    
+    fetch('get_saved_courses_detailed.php?user_id=' + userData.id + '&user_type=' + userData.role)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.saved_courses.length > 0) {
+                displaySavedCourses(data.saved_courses);
+                
+                // Update badge count
+                savedCoursesCount.textContent = data.saved_courses.length;
+                savedCoursesCount.style.display = 'inline-block';
+                
+                savedCoursesEmpty.style.display = 'none';
+                savedCoursesList.style.display = 'block';
+            } else {
+                savedCoursesEmpty.style.display = 'block';
+                savedCoursesList.style.display = 'none';
+                savedCoursesCount.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading saved courses:', error);
+            savedCoursesList.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-triangle"></i> Error loading saved courses. Please try again.</div>';
+        });
+}
+
+function displaySavedCourses(courses) {
+    const savedCoursesList = document.getElementById('savedCoursesList');
+    
+    savedCoursesList.innerHTML = courses.map(course => `
+        <div class="saved-course-item" data-course-id="${course.id}">
+            <div class="course-header">
+                <div class="course-info">
+                    <h4 class="course-title">${course.course_title}</h4>
+                    <p class="course-category">${course.course_category}</p>
+                    <div class="course-meta">
+                        <span class="meta-tag duration">
+                            <i class="fas fa-clock"></i> ${course.duration}
+                        </span>
+                        <span class="meta-tag difficulty ${course.difficulty_level.toLowerCase()}">
+                            <i class="fas fa-signal"></i> ${course.difficulty_level}
+                        </span>
+                        <span class="meta-tag price">
+                            <i class="fas fa-tag"></i> ${course.course_price_type === 'free' || course.price_amount == 0 ? 'Free' : '₹' + parseInt(course.price_amount).toLocaleString()}
+                        </span>
+                    </div>
+                </div>
+                <div class="course-actions">
+                    <button class="btn btn-secondary" onclick="viewCourseDetail(${course.id})">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    <button class="btn" onclick="unsaveCourse(${course.id})" style="background: var(--danger); color: white;">
+                        <i class="fas fa-bookmark"></i> Remove
+                    </button>
+                </div>
+            </div>
+            
+            <div class="course-description">
+                <p>${course.course_description}</p>
+            </div>
+            
+            ${course.skills_taught ? `
+                <div class="course-skills">
+                    ${course.skills_taught.split(',').slice(0, 5).map(skill => 
+                        `<span class="skill-tag">${skill.trim()}</span>`
+                    ).join('')}
+                    ${course.skills_taught.split(',').length > 5 ? 
+                        `<span class="skill-tag">+${course.skills_taught.split(',').length - 5} more</span>` : ''
+                    }
+                </div>
+            ` : ''}
+            
+            <div class="course-footer">
+                <div class="saved-info">
+                    <small style="color: var(--slate-500);">
+                        <i class="fas fa-bookmark"></i> 
+                        Saved on ${new Date(course.saved_at).toLocaleDateString()}
+                    </small>
+                </div>
+                ${course.certificate_provided ? 
+                    '<div class="certificate-badge"><i class="fas fa-certificate"></i> Certificate Included</div>' : ''
+                }
+            </div>
+        </div>
+    `).join('');
+}
+
+function refreshSavedCourses() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    const originalHtml = refreshBtn.innerHTML;
+    
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    refreshBtn.disabled = true;
+    
+    loadSavedCourses();
+    
+    setTimeout(() => {
+        refreshBtn.innerHTML = originalHtml;
+        refreshBtn.disabled = false;
+    }, 1000);
+}
+
+function unsaveCourse(courseId) {
+    if (!confirm('Remove this course from your saved list?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'unsave');
+    formData.append('course_id', courseId);
+    formData.append('user_id', userData.id);
+    formData.append('user_type', userData.role);
+    
+    fetch('save_course.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the course item with animation
+            const courseItem = document.querySelector(`[data-course-id="${courseId}"]`);
+            if (courseItem) {
+                courseItem.style.transform = 'translateX(-100%)';
+                courseItem.style.opacity = '0';
+                setTimeout(() => {
+                    courseItem.remove();
+                    
+                    // Check if any courses left
+                    const remainingCourses = document.querySelectorAll('.saved-course-item');
+                    if (remainingCourses.length === 0) {
+                        document.getElementById('savedCoursesEmpty').style.display = 'block';
+                        document.getElementById('savedCoursesList').style.display = 'none';
+                        document.getElementById('savedCoursesCount').style.display = 'none';
+                    } else {
+                        document.getElementById('savedCoursesCount').textContent = remainingCourses.length;
+                    }
+                }, 300);
+            }
+            
+            showNotification('Course removed from saved list', 'success');
+        } else {
+            showNotification('Failed to remove course', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Network error occurred', 'error');
+    });
+}
+
+function viewCourseDetail(courseId) {
+    window.open('internship_detail.php?id=' + courseId, '_blank');
+}
+
+// Load saved courses when the section becomes active
+document.addEventListener('DOMContentLoaded', function() {
+    // Override the existing showSection function to include saved courses loading
+    const originalShowSection = window.showSection;
+    window.showSection = function(sectionId, linkElement) {
+        originalShowSection(sectionId, linkElement);
+        
+        if (sectionId === 'saved_courses') {
+            loadSavedCourses();
+        }
+    };
+    
+    // Load saved courses count on initial page load
+    if (userData && userData.id) {
+        fetch('get_saved_courses.php?user_id=' + userData.id + '&user_type=' + userData.role)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.saved_courses.length > 0) {
+                    const savedCoursesCount = document.getElementById('savedCoursesCount');
+                    savedCoursesCount.textContent = data.saved_courses.length;
+                    savedCoursesCount.style.display = 'inline-block';
+                }
+            })
+            .catch(error => console.error('Error loading saved courses count:', error));
+    }
+});
+// Updated JavaScript functions - remove arrow toggle functionality
+
+// Only hamburger toggle from header (for both desktop and mobile)
+function toggleSidebarFromHeader() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    
+    // For mobile screens (768px and below)
+    if (window.innerWidth <= 768) {
+        // Toggle mobile sidebar
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    } else {
+        // For desktop screens - toggle collapse/expand
+        sidebar.classList.toggle('collapsed');
+    }
+}
+
+// Remove the old toggleSidebar() function - no longer needed
+
+// Mobile sidebar toggle (for overlay clicks)
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('active');
+}
+
+// Enhanced showSection function
+function showSection(sectionId, linkElement) {
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+
+    // Remove active class from all navigation links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Show the selected section and add active class to the link
+    document.getElementById(sectionId).classList.add('active');
+    linkElement.classList.add('active');
+    
+    // Update page title in header
+    const titles = {
+        'dashboard': 'Dashboard',
+        'profile': 'My Profile', 
+        'messages': 'Messages',
+        'applications': 'Applications',
+        'stories': 'Success Stories',
+        'saved_courses': 'My Saved Courses'
+    };
+    document.querySelector('.header-title').textContent = titles[sectionId];
+    
+    // Load saved courses when section is accessed
+    if (sectionId === 'saved_courses') {
+        setTimeout(() => {
+            loadSavedCourses();
+        }, 100);
+    }
+    
+    // Update URL without reloading
+    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?page=" + sectionId;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+
+    // Close mobile sidebar if open
+    if (window.innerWidth <= 768) {
+        toggleMobileSidebar();
+    }
+}
+
+// Enhanced function for saved courses
+function enhancedShowSection(sectionId, linkElement) {
+    showSection(sectionId, linkElement);
+}
+
+// Handle window resize for responsive behavior
+window.addEventListener('resize', function() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    
+    if (window.innerWidth > 768) {
+        // Desktop mode - remove mobile classes
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+        
+        // Auto-collapse sidebar on tablet screens
+        if (window.innerWidth <= 1024) {
+            sidebar.classList.add('collapsed');
+        }
+    } else {
+        // Mobile mode - ensure sidebar is hidden and remove collapsed state
+        sidebar.classList.remove('mobile-open', 'collapsed');
+        overlay.classList.remove('active');
+    }
+});
+
+// Initialize responsive behavior on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    
+    // Auto-collapse on tablet/smaller desktop screens only
+    if (window.innerWidth > 768 && window.innerWidth <= 1024) {
+        sidebar.classList.add('collapsed');
+    }
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', function(event) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const page = urlParams.get('page') || 'dashboard';
+        const linkElement = document.querySelector(`.nav-link[onclick*="${page}"]`);
+        if (linkElement) {
+            showSection(page, linkElement);
+        }
+    });
+    
+    // Initialize current page
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPage = urlParams.get('page') || 'dashboard';
+    const linkElement = document.querySelector(`.nav-link[onclick*="${currentPage}"]`);
+    if (linkElement) {
+        showSection(currentPage, linkElement);
+    }
+});
+
+// Keyboard shortcut for sidebar toggle (Ctrl/Cmd + B)
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        toggleSidebarFromHeader();
+    }
+});
+
+// Touch gesture support for mobile sidebar
+let touchStartX = null;
+
+document.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+});
+
+document.addEventListener('touchend', function(e) {
+    if (touchStartX === null) return;
+    
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchEndX - touchStartX;
+    
+    // Swipe right from left edge to open sidebar
+    if (touchStartX < 50 && diffX > 100 && window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobile-overlay');
+        if (!sidebar.classList.contains('mobile-open')) {
+            sidebar.classList.add('mobile-open');
+            overlay.classList.add('active');
+        }
+    }
+    
+    touchStartX = null;
+});
     </script>
 </body>
 </html>
