@@ -71,12 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_story'])) {
     }
 }
 
-// Pagination setup with validation
-$stories_per_page = 5; // Reduced for better content display
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$offset = ($page - 1) * $stories_per_page;
-
-// Filter by status
+// Remove pagination - get all stories at once
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $where_clause = "";
 $params = [];
@@ -88,43 +83,21 @@ if ($status_filter !== 'all') {
     $param_types = "s";
 }
 
-// Build the query properly
-$base_query = "SELECT * FROM stories {$where_clause} ORDER BY submission_date DESC";
-$stories_query = $base_query . " LIMIT ? OFFSET ?";
-
-// Add LIMIT and OFFSET parameters
-$params[] = $stories_per_page;
-$params[] = $offset;
-$param_types .= "ii";
+// Build the query without pagination
+$stories_query = "SELECT * FROM stories {$where_clause} ORDER BY submission_date DESC";
 
 // Execute the query
-$stories_stmt = $conn->prepare($stories_query);
-if ($stories_stmt) {
-    if (!empty($params)) {
+if (!empty($params)) {
+    $stories_stmt = $conn->prepare($stories_query);
+    if ($stories_stmt) {
         $stories_stmt->bind_param($param_types, ...$params);
+        $stories_stmt->execute();
+        $stories_result = $stories_stmt->get_result();
+    } else {
+        die("Error preparing stories query: " . $conn->error);
     }
-    $stories_stmt->execute();
-    $stories_result = $stories_stmt->get_result();
 } else {
-    die("Error preparing stories query: " . $conn->error);
-}
-
-// Get total story count for pagination
-$total_stories_query = "SELECT COUNT(*) as total FROM stories {$where_clause}";
-$total_stmt = $conn->prepare($total_stories_query);
-if ($total_stmt) {
-    $count_params = array_slice($params, 0, -2);
-    $count_param_types = $status_filter !== 'all' ? 's' : '';
-    
-    if (!empty($count_params)) {
-        $total_stmt->bind_param($count_param_types, ...$count_params);
-    }
-    $total_stmt->execute();
-    $total_result = $total_stmt->get_result();
-    $total_stories = $total_result->fetch_assoc()['total'];
-    $total_pages = ceil($total_stories / $stories_per_page);
-} else {
-    die("Error preparing count query: " . $conn->error);
+    $stories_result = $conn->query($stories_query);
 }
 ?>
 
@@ -326,11 +299,12 @@ if ($total_stmt) {
         font-weight: 500;
     }
 
+    /* More compact story cards */
     .story-card {
         background: rgba(255, 255, 255, 0.3);
         border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 2rem;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
         border-left: 4px solid var(--accent);
         transition: var(--transition);
         box-shadow: var(--shadow-light);
@@ -345,25 +319,27 @@ if ($total_stmt) {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         gap: 1rem;
         flex-wrap: wrap;
     }
 
     .story-title {
         font-family: 'Poppins', sans-serif;
-        font-size: 1.5rem;
+        font-size: 1.1rem;
         color: var(--primary);
         margin-bottom: 0.5rem;
         font-weight: 600;
+        line-height: 1.3;
     }
 
     .story-meta {
         display: flex;
-        gap: 1rem;
+        gap: 0.75rem;
         align-items: center;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
         flex-wrap: wrap;
+        font-size: 0.85rem;
     }
 
     .story-meta small {
@@ -372,9 +348,9 @@ if ($total_stmt) {
     }
 
     .status-badge {
-        padding: 0.4rem 1rem;
+        padding: 0.3rem 0.8rem;
         border-radius: 20px;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
     }
@@ -397,47 +373,68 @@ if ($total_stmt) {
 
     .rating-stars {
         color: #ffd700;
-        font-size: 1rem;
+        font-size: 0.85rem;
     }
 
     .category-tag {
         background: var(--accent);
         color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 12px;
-        font-size: 0.85rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
         font-weight: 500;
     }
 
     .story-content {
         background: rgba(255, 255, 255, 0.5);
-        padding: 1.5rem;
-        border-radius: 12px;
-        line-height: 1.7;
+        padding: 1rem;
+        border-radius: 8px;
+        line-height: 1.6;
         color: var(--secondary);
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         border: 1px solid var(--glass-border);
+        font-size: 0.9rem;
+        max-height: 120px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .story-content.expanded {
+        max-height: none;
+    }
+
+    .read-more {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 50%);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        color: var(--primary);
+        cursor: pointer;
+        border: none;
+        border-radius: 4px 0 0 0;
     }
 
     .story-actions {
         display: flex;
-        gap: 1rem;
+        gap: 0.75rem;
         justify-content: flex-end;
         flex-wrap: wrap;
     }
 
     .btn {
-        padding: 0.75rem 2rem;
+        padding: 0.5rem 1.25rem;
         border: none;
-        border-radius: 12px;
+        border-radius: 8px;
         font-weight: 600;
         cursor: pointer;
         transition: var(--transition);
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
         text-decoration: none;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
     }
 
     .btn-success {
@@ -468,34 +465,6 @@ if ($total_stmt) {
         transform: none;
     }
 
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 2rem;
-    }
-
-    .pagination a, .pagination span {
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        text-decoration: none;
-        color: var(--primary);
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid var(--glass-border);
-        transition: var(--transition);
-    }
-
-    .pagination a:hover {
-        background: var(--accent);
-        color: white;
-    }
-
-    .pagination .current {
-        background: var(--primary);
-        color: white;
-    }
-
     .no-stories {
         text-align: center;
         padding: 3rem;
@@ -509,6 +478,59 @@ if ($total_stmt) {
         color: var(--accent);
     }
 
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-medium);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+    }
+
+    .modal-title {
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.25rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .modal-message {
+        color: var(--secondary);
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn-cancel {
+        background: #95a5a6;
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        background: #7f8c8d;
+    }
+
     @media (max-width: 768px) {
         .page-header { padding: 1.5rem; }
         .page-title { font-size: 1.5rem; }
@@ -516,13 +538,15 @@ if ($total_stmt) {
         .story-header { flex-direction: column; align-items: stretch; }
         .story-actions { justify-content: center; }
         .filter-controls { flex-direction: column; align-items: stretch; }
+        .modal-content { padding: 1.5rem; }
     }
 
     @media (max-width: 480px) {
         .stats-grid { grid-template-columns: 1fr; }
         .stories-container { padding: 1.5rem; }
-        .story-card { padding: 1.5rem; }
+        .story-card { padding: 1rem; }
         .story-meta { flex-direction: column; align-items: flex-start; }
+        .modal-actions { flex-direction: column; }
     }
     </style>
 </head>
@@ -611,59 +635,74 @@ if ($total_stmt) {
                     </span>
                 </div>
 
-                <div class="story-content">
+                <div class="story-content" id="content-<?= $story['story_id'] ?>">
                     <?= nl2br(htmlspecialchars($story['story_content'])) ?>
+                    <?php if (strlen($story['story_content']) > 200): ?>
+                        <button class="read-more" onclick="toggleReadMore(<?= $story['story_id'] ?>)">Read More</button>
+                    <?php endif; ?>
                 </div>
 
                 <div class="story-actions">
                     <?php if ($story['status'] !== 'approved'): ?>
-                        <form style="display: inline;" method="post">
-                            <input type="hidden" name="action_story" value="approved">
-                            <input type="hidden" name="story_id" value="<?= $story['story_id'] ?>">
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check"></i>
-                                Approve Story
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-success" onclick="showApproveModal(<?= $story['story_id'] ?>, '<?= htmlspecialchars(addslashes($story['story_title'])) ?>')">
+                            <i class="fas fa-check"></i>
+                            Approve
+                        </button>
                     <?php endif; ?>
 
                     <?php if ($story['status'] !== 'rejected'): ?>
-                        <form style="display: inline;" method="post" onsubmit="return confirm('Are you sure you want to reject this story?')">
-                            <input type="hidden" name="action_story" value="rejected">
-                            <input type="hidden" name="story_id" value="<?= $story['story_id'] ?>">
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-times"></i>
-                                Reject Story
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-danger" onclick="showRejectModal(<?= $story['story_id'] ?>, '<?= htmlspecialchars(addslashes($story['story_title'])) ?>')">
+                            <i class="fas fa-times"></i>
+                            Reject
+                        </button>
                     <?php endif; ?>
                 </div>
             </div>
         <?php endwhile; ?>
-        
-        <?php if ($total_pages > 1): ?>
-        <div class="pagination">
-            <?php 
-            $current_params = $_GET;
-            for ($i = 1; $i <= $total_pages; $i++): 
-                $current_params['page'] = $i;
-                $url = '?' . http_build_query($current_params);
-            ?>
-                <?php if ($i == $page): ?>
-                    <span class="current"><?= $i ?></span>
-                <?php else: ?>
-                    <a href="<?= $url ?>"><?= $i ?></a>
-                <?php endif; ?>
-            <?php endfor; ?>
-        </div>
-        <?php endif; ?>
-        
     <?php else: ?>
         <div class="no-stories">
             <i class="fas fa-book-open"></i>
             <p>No stories found.</p>
         </div>
     <?php endif; ?>
+</div>
+
+<!-- Approve Confirmation Modal -->
+<div id="approveModal" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-title">
+            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+            Approve Story
+        </h3>
+        <p class="modal-message" id="approveMessage">Are you sure you want to approve this story?</p>
+        <form id="approveForm" method="post">
+            <input type="hidden" name="action_story" value="approved">
+            <input type="hidden" name="story_id" id="approveStoryId">
+        </form>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal('approveModal')">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="document.getElementById('approveForm').submit()">Yes, Approve</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Confirmation Modal -->
+<div id="rejectModal" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-title">
+            <i class="fas fa-times-circle" style="color: var(--danger);"></i>
+            Reject Story
+        </h3>
+        <p class="modal-message" id="rejectMessage">Are you sure you want to reject this story?</p>
+        <form id="rejectForm" method="post">
+            <input type="hidden" name="action_story" value="rejected">
+            <input type="hidden" name="story_id" id="rejectStoryId">
+        </form>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal('rejectModal')">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectForm').submit()">Yes, Reject</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -678,9 +717,48 @@ if ($total_stmt) {
             urlParams.set('status', status);
         }
         
-        urlParams.delete('page'); // Reset to first page when filtering
-        
         window.location.search = urlParams.toString();
+    }
+
+    // Modal functions
+    function showApproveModal(storyId, storyTitle) {
+        document.getElementById('approveMessage').textContent = `Are you sure you want to approve the story: "${storyTitle}"?`;
+        document.getElementById('approveStoryId').value = storyId;
+        document.getElementById('approveModal').style.display = 'flex';
+    }
+
+    function showRejectModal(storyId, storyTitle) {
+        document.getElementById('rejectMessage').textContent = `Are you sure you want to reject the story: "${storyTitle}"?`;
+        document.getElementById('rejectStoryId').value = storyId;
+        document.getElementById('rejectModal').style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modals = document.getElementsByClassName('modal');
+        for (let modal of modals) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    }
+
+    // Read more/less toggle
+    function toggleReadMore(storyId) {
+        const content = document.getElementById('content-' + storyId);
+        const button = content.querySelector('.read-more');
+        
+        if (content.classList.contains('expanded')) {
+            content.classList.remove('expanded');
+            button.textContent = 'Read More';
+        } else {
+            content.classList.add('expanded');
+            button.textContent = 'Read Less';
+        }
     }
 </script>
 

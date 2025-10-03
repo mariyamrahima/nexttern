@@ -1,14 +1,12 @@
 <?php
 // Start session to check login status
 session_start();
-// Prevent caching for proper session handling
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-// Enhanced session validation function (same as aboutus.php)
 function validateUserSession() {
-    // Check for admin session first
+    // Check admin session
     if (isset($_SESSION['admin_id'])) {
         return [
             'isLoggedIn' => true,
@@ -19,7 +17,12 @@ function validateUserSession() {
         ];
     }
     
-    // Check for regular user session
+    // Check company session
+    if (isset($_SESSION['company_id'])) {
+        return validateCompanyUser();
+    }
+    
+    // Check student/regular user session
     if (isset($_SESSION['user_id']) || isset($_SESSION['logged_in']) || isset($_SESSION['email'])) {
         return validateRegularUser();
     }
@@ -31,6 +34,45 @@ function validateUserSession() {
         'userName' => '',
         'userRole' => ''
     ];
+}
+
+function validateCompanyUser() {
+    $servername = "localhost";
+    $username = "root";
+    $password = "";
+    $dbname = "nexttern_db";
+    
+    $company_conn = new mysqli($servername, $username, $password, $dbname);
+    
+    if ($company_conn->connect_error) {
+        return ['isLoggedIn' => false, 'userType' => null, 'userId' => null, 'userName' => '', 'userRole' => ''];
+    }
+    
+    $company_id = $_SESSION['company_id'];
+    $stmt = $company_conn->prepare("SELECT company_id, company_name, industry_type FROM companies WHERE company_id = ? AND status = 'active'");
+    $stmt->bind_param("s", $company_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $company_data = $result->fetch_assoc();
+        $stmt->close();
+        $company_conn->close();
+        
+        return [
+            'isLoggedIn' => true,
+            'userType' => 'company',
+            'userId' => $company_data['company_id'],
+            'userName' => $company_data['company_name'],
+            'userRole' => 'company',
+            'industryType' => $company_data['industry_type'] ?? ''
+        ];
+    }
+    
+    $stmt->close();
+    $company_conn->close();
+    
+    return ['isLoggedIn' => false, 'userType' => null, 'userId' => null, 'userName' => '', 'userRole' => ''];
 }
 
 function validateRegularUser() {
@@ -47,7 +89,6 @@ function validateRegularUser() {
     
     $user_data = null;
     
-    // Check users table first
     if (isset($_SESSION['user_id'])) {
         $user_id = $_SESSION['user_id'];
         $stmt = $user_conn->prepare("SELECT id, name, email, profile_picture, role FROM users WHERE id = ?");
@@ -60,7 +101,6 @@ function validateRegularUser() {
         $stmt->close();
     }
     
-    // Check students table if not found in users
     if (!$user_data && isset($_SESSION['email'])) {
         $email = $_SESSION['email'];
         $stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role FROM students WHERE email = ?");
@@ -90,26 +130,17 @@ function validateRegularUser() {
     return ['isLoggedIn' => false, 'userType' => null, 'userId' => null, 'userName' => '', 'userRole' => ''];
 }
 
-// Get user session data
 $sessionData = validateUserSession();
-
-// Extract variables for backward compatibility
 $isLoggedIn = $sessionData['isLoggedIn'];
 $user_id = $sessionData['userId'] ?? '';
 $user_name = $sessionData['userName'] ?? 'User';
 $user_email = $sessionData['userEmail'] ?? '';
 $user_profile_picture = $sessionData['userProfilePicture'] ?? '';
 $user_role = $sessionData['userRole'] ?? 'student';
+$industry_type = $sessionData['industryType'] ?? '';
 
-// Additional user data for existing code compatibility
-$user_phone = '';
-$user_location = '';
-$user_joined = '';
-$user_dob = '';
 $unread_count = 0;
-
-// Get additional user details and unread messages only if user is logged in and not admin
-if ($isLoggedIn && $user_id && $user_role !== 'admin') {
+if ($isLoggedIn && $user_id) {
     $servername = "localhost";
     $username = "root";
     $password = "";
@@ -118,32 +149,14 @@ if ($isLoggedIn && $user_id && $user_role !== 'admin') {
     $user_conn = new mysqli($servername, $username, $password, $dbname);
     
     if (!$user_conn->connect_error) {
-        // Get additional user details
-        if ($user_role === 'student') {
-            $user_stmt = $user_conn->prepare("SELECT contact as phone, '' as location, created_at, dob FROM students WHERE student_id = ?");
-            $user_stmt->bind_param("s", $user_id);
-        } else {
-            $user_stmt = $user_conn->prepare("SELECT phone, location, created_at, dob FROM users WHERE id = ?");
-            $user_stmt->bind_param("i", $user_id);
-        }
-        
-        if (isset($user_stmt)) {
-            $user_stmt->execute();
-            $user_result = $user_stmt->get_result();
-            if ($user_result->num_rows > 0) {
-                $additional_data = $user_result->fetch_assoc();
-                $user_phone = $additional_data['phone'] ?? '';
-                $user_location = $additional_data['location'] ?? '';
-                $user_joined = $additional_data['created_at'] ?? '';
-                $user_dob = $additional_data['dob'] ?? '';
-            }
-            $user_stmt->close();
-        }
-        
-        // Get unread messages count
         if ($user_role === 'student') {
             $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
             $unread_stmt->bind_param("s", $user_id);
+        } elseif ($user_role === 'admin') {
+            $unread_count = 0;
+        } elseif ($user_role === 'company') {
+            // Companies don't have messages in this system yet
+            $unread_count = 0;
         } else {
             $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM user_messages WHERE receiver_id = ? AND is_read = FALSE");
             $unread_stmt->bind_param("i", $user_id);
@@ -152,60 +165,13 @@ if ($isLoggedIn && $user_id && $user_role !== 'admin') {
         if (isset($unread_stmt)) {
             $unread_stmt->execute();
             $unread_result = $unread_stmt->get_result();
-            if ($unread_result) {
-                $unread_data = $unread_result->fetch_assoc();
-                $unread_count = $unread_data['unread_count'] ?? 0;
-            }
+            $unread_count = $unread_result->fetch_assoc()['unread_count'];
             $unread_stmt->close();
         }
-        
         $user_conn->close();
     }
 }
 
-// Continue with your existing contact form handling code...
-// Handle contact form submission
-$form_success = false;
-$form_error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
-    // Database connection for contact form
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "nexttern_db";
-    
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    
-    if ($conn->connect_error) {
-        $form_error = "Database connection failed. Please try again later.";
-    } else {
-        // Sanitize and validate input
-        $name = trim($_POST['name']);
-        $email = trim($_POST['email']);
-        $subject = trim($_POST['subject']);
-        $message = trim($_POST['message']);
-        
-        // Basic validation
-        if (empty($name) || empty($email) || empty($subject) || empty($message)) {
-            $form_error = "All fields are required.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $form_error = "Please enter a valid email address.";
-        } else {
-            // Insert into contact_messages table
-            $stmt = $conn->prepare("INSERT INTO contact_messages (name, email, subject, message, created_at) VALUES (?, ?, ?, ?, NOW())");
-            $stmt->bind_param("ssss", $name, $email, $subject, $message);
-            
-            if ($stmt->execute()) {
-                $form_success = true;
-            } else {
-                $form_error = "Failed to send message. Please try again.";
-            }
-            $stmt->close();
-        }
-        $conn->close();
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1389,7 +1355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
              <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
 <li><a href="course.php" class="nav-link">Internships</a></li>
-                <li><a href="#" class="nav-link">Companies</a></li>
+               
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
                 <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>

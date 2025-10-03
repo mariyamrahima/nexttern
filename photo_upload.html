@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Photo Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        .upload-section.dragover {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+        
+        .photo-container {
+            width: 200px;
+            height: 200px;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin: 20px auto;
+            border-radius: 8px;
+        }
+
+        #studentPhoto {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+        
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .file-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Student Photo Upload</h1>
+    
+    <form id="uploadForm" enctype="multipart/form-data">
+        <div class="upload-section" id="uploadSection">
+            <label for="photoInput">
+                <strong>Select a photo or drag and drop here</strong><br>
+                <small>Supported formats: JPG, JPEG, PNG, GIF (Max: 5MB)</small>
+            </label>
+            <input type="file" name="profile_photo" id="photoInput" accept="image/*" required style="margin-top: 15px;">
+            <input type="hidden" name="student_id" value="123">
+        </div>
+        
+        <div class="preview-container" id="previewContainer">
+            <h3>Preview:</h3>
+            <div class="photo-container">
+                <img id="previewPhoto" alt="Photo Preview">
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+        
+        <button type="submit" id="uploadBtn">Upload Photo</button>
+        <button type="button" id="clearBtn" onclick="clearSelection()" style="display: none;">Clear</button>
+    </form>
+
+    <div class="photo-container">
+        <img id="studentPhoto" src="https://via.placeholder.com/200x200?text=No+Photo" alt="Current Student Photo">
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const photoInput = document.getElementById('photoInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewPhoto = document.getElementById('previewPhoto');
+        const fileInfo = document.getElementById('fileInfo');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const messageElement = document.getElementById('message');
+
+        // File size limit (5MB)
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+        // Drag and drop functionality
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                photoInput.files = files;
+                handleFileSelection();
+            }
+        });
+
+        // File input change event
+        photoInput.addEventListener('change', handleFileSelection);
+
+        function handleFileSelection() {
+            const file = photoInput.files[0];
+            if (!file) return;
+
+            // Validate file
+            if (!validateFile(file)) return;
+
+            // Show preview
+            showPreview(file);
+        }
+
+        function validateFile(file) {
+            // Check file size
+            if (file.size > MAX_FILE_SIZE) {
+                showMessage('Error: File size must be less than 5MB.', 'error');
+                return false;
+            }
+
+            // Check file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('Error: Please select a valid image file (JPG, PNG, or GIF).', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        function showPreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewPhoto.src = e.target.result;
+                previewContainer.style.display = 'block';
+                clearBtn.style.display = 'inline-block';
+                
+                // Show file info
+                fileInfo.innerHTML = `
+                    <strong>File:</strong> ${file.name}<br>
+                    <strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                    <strong>Type:</strong> ${file.type}
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearSelection() {
+            photoInput.value = '';
+            previewContainer.style.display = 'none';
+            clearBtn.style.display = 'none';
+            messageElement.innerHTML = '';
+        }
+
+        function showMessage(message, type) {
+            messageElement.innerHTML = `<div class="message ${type}">${message}</div>`;
+        }
+
+        // Form submission
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(uploadForm);
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            // Simulate upload (replace with actual server endpoint)
+            simulateUpload(formData);
+        });
+
+        // Simulate upload function (replace with actual fetch to your PHP script)
+        function simulateUpload(formData) {
+            setTimeout(() => {
+                // Simulate successful upload
+                const file = photoInput.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('studentPhoto').src = e.target.result;
+                        showMessage('Photo uploaded successfully! 🎉', 'success');
+                        clearSelection();
+                    };
+                    reader.readAsDataURL(file);
+                }
+                
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Photo';
+            }, 1000);
+
+            // Uncomment this for actual server upload:
+            /*
+            fetch('photo_upload.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Photo uploaded successfully! 🎉', 'success');
+                    document.getElementById('studentPhoto').src = data.new_photo_path + '?' + new Date().getTime();
+                    clearSelection();
+                } else {
+                    showMessage('Error: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('An error occurred. Please try again.', 'error');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Photo';
+            });
+            */
+        }
+    </script>
+</body>
+</html>

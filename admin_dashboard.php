@@ -442,21 +442,18 @@ h1, h2, h3, h4, h5, h6 {
     transition: var(--transition);
     flex-shrink: 0;
 }
-
 .nav-link:hover {
-    background: var(--primary-light);
+    background: rgba(255, 255, 255, 0.15);
     transform: translateX(5px);
     color: white;
 }
-
 .sidebar.collapsed .nav-link:hover {
     transform: scale(1.08);
-}
-
-.nav-link.active {
-    background: var(--accent);
-    color: var(--primary-dark);
+}.nav-link.active {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
     transform: translateX(5px);
+    border-left: 3px solid rgba(255, 255, 255, 0.6);
 }
 
 .sidebar.collapsed .nav-link.active {
@@ -1185,7 +1182,6 @@ h1, h2, h3, h4, h5, h6 {
         font-size: 1.5rem;
     }
 }
-
 /* Print Styles */
 @media print {
     .sidebar,
@@ -1229,6 +1225,10 @@ h1, h2, h3, h4, h5, h6 {
 *:focus {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>
 </head>
@@ -1282,10 +1282,13 @@ h1, h2, h3, h4, h5, h6 {
                     <span>Stories</span>
                 </a>
             </div>
-            <a href="?page=payments" class="nav-link <?= ($page === 'payments') ? 'active' : '' ?>">
-    <i class="fas fa-credit-card"></i>
-    <span>Payments</span>
-</a>
+           <div class="nav-section">
+    <h4>Financial</h4>
+    <a href="?page=payments" class="nav-link <?= ($page === 'payments') ? 'active' : '' ?>">
+        <i class="fas fa-credit-card"></i>
+        <span>Payments</span>
+    </a>
+</div>
             <div class="nav-section">
                 <h4>General</h4>
                 <a href="?page=about" class="nav-link <?= ($page === 'about') ? 'active' : '' ?>">
@@ -1298,7 +1301,7 @@ h1, h2, h3, h4, h5, h6 {
                     <span>Contact</span>
                 </a>
                 
-                <a href="admin_logout.php" class="logout-btn" onclick="return confirmLogout()">
+             <a href="javascript:void(0)" class="logout-btn" onclick="showLogoutModal()">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span>
                 </a>
@@ -1453,6 +1456,63 @@ h1, h2, h3, h4, h5, h6 {
         }
         ?>
     </main>
+    <!-- Logout Confirmation Modal -->
+<div id="logoutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+     background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; padding: 2rem; max-width: 450px; width: 90%; 
+         box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; animation: modalSlideIn 0.3s ease-out;">
+        
+        <!-- Header -->
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="width: 50px; height: 50px; border-radius: 12px; 
+                 background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); 
+                 display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3 style="color: var(--primary); margin: 0; font-size: 1.5rem;">Confirm Logout</h3>
+        </div>
+        
+        <!-- Message -->
+        <p style="color: var(--secondary); line-height: 1.6; margin-bottom: 2rem; font-size: 1rem;">
+            Are you sure you want to logout? Your session will be terminated and you'll be redirected to the login page.
+        </p>
+        
+        <!-- Buttons -->
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="closeLogoutModal()" 
+                    style="background: #6c757d; color: white; border: none; padding: 0.8rem 1.5rem; 
+                    border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; 
+                    font-size: 0.95rem; min-width: 100px;">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button onclick="confirmLogout()" 
+                    style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; 
+                    border: none; padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; 
+                    font-weight: 600; transition: all 0.3s ease; font-size: 0.95rem; min-width: 100px;
+                    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);">
+                <i class="fas fa-check"></i> Logout
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+#logoutModal button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+</style>
 <script>
 // Enhanced Sidebar Toggle Functionality for Admin Dashboard
 let sidebarCollapsed = false;
@@ -1585,26 +1645,63 @@ function initializeSidebar() {
         }
     });
 }
-
-// Enhanced confirm logout function
-function confirmLogout() {
-    const confirmed = confirm('Are you sure you want to logout?\n\nYou will be redirected to the login page and your session will be terminated.');
-    if (confirmed) {
-        // Show loading state
-        const logoutBtn = document.querySelector('.logout-btn');
-        if (logoutBtn) {
-            logoutBtn.style.opacity = '0.7';
-            logoutBtn.style.pointerEvents = 'none';
-            
-            // Add visual feedback
-            const icon = logoutBtn.querySelector('i');
-            if (icon) {
-                icon.className = 'fas fa-spinner fa-spin';
-            }
-        }
-    }
-    return confirmed;
+// Show logout modal
+function showLogoutModal() {
+    document.getElementById('logoutModal').style.display = 'flex';
 }
+
+// Close logout modal
+function closeLogoutModal() {
+    document.getElementById('logoutModal').style.display = 'none';
+}
+
+// Confirm logout with form submission
+function confirmLogout() {
+    const modal = document.getElementById('logoutModal');
+    const modalContent = modal.querySelector('div');
+    
+    // Show loading state
+    modalContent.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div style="width: 60px; height: 60px; margin: 0 auto 1rem; 
+                 border: 4px solid rgba(231, 76, 60, 0.2); 
+                 border-top: 4px solid #e74c3c; 
+                 border-radius: 50%; 
+                 animation: spin 1s linear infinite;">
+            </div>
+            <p style="color: var(--secondary); font-weight: 500;">Logging out...</p>
+        </div>
+    `;
+    
+    // Create and submit form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'admin_logout.php';
+    
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'confirm_logout';
+    input.value = 'yes';
+    
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Close modal on outside click
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('logoutModal');
+    if (e.target === modal) {
+        closeLogoutModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeLogoutModal();
+    }
+});
 
 // Function to refresh statistics without page reload
 function refreshStats() {

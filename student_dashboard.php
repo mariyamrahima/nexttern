@@ -1,4 +1,3 @@
-new student dashboard 
 <?php
 $page = $_GET['page'] ?? 'dashboard';
 session_start();
@@ -264,15 +263,32 @@ $student_stories_stmt = $conn->prepare("
 $student_stories_stmt->bind_param("s", $student_id); // Changed to "s" for string consistency
 $student_stories_stmt->execute();
 $student_stories_result = $student_stories_stmt->get_result();
+/// Handle story submission - FIXED VERSION
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_story'])) {
+    $story_title = trim($_POST['story_title']);
+    $story_category = trim($_POST['story_category']);
+    $story_content = trim($_POST['story_content']);
+    $feedback_rating = (int)$_POST['feedback_rating'];
+    
+    // Validate inputs
+    if (empty($story_title) || empty($story_category) || empty($story_content)) {
+        $error_message = "Please fill in all required fields.";
+    } elseif ($feedback_rating < 1 || $feedback_rating > 5) {
+        $error_message = "Please provide a valid rating (1-5 stars).";
+    } else {
+        $story_stmt = $conn->prepare("INSERT INTO stories (story_title, story_category, story_content, feedback_rating, student_id, first_name, last_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
+        $story_stmt->bind_param("sssisss", $story_title, $story_category, $story_content, $feedback_rating, $student_id, $first_name, $last_name);
 
-// Debug: Check if query is working (remove this after testing)
-echo "<!-- DEBUG: Total stories for student $student_id: $total_stories -->";
-if ($total_stories > 0) {
-    echo "<!-- DEBUG: Stories found for this student -->";
-} else {
-    echo "<!-- DEBUG: No stories found for this student -->";
+        if ($story_stmt->execute()) {
+            $_SESSION['success_message'] = "Story submitted successfully! Your submission is under review.";
+            header("Location: " . $_SERVER['PHP_SELF'] . "?page=stories");
+            exit;
+        } else {
+            $error_message = "Error submitting story: " . $story_stmt->error;
+        }
+        $story_stmt->close();
+    }
 }
-
 // Handle mark as read functionality
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_read'])) {
     $message_id = $_POST['message_id'];
@@ -329,15 +345,39 @@ $student_apps_stmt = $conn->prepare("
     SELECT ca.*, 
            c.course_title, 
            c.course_description, 
-           c.company_name
+           c.company_name,
+           c.mode
     FROM course_applications ca 
     JOIN course c ON ca.course_id = c.id 
     WHERE ca.student_id = ? 
     ORDER BY ca.created_at DESC
-");$student_apps_stmt->bind_param("s", $student_id);
+");
+$student_apps_stmt->bind_param("s", $student_id);
 $student_apps_stmt->execute();
 $student_apps_result = $student_apps_stmt->get_result();
 
+// NEW: Fetch course notifications for online courses the student has applied to
+$course_notifications_stmt = $conn->prepare("
+    SELECT 
+        cn.*,
+        c.course_title,
+        c.company_name,
+        ca.application_status
+    FROM course_notifications cn
+    JOIN course c ON cn.course_id = c.id
+    JOIN course_applications ca ON ca.course_id = c.id
+    WHERE ca.student_id = ? 
+    AND c.mode = 'online'
+    AND cn.notification_type = 'online_meeting'
+    ORDER BY cn.created_at DESC
+    LIMIT 20
+");
+$course_notifications_stmt->bind_param("s", $student_id);
+$course_notifications_stmt->execute();
+$course_notifications_result = $course_notifications_stmt->get_result();
+
+// Get count of course notifications
+$course_notifications_count = $course_notifications_result->num_rows;
 
 // Function to get sender display name
 function getSenderDisplayName($sender_type) {
@@ -441,6 +481,151 @@ $titles = [
             --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Course Notification Styles */
+        .notification-badge {
+            background: linear-gradient(135deg, var(--info), #2563eb);
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            margin-left: 1rem;
+        }
+
+        .course-notification-item {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid var(--info);
+            border-left: 4px solid var(--info);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .course-notification-item:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .notification-course-info h4 {
+            color: var(--primary-dark);
+            margin-bottom: 0.25rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .notification-course-info .company-name {
+            color: var(--slate-600);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .notification-meta {
+            text-align: right;
+        }
+
+        .notification-date {
+            font-size: 0.8rem;
+            color: var(--slate-500);
+            margin-bottom: 0.5rem;
+        }
+
+        .meeting-details {
+            background: white;
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .meeting-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .meeting-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .meeting-detail i {
+            color: var(--info);
+            width: 16px;
+        }
+
+        .meeting-link {
+            background: var(--info);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: var(--transition);
+            margin-top: 1rem;
+        }
+
+        .meeting-link:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+            color: white;
+            text-decoration: none;
+        }
+
+        .additional-notes {
+            background: var(--slate-50);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 3px solid var(--accent);
+        }
+
+        .notification-icon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 40px;
+            height: 40px;
+            background: var(--info);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .empty-notifications {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--slate-500);
+        }
+
+        .empty-notifications i {
+            font-size: 3rem;
+            color: var(--slate-300);
+            margin-bottom: 1rem;
         }
 .profile-photo-section {
     display: flex;
@@ -2583,87 +2768,209 @@ $titles = [
                     </div>
                 </div>
 
-              <!-- Enhanced Applications Section HTML -->
-<div id="applications" class="content-section <?php echo ($page === 'applications') ? 'active' : ''; ?>">
-    <div class="content-card">
-        <div class="card-header">
-            <div class="card-title">
-                <i class="fas fa-file-alt"></i>
-                My Applications
-            </div>
-        </div>
-        <div class="card-body">
-            <?php if (!empty($error_message) && $page === 'applications'): ?>
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <?php echo $error_message; ?>
-                </div>
-            <?php elseif (!empty($success_message) && $page === 'applications'): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i>
-                    <?php echo $success_message; ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($total_applications > 0): ?>
-                <?php while ($app = $student_apps_result->fetch_assoc()): 
-                    $formatted_date = date('M j, Y g:i A', strtotime($app['created_at']));
-                    $learning_objective_display = str_replace('_', ' ', ucwords($app['learning_objective'], '_'));
-                ?>
-                    <div class="application-item">
-                        <div class="application-header">
-                            <div class="application-course">
-                                <h4><?php echo htmlspecialchars($app['course_title']); ?></h4>
-                                
-                                <!-- Company Information -->
-                                <?php if (!empty($app['company_name'])): ?>
-                                <div style="margin-top: 0.5rem; display: flex; align-items: center; color: var(--slate-600);">
-                                    <i class="fas fa-building" style="margin-right: 0.5rem; color: var(--primary);"></i>
-                                    <span style="font-weight: 500;"><?php echo htmlspecialchars($app['company_name']); ?></span>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="application-meta">
-                                <div class="application-date">Applied: <?php echo $formatted_date; ?></div>
-                                <?php echo getStatusBadge($app['application_status']); ?>
-                            </div>
-                        </div>
-
-                        <!-- Course Description -->
-                        <?php if (!empty($app['course_description'])): ?>
-                            <div style="margin-bottom: 1rem; padding: 1rem; background: var(--slate-50); border-radius: var(--border-radius); border-left: 4px solid var(--primary);">
-                                <h5 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-info-circle"></i>
-                                    Course Description
-                                </h5>
-                                <p style="color: var(--slate-600); line-height: 1.6; margin: 0;">
-                                    <?php echo nl2br(htmlspecialchars($app['course_description'])); ?>
-                                </p>
-                            </div>
-                        <?php endif; ?>
-
-                        <div class="message-content">
-                            <strong>Learning Objective:</strong> <?php echo htmlspecialchars($learning_objective_display); ?>
-                        </div>
-
-                        <?php if (!empty($app['cover_letter'])): ?>
-                            <div class="message-content">
-                                <strong>Cover Letter:</strong><br>
-                                <?php echo nl2br(htmlspecialchars($app['cover_letter'])); ?>
-                            </div>
+           <!-- Applications Section with Course Notifications -->
+        <div id="applications" class="content-section <?php echo ($page === 'applications') ? 'active' : ''; ?>">
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-file-alt"></i>
+                        My Applications
+                        
+                        <?php if ($course_notifications_count > 0): ?>
+                            <span class="notification-badge">
+                                <i class="fas fa-video"></i>
+                                <?php echo $course_notifications_count; ?> Course Updates
+                            </span>
                         <?php endif; ?>
                     </div>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-file-alt"></i>
-                    <h3>No Applications Yet</h3>
-                    <p>You haven't submitted any course applications yet. Your application history will appear here once you start applying for courses!</p>
                 </div>
-            <?php endif; ?>
+                <div class="card-body">
+                    <?php if (!empty($error_message) && $page === 'applications'): ?>
+                        <div class="alert alert-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <?php echo $error_message; ?>
+                        </div>
+                    <?php elseif (!empty($success_message) && $page === 'applications'): ?>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <?php echo $success_message; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Course Notifications Section -->
+                    <?php if ($course_notifications_count > 0): ?>
+                        <div style="margin-bottom: 3rem;">
+                            <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-video"></i>
+                                Online Course Meeting Updates
+
+                            </h3>
+                            <h5> Offline / Hybrid mode courses notification will be received via registered email </h5>
+                            <?php while ($notification = $course_notifications_result->fetch_assoc()): 
+                                $meeting_datetime = date('F j, Y \a\t g:i A', strtotime($notification['meeting_datetime']));
+                                $notification_date = date('M j, Y \a\t g:i A', strtotime($notification['created_at']));
+                                $is_upcoming = strtotime($notification['meeting_datetime']) > time();
+                            ?>
+                                <div class="course-notification-item">
+                                    <div class="notification-icon">
+                                        <i class="fas fa-video"></i>
+                                    </div>
+                                    
+                                    <div class="notification-header">
+                                        <div class="notification-course-info">
+                                            <h4>
+                                                <i class="fas fa-graduation-cap"></i>
+                                                <?php echo htmlspecialchars($notification['course_title']); ?>
+                                            </h4>
+                                            <div class="company-name">
+                                                <i class="fas fa-building"></i>
+                                                <?php echo htmlspecialchars($notification['company_name']); ?>
+                                            </div>
+                                        </div>
+                                        <div class="notification-meta">
+                                            <div class="notification-date">
+                                                Sent: <?php echo $notification_date; ?>
+                                            </div>
+                                            <?php echo getStatusBadge($notification['application_status']); ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="meeting-details">
+                                        <h5 style="color: var(--primary-dark); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            Online Meeting Details
+                                            <?php if ($is_upcoming): ?>
+                                                <span style="background: var(--success); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                                                    <i class="fas fa-clock"></i> UPCOMING
+                                                </span>
+                                            <?php else: ?>
+                                                <span style="background: var(--slate-500); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                                                    <i class="fas fa-history"></i> PAST
+                                                </span>
+                                            <?php endif; ?>
+                                        </h5>
+                                        
+                                        <div class="meeting-info">
+                                            <div class="meeting-detail">
+                                                <i class="fas fa-calendar"></i>
+                                                <strong>Date:</strong> <?php echo date('F j, Y', strtotime($notification['meeting_datetime'])); ?>
+                                            </div>
+                                            <div class="meeting-detail">
+                                                <i class="fas fa-clock"></i>
+                                                <strong>Time:</strong> <?php echo date('g:i A', strtotime($notification['meeting_datetime'])); ?>
+                                            </div>
+                                            <div class="meeting-detail">
+                                                <i class="fas fa-users"></i>
+                                                <strong>Notified:</strong> <?php echo ucfirst($notification['notify_status']); ?> students
+                                            </div>
+                                            <div class="meeting-detail">
+                                                <i class="fas fa-paper-plane"></i>
+                                                <strong>Recipients:</strong> <?php echo $notification['sent_count']; ?> student(s)
+                                            </div>
+                                        </div>
+                                        
+                                        <a href="<?php echo htmlspecialchars($notification['meeting_link']); ?>" target="_blank" class="meeting-link">
+                                            <i class="fas fa-external-link-alt"></i>
+                                            Join Meeting
+                                        </a>
+                                        
+                                        <?php if (!empty($notification['additional_notes'])): ?>
+                                            <div class="additional-notes">
+                                                <h6 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                                    <i class="fas fa-sticky-note"></i>
+                                                    Additional Information:
+                                                </h6>
+                                                <p style="margin: 0; color: var(--slate-700); line-height: 1.5;">
+                                                    <?php echo nl2br(htmlspecialchars($notification['additional_notes'])); ?>
+                                                </p>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endwhile; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Original Applications List -->
+                    <?php if ($total_applications > 0): ?>
+                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-list"></i>
+                            Application History
+                            
+                        </h3>
+                        
+                        <?php
+                        // Reset the result pointer to iterate through applications again
+                        $student_apps_stmt->execute();
+                        $student_apps_result = $student_apps_stmt->get_result();
+                        
+                        while ($app = $student_apps_result->fetch_assoc()): 
+                            $formatted_date = date('M j, Y g:i A', strtotime($app['created_at']));
+                            $learning_objective_display = str_replace('_', ' ', ucwords($app['learning_objective'], '_'));
+                        ?>
+                            <div class="application-item">
+                                <div class="application-header">
+                                    <div class="application-course">
+                                        <h4>
+                                            <?php echo htmlspecialchars($app['course_title']); ?>
+                                            <?php if (strtolower($app['mode']) === 'online'): ?>
+                                                <span class="notification-badge" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                                                    <i class="fas fa-video"></i>
+                                                    ONLINE
+                                                </span>
+                                            <?php endif; ?>
+                                        </h4>
+                                        
+                                        <!-- Company Information -->
+                                        <?php if (!empty($app['company_name'])): ?>
+                                        <div style="margin-top: 0.5rem; display: flex; align-items: center; color: var(--slate-600);">
+                                            <i class="fas fa-building" style="margin-right: 0.5rem; color: var(--primary);"></i>
+                                            <span style="font-weight: 500;"><?php echo htmlspecialchars($app['company_name']); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="application-meta">
+                                        <div class="application-date">Applied: <?php echo $formatted_date; ?></div>
+                                        <?php echo getStatusBadge($app['application_status']); ?>
+                                    </div>
+                                </div>
+
+                                <!-- Course Description -->
+                                <?php if (!empty($app['course_description'])): ?>
+                                    <div style="margin-bottom: 1rem; padding: 1rem; background: var(--slate-50); border-radius: var(--border-radius); border-left: 4px solid var(--primary);">
+                                        <h5 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                            <i class="fas fa-info-circle"></i>
+                                            Course Description
+                                        </h5>
+                                        <p style="color: var(--slate-600); line-height: 1.6; margin: 0;">
+                                            <?php echo nl2br(htmlspecialchars($app['course_description'])); ?>
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="message-content">
+                                    <strong>Learning Objective:</strong> <?php echo htmlspecialchars($learning_objective_display); ?>
+                                </div>
+
+                                <?php if (!empty($app['cover_letter'])): ?>
+                                    <div class="message-content">
+                                        <strong>Cover Letter:</strong><br>
+                                        <?php echo nl2br(htmlspecialchars($app['cover_letter'])); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>No Applications Yet</h3>
+                            <p>You haven't submitted any course applications yet. Your application history will appear here once you start applying for courses!</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
+
 
 <!-- Saved Courses Section -->
 <div id="saved_courses" class="content-section <?php echo ($page === 'saved_courses') ? 'active' : ''; ?>">
@@ -3258,48 +3565,51 @@ function showNotification(message, type = 'info') {
             });
         });
 
-       // Add this JavaScript for the rating stars functionality
+     // Fixed rating stars functionality
 document.querySelectorAll('.rating-stars').forEach(ratingContainer => {
-    const stars = ratingContainer.querySelectorAll('label');
+    const labels = ratingContainer.querySelectorAll('label');
     const inputs = ratingContainer.querySelectorAll('input[type="radio"]');
     
-    stars.forEach((star, index) => {
-        star.addEventListener('mouseover', () => {
-            stars.forEach((s, i) => {
-                if (i <= index) {
-                    s.style.color = 'var(--warning)';
-                } else {
-                    s.style.color = 'var(--slate-300)';
-                }
-            });
-        });
-        
-        star.addEventListener('click', () => {
-            inputs[index].checked = true;
-            updateStarDisplay(ratingContainer, index);
+    // Add click handlers
+    inputs.forEach((input, index) => {
+        input.addEventListener('change', function() {
+            updateStarDisplay(ratingContainer, this.value);
         });
     });
     
-    ratingContainer.addEventListener('mouseleave', () => {
-        const checkedInput = ratingContainer.querySelector('input[type="radio"]:checked');
+    // Add hover handlers
+    labels.forEach((label) => {
+        label.addEventListener('mouseenter', function() {
+            const value = this.previousElementSibling.value;
+            highlightStars(ratingContainer, value);
+        });
+    });
+    
+    // Reset on mouse leave
+    ratingContainer.addEventListener('mouseleave', function() {
+        const checkedInput = this.querySelector('input[type="radio"]:checked');
         if (checkedInput) {
-            const checkedIndex = Array.from(inputs).indexOf(checkedInput);
-            updateStarDisplay(ratingContainer, checkedIndex);
+            updateStarDisplay(ratingContainer, checkedInput.value);
         } else {
-            stars.forEach(s => s.style.color = 'var(--slate-300)');
+            highlightStars(ratingContainer, 0);
         }
     });
 });
 
-function updateStarDisplay(container, selectedIndex) {
-    const stars = container.querySelectorAll('label');
-    stars.forEach((star, index) => {
-        if (index <= selectedIndex) {
-            star.style.color = 'var(--warning)';
+function highlightStars(container, rating) {
+    const labels = container.querySelectorAll('label');
+    labels.forEach((label) => {
+        const input = label.previousElementSibling;
+        if (parseInt(input.value) <= parseInt(rating)) {
+            label.style.color = 'var(--warning)';
         } else {
-            star.style.color = 'var(--slate-300)';
+            label.style.color = 'var(--slate-300)';
         }
     });
+}
+
+function updateStarDisplay(container, rating) {
+    highlightStars(container, rating);
 }
         // File upload functionality
         function setupFileUpload(uploadAreaId, inputId) {
@@ -3879,7 +4189,7 @@ function unsaveCourse(courseId) {
 }
 
 function viewCourseDetail(courseId) {
-    window.open('internship_detail.php?id=' + courseId, '_blank');
+    window.open('course_detail.php?id=' + courseId, '_blank');
 }
 
 // Load saved courses when the section becomes active
@@ -4068,6 +4378,112 @@ document.addEventListener('touchend', function(e) {
     
     touchStartX = null;
 });
+// Enhanced showSection function that handles page refresh
+        function showSection(sectionId, linkElement) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Remove active class from all navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Show the selected section and add active class to the link
+            document.getElementById(sectionId).classList.add('active');
+            linkElement.classList.add('active');
+            
+            // Update page title in header
+            const titles = {
+                'dashboard': 'Dashboard',
+                'profile': 'My Profile', 
+                'messages': 'Messages',
+                'applications': 'Applications',
+                'stories': 'Success Stories',
+                'saved_courses': 'My Saved Courses'
+            };
+            document.querySelector('.header-title').textContent = titles[sectionId];
+            
+            // Update URL without reloading
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?page=" + sectionId;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+
+            // Close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            }
+        }
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function(event) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const page = urlParams.get('page') || 'dashboard';
+            const linkElement = document.querySelector(`.nav-link[onclick*="${page}"]`);
+            if (linkElement) {
+                showSection(page, linkElement);
+            }
+        });
+
+        // Initialize current page on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentPage = urlParams.get('page') || 'dashboard';
+            const linkElement = document.querySelector(`.nav-link[onclick*="${currentPage}"]`);
+            if (linkElement) {
+                showSection(currentPage, linkElement);
+            }
+
+            // Add animation to notification items
+            const notifications = document.querySelectorAll('.course-notification-item');
+            notifications.forEach((notification, index) => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    notification.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    notification.style.opacity = '1';
+                    notification.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+
+            // Add click animation to meeting links
+            document.querySelectorAll('.meeting-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Create ripple effect
+                    const ripple = document.createElement('span');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        border-radius: 50%;
+                        background: rgba(255,255,255,0.3);
+                        transform: scale(0);
+                        animation: ripple 0.6s linear;
+                        pointer-events: none;
+                    `;
+                    
+                    this.style.position = 'relative';
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => ripple.remove(), 600);
+                });
+            });
+        });
+
+        // Add CSS for ripple animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
     </script>
 </body>
 </html>

@@ -1,14 +1,13 @@
 <?php
 // Start session to check login status
 session_start();
-// Prevent caching for proper session handling
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-// Enhanced session validation function (same as course.php)
+// Enhanced session validation function with company support
 function validateUserSession() {
-    // Check for admin session first
+    // Check admin session
     if (isset($_SESSION['admin_id'])) {
         return [
             'isLoggedIn' => true,
@@ -19,7 +18,12 @@ function validateUserSession() {
         ];
     }
     
-    // Check for regular user session
+    // Check company session
+    if (isset($_SESSION['company_id'])) {
+        return validateCompanyUser();
+    }
+    
+    // Check student/regular user session
     if (isset($_SESSION['user_id']) || isset($_SESSION['logged_in']) || isset($_SESSION['email'])) {
         return validateRegularUser();
     }
@@ -31,6 +35,45 @@ function validateUserSession() {
         'userName' => '',
         'userRole' => ''
     ];
+}
+
+function validateCompanyUser() {
+    $servername = "localhost";
+    $username = "root";
+    $password = "";
+    $dbname = "nexttern_db";
+    
+    $company_conn = new mysqli($servername, $username, $password, $dbname);
+    
+    if ($company_conn->connect_error) {
+        return ['isLoggedIn' => false, 'userType' => null, 'userId' => null, 'userName' => '', 'userRole' => ''];
+    }
+    
+    $company_id = $_SESSION['company_id'];
+    $stmt = $company_conn->prepare("SELECT company_id, company_name, industry_type FROM companies WHERE company_id = ? AND status = 'active'");
+    $stmt->bind_param("s", $company_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $company_data = $result->fetch_assoc();
+        $stmt->close();
+        $company_conn->close();
+        
+        return [
+            'isLoggedIn' => true,
+            'userType' => 'company',
+            'userId' => $company_data['company_id'],
+            'userName' => $company_data['company_name'],
+            'userRole' => 'company',
+            'industryType' => $company_data['industry_type'] ?? ''
+        ];
+    }
+    
+    $stmt->close();
+    $company_conn->close();
+    
+    return ['isLoggedIn' => false, 'userType' => null, 'userId' => null, 'userName' => '', 'userRole' => ''];
 }
 
 function validateRegularUser() {
@@ -47,7 +90,6 @@ function validateRegularUser() {
     
     $user_data = null;
     
-    // Check users table first
     if (isset($_SESSION['user_id'])) {
         $user_id = $_SESSION['user_id'];
         $stmt = $user_conn->prepare("SELECT id, name, email, profile_picture, role FROM users WHERE id = ?");
@@ -60,7 +102,6 @@ function validateRegularUser() {
         $stmt->close();
     }
     
-    // Check students table if not found in users
     if (!$user_data && isset($_SESSION['email'])) {
         $email = $_SESSION['email'];
         $stmt = $user_conn->prepare("SELECT student_id as id, CONCAT(first_name, ' ', last_name) as name, email, profile_photo as profile_picture, 'student' as role FROM students WHERE email = ?");
@@ -92,24 +133,23 @@ function validateRegularUser() {
 
 // Get user session data
 $sessionData = validateUserSession();
-
-// Extract variables for backward compatibility
 $isLoggedIn = $sessionData['isLoggedIn'];
 $user_id = $sessionData['userId'] ?? '';
 $user_name = $sessionData['userName'] ?? 'User';
 $user_email = $sessionData['userEmail'] ?? '';
 $user_profile_picture = $sessionData['userProfilePicture'] ?? '';
 $user_role = $sessionData['userRole'] ?? 'student';
+$industry_type = $sessionData['industryType'] ?? '';
 
-// Additional user data for existing code compatibility
+// Additional user data
 $user_phone = '';
 $user_location = '';
 $user_joined = '';
 $user_dob = '';
 $unread_count = 0;
 
-// Get additional user details and unread messages only if user is logged in and not admin
-if ($isLoggedIn && $user_id && $user_role !== 'admin') {
+// Get additional details and unread messages
+if ($isLoggedIn && $user_id) {
     $servername = "localhost";
     $username = "root";
     $password = "";
@@ -122,7 +162,11 @@ if ($isLoggedIn && $user_id && $user_role !== 'admin') {
         if ($user_role === 'student') {
             $user_stmt = $user_conn->prepare("SELECT contact as phone, '' as location, created_at, dob FROM students WHERE student_id = ?");
             $user_stmt->bind_param("s", $user_id);
-        } else {
+        } elseif ($user_role === 'company') {
+            // Companies don't have additional details in this system
+            $user_phone = '';
+            $user_location = '';
+        } elseif ($user_role !== 'admin') {
             $user_stmt = $user_conn->prepare("SELECT phone, location, created_at, dob FROM users WHERE id = ?");
             $user_stmt->bind_param("i", $user_id);
         }
@@ -144,6 +188,11 @@ if ($isLoggedIn && $user_id && $user_role !== 'admin') {
         if ($user_role === 'student') {
             $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
             $unread_stmt->bind_param("s", $user_id);
+        } elseif ($user_role === 'admin') {
+            $unread_count = 0;
+        } elseif ($user_role === 'company') {
+            // Companies don't have messages yet
+            $unread_count = 0;
         } else {
             $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM user_messages WHERE receiver_id = ? AND is_read = FALSE");
             $unread_stmt->bind_param("i", $user_id);
@@ -152,10 +201,7 @@ if ($isLoggedIn && $user_id && $user_role !== 'admin') {
         if (isset($unread_stmt)) {
             $unread_stmt->execute();
             $unread_result = $unread_stmt->get_result();
-            if ($unread_result) {
-                $unread_data = $unread_result->fetch_assoc();
-                $unread_count = $unread_data['unread_count'] ?? 0;
-            }
+            $unread_count = $unread_result->fetch_assoc()['unread_count'];
             $unread_stmt->close();
         }
         
@@ -175,14 +221,14 @@ function redirectToDashboard($userRole) {
             return 'student_dashboard.php';
     }
 }
-// Handle AJAX form submission for course applications
+
+// Handle AJAX form submission for course applications (ONLY FOR STUDENTS)
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['is_ajax'])) {
     header('Content-Type: application/json');
 
-    // Validate user session first
     $sessionData = validateUserSession();
-    if (!$sessionData['isLoggedIn']) {
-        echo json_encode(['status' => 'error', 'message' => "Please log in to apply for courses."]);
+    if (!$sessionData['isLoggedIn'] || $sessionData['userRole'] !== 'student') {
+        echo json_encode(['status' => 'error', 'message' => "Only students can apply for courses."]);
         exit();
     }
 
@@ -197,7 +243,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['is_ajax'])) {
         exit();
     }
 
-    // Get and sanitize form data
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : null;
     $name = isset($_POST['name']) ? trim($conn->real_escape_string($_POST['name'])) : '';
     $email = isset($_POST['email']) ? trim($conn->real_escape_string($_POST['email'])) : '';
@@ -206,21 +251,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['is_ajax'])) {
     $motivation = isset($_POST['motivation']) ? trim($conn->real_escape_string($_POST['motivation'])) : '';
     $user_id = $sessionData['userId'];
 
-    // Validate required fields
     if (empty($course_id) || empty($name) || empty($email) || empty($learning_objective)) {
         echo json_encode(['status' => 'error', 'message' => "Please fill in all required fields."]);
         $conn->close();
         exit();
     }
 
-    // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         echo json_encode(['status' => 'error', 'message' => "Please enter a valid email address."]);
         $conn->close();
         exit();
     }
 
-    // Validate learning_objective against database enum values
     $valid_objectives = [
         'job_preparation', 'interview_skills', 'certification', 'skill_enhancement',
         'career_switch', 'academic_project', 'personal_interest', 'startup_preparation'
@@ -232,7 +274,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['is_ajax'])) {
         exit();
     }
 
-    // Check if user already applied for this course
     $check_sql = "SELECT id FROM course_applications WHERE course_id = ? AND email = ?";
     $check_stmt = $conn->prepare($check_sql);
     $check_stmt->bind_param("is", $course_id, $email);
@@ -240,33 +281,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['is_ajax'])) {
     $check_result = $check_stmt->get_result();
     
     if ($check_result->num_rows > 0) {
-        echo json_encode(['status' => 'error', 'message' => "You have already applied for this course. Please check your email for updates."]);
+        echo json_encode(['status' => 'error', 'message' => "You have already applied for this course."]);
         $check_stmt->close();
         $conn->close();
         exit();
     }
     $check_stmt->close();
 
-    // Use prepared statement to insert into course_applications table
-    // Note: 'motivation' field is mapped to 'cover_letter' in database
     $sql = "INSERT INTO course_applications (
         student_id, course_id, applicant_name, email, phone, learning_objective, 
         cover_letter, application_status
     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')";
     
     $stmt = $conn->prepare($sql);
-
-    if ($stmt === false) {
-        echo json_encode(['status' => 'error', 'message' => "Error preparing statement: " . $conn->error]);
-        $conn->close();
-        exit();
-    }
-
-    // Bind parameters - note the correct order and types
     $stmt->bind_param("sisssss", $user_id, $course_id, $name, $email, $phone, $learning_objective, $motivation);
 
     if ($stmt->execute()) {
-        echo json_encode(['status' => 'success', 'message' => "Successfully applied for the course! You will receive a confirmation email shortly. The company will review your application and contact you soon."]);
+        echo json_encode(['status' => 'success', 'message' => "Successfully applied for the course!"]);
     } else {
         echo json_encode(['status' => 'error', 'message' => "Error processing application: " . $stmt->error]);
     }
@@ -287,13 +318,11 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get the course ID from the URL
 $course_id = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : null;
 $course_data = null;
 $error_message = null;
 
 if ($course_id) {
-    // Prepare and execute a query to fetch the course details from course table
     $sql = "SELECT * FROM course WHERE id = ? AND course_status = 'Active'";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $course_id);
@@ -310,7 +339,6 @@ if ($course_id) {
     $error_message = "No course ID specified.";
 }
 
-// Function to format price display
 function formatPrice($priceType, $priceAmount) {
     if ($priceType === 'free' || $priceType === 'Free' || $priceAmount == '0.00') {
         return 'Free';
@@ -318,7 +346,6 @@ function formatPrice($priceType, $priceAmount) {
     return '₹' . number_format($priceAmount, 0);
 }
 
-// Function to get enrollment stats (using database data when available)
 function getEnrollmentStats($courseData) {
     return [
         'students_trained' => $courseData['students_trained'] ?: '5,000+',
@@ -328,18 +355,10 @@ function getEnrollmentStats($courseData) {
     ];
 }
 
-// Function to parse skills taught
 function parseSkillsTaught($skillsString) {
-    if (empty($skillsString)) {
-        return [
-            'technical' => [],
-            'professional' => []
-        ];
-    }
+    if (empty($skillsString)) return ['technical' => [], 'professional' => []];
     
     $skills = ['technical' => [], 'professional' => []];
-    
-    // Split by | for different categories
     $categories = explode('|', $skillsString);
     
     foreach ($categories as $category) {
@@ -362,11 +381,8 @@ function parseSkillsTaught($skillsString) {
     return $skills;
 }
 
-// Function to parse what you will learn
 function parseWhatYouWillLearn($learningString) {
-    if (empty($learningString)) {
-        return [];
-    }
+    if (empty($learningString)) return [];
     
     $items = [];
     $parts = explode('|', $learningString);
@@ -381,18 +397,15 @@ function parseWhatYouWillLearn($learningString) {
             $description = trim(substr($part, $colonPos + 1));
             $items[] = ['title' => $title, 'description' => $description];
         } else {
-            $items[] = ['title' => $part, 'description' => 'Master the fundamentals and advanced concepts in this area.'];
+            $items[] = ['title' => $part, 'description' => 'Master the fundamentals and advanced concepts.'];
         }
     }
     
     return $items;
 }
 
-// Function to parse program structure
 function parseProgramStructure($structureString) {
-    if (empty($structureString)) {
-        return [];
-    }
+    if (empty($structureString)) return [];
     
     $phases = [];
     $parts = explode('|', $structureString);
@@ -406,19 +419,15 @@ function parseProgramStructure($structureString) {
             $title = trim(substr($part, 0, $colonPos));
             $description = trim(substr($part, $colonPos + 1));
         } else {
-            $title = "Phase " . ($index + 1);
-            $description = $part;
+            $title = $part;
+            $description = '';
         }
         
-        // Extract week information from title if present
-        $weekLabel = "Week " . (($index * 3) + 1) . "-" . (($index * 3) + 3);
-        if (preg_match('/week\s+(\d+(?:-\d+)?)/i', $title, $matches)) {
-            $weekLabel = "Week " . $matches[1];
-            $title = trim(preg_replace('/week\s+\d+(?:-\d+)?\s*/i', '', $title));
-        }
+        $phaseLabel = "Phase " . ($index + 1);
+        $title = preg_replace('/^weeks?\s+\d+(-\d+)?\s*/i', '', $title);
         
         $phases[] = [
-            'week_label' => $weekLabel,
+            'week_label' => $phaseLabel,
             'title' => $title,
             'description' => $description
         ];
@@ -427,11 +436,8 @@ function parseProgramStructure($structureString) {
     return $phases;
 }
 
-// Function to parse prerequisites
 function parsePrerequisites($prereqString) {
-    if (empty($prereqString)) {
-        return [];
-    }
+    if (empty($prereqString)) return [];
     
     $prereqs = [];
     $parts = explode('|', $prereqString);
@@ -455,7 +461,7 @@ function parsePrerequisites($prereqString) {
     return $prereqs;
 }
 
-$conn->close();
+$conn->close()
 ?>
 
 <!DOCTYPE html>
@@ -586,99 +592,111 @@ $conn->close();
             gap: 1rem;
         }
 
-        /* Profile Navigation */
-        .nav-profile {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+      
+/* Enhanced Profile Navigation with Photo Support */
+.nav-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 
-        .profile-trigger {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 25px;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            color: var(--primary);
-            font-weight: 500;
-            box-shadow: var(--shadow-md);
-        }
+.profile-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 25px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    color: var(--primary);
+    font-weight: 500;
+    box-shadow: var(--shadow-light);
+    border: none;
+    position: relative;
+}
 
-        .profile-trigger:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-lg);
-        }
+.profile-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    background: rgba(255, 255, 255, 0.4);
+}
 
-        .profile-avatar-container {
-            position: relative;
-        }
+.profile-avatar-container {
+    position: relative;
+}
 
-        .profile-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--primary-light);
-            transition: var(--transition);
-        }
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-light);
+    transition: var(--transition);
+}
 
-        .profile-avatar.default {
-            background: var(--gradient-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 1rem;
-            font-family: 'Poppins', sans-serif;
-        }
+.profile-avatar.default {
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+}
 
-        .profile-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.1rem;
-        }
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+}
 
-        .profile-name {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-            color: var(--primary-dark);
-            font-size: 0.9rem;
-            line-height: 1.2;
-        }
+.profile-name {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    color: var(--primary-dark);
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
 
-        .profile-id {
-            font-family: 'Roboto', sans-serif;
-            font-weight: 400;
-            color: var(--text-secondary);
-            font-size: 0.75rem;
-            line-height: 1;
-        }
+.profile-id {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1;
+}
 
-        .message-badge {
-            background: var(--danger);
-            color: white;
-            border-radius: 50%;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.7rem;
-            font-weight: bold;
-            min-width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            top: -5px;
-            right: -5px;
-        }
+.message-badge {
+    background: var(--danger);
+    color: white;
+    border-radius: 50%;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: bold;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
 
         /* Standard Buttons */
         .btn {
@@ -1161,14 +1179,14 @@ $conn->close();
             color: var(--white);
             font-size: 1.25rem;
         }
-
-        /* Sidebar */
-        .sidebar {
+.sidebar {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
+            position: sticky;
+            top: 100px;
+            align-self: flex-start;
         }
-
         .sidebar-card {
             background: var(--white);
             border-radius: 12px;
@@ -1457,8 +1475,8 @@ $conn->close();
             
             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
-                <li><a href="internship.php" class="nav-link">Internships</a></li>
-                <li><a href="course.php" class="nav-link active">Courses</a></li>
+                <li><a href="course.php" class="nav-link">Internships</a></li>
+        
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
                 <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>
@@ -1613,54 +1631,7 @@ $conn->close();
                     </section>
                     <?php endif; ?>
 
-                    <?php 
-                    $skills = parseSkillsTaught($course_data['skills_taught']);
-                    if (!empty($skills['technical']) || !empty($skills['professional'])): 
-                    ?>
-                    <!-- Skills Taught Section -->
-                    <section class="skills-section">
-                        <h2 class="section-title">
-                            <i class="fas fa-tools"></i>
-                            Skills You'll Master
-                        </h2>
-                        
-                        <div class="skills-categories">
-                            <?php if (!empty($skills['technical'])): ?>
-                            <div class="skills-category">
-                                <h4>
-                                    <i class="fas fa-code"></i>
-                                    Technical Skills
-                                </h4>
-                                <div class="skills-grid">
-                                    <?php foreach ($skills['technical'] as $skill): ?>
-                                    <div class="skill-card technical">
-                                        <i class="fas fa-laptop-code"></i>
-                                        <div class="skill-name"><?php echo htmlspecialchars(trim($skill)); ?></div>
-                                    </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-
-                            <?php if (!empty($skills['professional'])): ?>
-                            <div class="skills-category">
-                                <h4>
-                                    <i class="fas fa-user-tie"></i>
-                                    Professional Skills
-                                </h4>
-                                <div class="skills-grid">
-                                    <?php foreach ($skills['professional'] as $skill): ?>
-                                    <div class="skill-card professional">
-                                        <i class="fas fa-handshake"></i>
-                                        <div class="skill-name"><?php echo htmlspecialchars(trim($skill)); ?></div>
-                                    </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-                    <?php endif; ?>
+                  
 
                     <?php 
                     $program_phases = parseProgramStructure($course_data['program_structure']);
@@ -1686,7 +1657,7 @@ $conn->close();
                         </div>
                     </section>
                     <?php else: ?>
-                    <!-- Default Program Structure -->
+ <!-- Default Program Structure -->
                     <section class="program-structure">
                         <h2 class="section-title">
                             <i class="fas fa-list-check"></i>
@@ -1695,7 +1666,7 @@ $conn->close();
                         
                         <div class="program-phases">
                             <div class="phase-card">
-                                <div class="phase-weeks">Week 1-3</div>
+                                <div class="phase-weeks">Phase 1</div>
                                 <div class="phase-content">
                                     <h4>Foundation Phase</h4>
                                     <p>Introduction to core concepts, basic principles, and fundamental skills.</p>
@@ -1703,7 +1674,7 @@ $conn->close();
                             </div>
                             
                             <div class="phase-card">
-                                <div class="phase-weeks">Week 4-6</div>
+                                <div class="phase-weeks">Phase 2</div>
                                 <div class="phase-content">
                                     <h4>Skill Development</h4>
                                     <p>Hands-on practice with real-world projects and advanced techniques.</p>
@@ -1711,7 +1682,7 @@ $conn->close();
                             </div>
                             
                             <div class="phase-card">
-                                <div class="phase-weeks">Week 7-9</div>
+                                <div class="phase-weeks">Phase 3</div>
                                 <div class="phase-content">
                                     <h4>Advanced Applications</h4>
                                     <p>Complex problem-solving, industry best practices, and specialization.</p>
@@ -1719,7 +1690,7 @@ $conn->close();
                             </div>
                             
                             <div class="phase-card">
-                                <div class="phase-weeks">Week 10-12</div>
+                                <div class="phase-weeks">Phase 4</div>
                                 <div class="phase-content">
                                     <h4>Final Projects</h4>
                                     <p>Complete portfolio projects, certification preparation, and career guidance.</p>
@@ -1728,7 +1699,6 @@ $conn->close();
                         </div>
                     </section>
                     <?php endif; ?>
-
                     <?php 
                     $prerequisites = parsePrerequisites($course_data['prerequisites']);
                     if (!empty($prerequisites)): 
@@ -1758,192 +1728,214 @@ $conn->close();
                         </div>
                     </section>
                     <?php endif; ?>
-
-                    <?php 
-                    // Parse skills taught as comma-separated values
+                   <?php 
+                    // Simple comma-separated skills section
                     if (!empty($course_data['skills_taught'])): 
-                        $skills_list = array_map('trim', explode(',', $course_data['skills_taught']));
+                        $skills_list = array_filter(array_map('trim', explode(',', $course_data['skills_taught'])));
+                        if (!empty($skills_list)):
                     ?>
-                    <!-- Skills Taught -->
+                    <!-- Skills Taught Section -->
                     <section class="skills-taught-section">
                         <h2 class="section-title">
                             <i class="fas fa-tools"></i>
-                            Skills Taught
+                            Skills You'll Master
                         </h2>
                         
                         <div class="skills-taught-grid">
                             <?php foreach ($skills_list as $skill): ?>
-                            <?php if (!empty($skill)): ?>
                             <div class="skill-taught-card">
                                 <i class="fas fa-check-circle"></i>
                                 <span><?php echo htmlspecialchars($skill); ?></span>
                             </div>
-                            <?php endif; ?>
                             <?php endforeach; ?>
                         </div>
                     </section>
-                    <?php endif; ?>
-                </div>
-
+                    <?php 
+                        endif;
+                    endif; 
+                    ?>
+                    </div>
                 <!-- Sidebar -->
-                <div class="sidebar">
-                    <?php if ($isLoggedIn): ?>
-                    <!-- Application Form -->
-                    <div class="sidebar-card application-form">
-                        <h3>Apply for This Course</h3>
-                        <p class="application-subtitle">Start your journey in <?php echo htmlspecialchars($course_data['course_category'] ?? 'Technology'); ?> today</p>
-                        
-                        <div id="message_area"></div>
-                        
-                        <form id="enrollmentForm">
-                            <input type="hidden" name="course_id" value="<?php echo htmlspecialchars($course_data['id']); ?>">
-                            
-                            <div class="form-group">
-                                <label class="form-label required" for="name">Full Name</label>
-                                <input type="text" id="name" name="name" class="form-input" 
-                                       value="<?php echo htmlspecialchars($user_name); ?>" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label required" for="email">Email Address</label>
-                                <input type="email" id="email" name="email" class="form-input" 
-                                       value="<?php echo htmlspecialchars($user_email); ?>" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label" for="phone">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" class="form-input" 
-                                       value="<?php echo htmlspecialchars($user_phone); ?>">
-                            </div>
-                            
-                         <div class="form-group">
-    <label class="form-label required" for="learning_objective">Learning Objective</label>
-    <select id="learning_objective" name="learning_objective" class="form-select" required>
-        <option value="">Select your primary goal</option>
-        <option value="job_preparation">Job Preparation</option>
-        <option value="interview_skills">Interview Skills</option>
-        <option value="certification">Professional Certification</option>
-        <option value="skill_enhancement">Skill Enhancement</option>
-        <option value="career_switch">Career Switch</option>
-        <option value="academic_project">Academic Project</option>
-        <option value="personal_interest">Personal Interest</option>
-        <option value="startup_preparation">Startup Preparation</option>
-    </select>
-</div>
-                            
-                            <div class="form-group">
-                                <label class="form-label" for="motivation">Why are you interested?</label>
-                                <textarea id="motivation" name="motivation" class="form-textarea" 
-                                          placeholder="Tell us about your motivation and what you hope to achieve from this course..."></textarea>
-                            </div>
-                            
-                            <button type="submit" id="submit_button" class="btn-submit">
-                                <i class="fas fa-rocket"></i>
-                                Submit Application
-                            </button>
-                        </form>
-                    </div>
-                    <?php else: ?>
-                    <!-- Login Required -->
-                    <div class="sidebar-card">
-                        <div class="login-required">
-                            <div class="login-icon">
-                                <i class="fas fa-graduation-cap"></i>
-                            </div>
-                            <h3 style="margin-bottom: 1rem;">Ready to Start Learning?</h3>
-                            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-                                Join thousands of students mastering new skills through our professional courses.
-                            </p>
-                            <a href="login.html" class="btn-login">
-                                <i class="fas fa-sign-in-alt"></i>
-                                Login to Enroll
-                            </a>
-                            <br>
-                            <a href="registerstudent.html" class="btn-register">
-                                New here? Create your free account
-                            </a>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Quick Facts -->
-                    <div class="sidebar-card quick-facts">
-                        <h3>
-                            <i class="fas fa-info-circle"></i>
-                            Quick Facts
-                        </h3>
-                        
-                        <?php if ($course_data['start_date']): ?>
-                        <div class="fact-item">
-                            <span class="fact-label">
-                                <i class="fas fa-calendar-start"></i>
-                                Start Date:
-                            </span>
-                            <span class="fact-value"><?php echo date('M j, Y', strtotime($course_data['start_date'])); ?></span>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <?php if ($course_data['duration']): ?>
-                        <div class="fact-item">
-                            <span class="fact-label">
-                                <i class="fas fa-clock"></i>
-                                Duration:
-                            </span>
-                            <span class="fact-value"><?php echo htmlspecialchars($course_data['duration']); ?></span>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <?php if ($course_data['mode']): ?>
-                        <div class="fact-item">
-                            <span class="fact-label">
-                                <i class="fas fa-desktop"></i>
-                                Format:
-                            </span>
-                            <span class="fact-value"><?php echo htmlspecialchars(ucfirst($course_data['mode'])); ?> <?php echo $course_data['course_format'] ? '+ ' . htmlspecialchars($course_data['course_format']) : '+ Live Sessions'; ?></span>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <?php if ($course_data['certificate_provided']): ?>
-                        <div class="fact-item">
-                            <span class="fact-label">
-                                <i class="fas fa-certificate"></i>
-                                Certificate:
-                            </span>
-                            <span class="fact-value">Industry Recognized</span>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <?php if ($course_data['job_placement_support']): ?>
-                        <div class="fact-item">
-                            <span class="fact-label">
-                                <i class="fas fa-handshake"></i>
-                                Job Support:
-                            </span>
-                            <span class="fact-value">Placement Assistance</span>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
+<div class="sidebar">
+    <?php if ($isLoggedIn && $user_role === 'student'): ?>
+    <!-- Application Form - ONLY FOR STUDENTS -->
+    <div class="sidebar-card application-form">
+        <h3>Apply for This Course</h3>
+        <p class="application-subtitle">Start your journey in <?php echo htmlspecialchars($course_data['course_category'] ?? 'Technology'); ?> today</p>
+        
+        <div id="message_area"></div>
+        
+        <form id="enrollmentForm">
+            <input type="hidden" name="course_id" value="<?php echo htmlspecialchars($course_data['id']); ?>">
+            
+            <div class="form-group">
+                <label class="form-label required" for="name">Full Name</label>
+                <input type="text" id="name" name="name" class="form-input" 
+                       value="<?php echo htmlspecialchars($user_name); ?>" required>
             </div>
-
-        <?php else: ?>
-            <!-- Error State -->
-            <div class="course-header" style="text-align: center;">
-                <div style="width: 120px; height: 120px; border-radius: 50%; background: rgba(231, 76, 60, 0.1); 
-                           display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; 
-                           color: var(--danger); font-size: 3rem;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h1 style="color: var(--danger); margin-bottom: 1rem;"><?php echo htmlspecialchars($error_message); ?></h1>
-                <p style="margin-bottom: 2rem; color: var(--text-secondary);">
-                    Please check the URL and try again, or browse our available courses.
-                </p>
-                <a href="course.php" class="btn-login">
-                    <i class="fas fa-search"></i> Browse All Courses
-                </a>
+            
+            <div class="form-group">
+                <label class="form-label required" for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input" 
+                       value="<?php echo htmlspecialchars($user_email); ?>" required>
             </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" class="form-input" 
+                       value="<?php echo htmlspecialchars($user_phone); ?>">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required" for="learning_objective">Learning Objective</label>
+                <select id="learning_objective" name="learning_objective" class="form-select" required>
+                    <option value="">Select your primary goal</option>
+                    <option value="job_preparation">Job Preparation</option>
+                    <option value="interview_skills">Interview Skills</option>
+                    <option value="certification">Professional Certification</option>
+                    <option value="skill_enhancement">Skill Enhancement</option>
+                    <option value="career_switch">Career Switch</option>
+                    <option value="academic_project">Academic Project</option>
+                    <option value="personal_interest">Personal Interest</option>
+                    <option value="startup_preparation">Startup Preparation</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="motivation">Why are you interested?</label>
+                <textarea id="motivation" name="motivation" class="form-textarea" 
+                          placeholder="Tell us about your motivation and what you hope to achieve from this course..."></textarea>
+            </div>
+            
+            <button type="submit" id="submit_button" class="btn-submit">
+                <i class="fas fa-rocket"></i>
+                Submit Application
+            </button>
+        </form>
+    </div>
+    
+    <?php elseif ($isLoggedIn && ($user_role === 'admin' || $user_role === 'company')): ?>
+    <!-- Admin/Company View - No Application Form -->
+    <div class="sidebar-card">
+        <div style="text-align: center; padding: 2rem;">
+            <div style="width: 80px; height: 80px; background: var(--gradient-primary); 
+                 border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                 margin: 0 auto 1.5rem; color: white; font-size: 2rem;">
+                <i class="fas fa-<?php echo $user_role === 'admin' ? 'shield-alt' : 'building'; ?>"></i>
+            </div>
+            <h3 style="margin-bottom: 1rem; color: var(--primary);">
+                <?php echo ucfirst($user_role); ?> Access
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                <?php if ($user_role === 'admin'): ?>
+                    You're viewing this course as an administrator. Students can enroll through the application form.
+                <?php else: ?>
+                    You're viewing this course as a company representative. Students can enroll through the application form.
+                <?php endif; ?>
+            </p>
+            <a href="<?php echo $user_role === 'admin' ? 'index.php?page=home' : 'company_dashboard.php'; ?>" 
+               class="btn-submit" style="text-decoration: none; background: var(--primary);">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <?php else: ?>
+    <!-- Login Required - For Non-Logged In Users -->
+    <div class="sidebar-card">
+        <div class="login-required">
+            <div class="login-icon">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h3 style="margin-bottom: 1rem;">Ready to Start Learning?</h3>
+            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+                Join thousands of students mastering new skills through our professional courses.
+            </p>
+            <a href="login.html" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i>
+                Login to Enroll
+            </a>
+            <br>
+            <a href="registerstudent.html" class="btn-register">
+                New here? Create your free account
+            </a>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Quick Facts - Show for Everyone -->
+    <div class="sidebar-card quick-facts">
+        <h3>
+            <i class="fas fa-info-circle"></i>
+            Quick Facts
+        </h3>
+        
+        <?php if ($course_data['start_date']): ?>
+        <div class="fact-item">
+            <span class="fact-label">
+                <i class="fas fa-calendar-start"></i>
+                Start Date:
+            </span>
+            <span class="fact-value"><?php echo date('M j, Y', strtotime($course_data['start_date'])); ?></span>
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($course_data['duration']): ?>
+        <div class="fact-item">
+            <span class="fact-label">
+                <i class="fas fa-clock"></i>
+                Duration:
+            </span>
+            <span class="fact-value"><?php echo htmlspecialchars($course_data['duration']); ?></span>
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($course_data['mode']): ?>
+        <div class="fact-item">
+            <span class="fact-label">
+                <i class="fas fa-desktop"></i>
+                Format:
+            </span>
+            <span class="fact-value"><?php echo htmlspecialchars(ucfirst($course_data['mode'])); ?> <?php echo $course_data['course_format'] ? '+ ' . htmlspecialchars($course_data['course_format']) : '+ Live Sessions'; ?></span>
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($course_data['certificate_provided']): ?>
+        <div class="fact-item">
+            <span class="fact-label">
+                <i class="fas fa-certificate"></i>
+                Certificate:
+            </span>
+            <span class="fact-value">Industry Recognized</span>
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($course_data['job_placement_support']): ?>
+        <div class="fact-item">
+            <span class="fact-label">
+                <i class="fas fa-handshake"></i>
+                Job Support:
+            </span>
+            <span class="fact-value">Placement Assistance</span>
+        </div>
         <?php endif; ?>
     </div>
+</div>
+            </div>
+            <?php else: ?>
+                <div class="alert alert-error" style="text-align: center; padding: 2rem; margin-top: 2rem;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Course not found or has been removed.
+                </div>
+            <?php endif; ?>
+    </div>
+
+
+
+            
+        
+            
 
     <script>
         <?php if ($isLoggedIn): ?>

@@ -360,10 +360,11 @@ if (isset($_GET['cleanup_status'])) {
 }
 
 .header-row-2 {
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+    justify-content: flex-start;
     align-items: center;
     gap: 2rem;
+    flex-wrap: wrap;
 }
 
 .section-title {
@@ -381,12 +382,15 @@ if (isset($_GET['cleanup_status'])) {
     gap: 1rem;
     font-size: 0.9rem;
     flex-wrap: wrap;
+    order: 2; /* Stats on the right */
+
 }
 
 .controls-group {
-    display: flex;
+     display: flex;
     gap: 1rem;
     align-items: center;
+    order: 1; /* Controls on the left */
 }
 
 .search-input {
@@ -1159,6 +1163,37 @@ if (isset($_GET['cleanup_status'])) {
         padding: 0.2rem 0.6rem;
     }
 }
+/* Add to existing styles - Excel button styling */
+.btn-excel {
+    background: #217346;
+    color: white;
+}
+
+.btn-excel:hover {
+    background: #1a5c37;
+}
+
+.export-modal {
+    max-width: 600px;
+    text-align: left;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-grid-full {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 
 <?php if ($message_status === 'success'): ?>
@@ -1279,16 +1314,21 @@ if (isset($_GET['cleanup_status'])) {
                     </div>
                 </div>
                 
-                <div class="controls-group">
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search companies...">
-                    <select id="statusFilter" class="status-filter">
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="active">Active</option>
-                        <option value="blocked">Blocked</option>
-                        <option value="reject">Rejected</option>
-                    </select>
-                </div>
+              
+<div class="controls-group">
+    <input type="text" id="searchInput" class="search-input" placeholder="Search companies...">
+    <select id="statusFilter" class="status-filter">
+        <option value="all">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="active">Active</option>
+        <option value="blocked">Blocked</option>
+        <option value="reject">Rejected</option>
+    </select>
+    <button class="action-btn btn-excel" onclick="openExportModal()">
+        <i class="fas fa-file-excel"></i>
+        Export Excel
+    </button>
+</div>
             </div>
         </div>
         
@@ -1667,6 +1707,124 @@ if (isset($_GET['cleanup_status'])) {
         </form>
     </div>
 </div>
+<!-- Excel Export Modal -->
+<div class="modal-overlay" id="exportModal">
+    <div class="modal export-modal">
+        <div class="modal-icon" style="background: linear-gradient(135deg, #217346 0%, #1a5c37 100%);">
+            <i class="fas fa-file-excel"></i>
+        </div>
+        <h3>Export Companies to Excel</h3>
+        <p>Configure your export settings and filters</p>
+        
+        <form id="exportForm" target="_blank">
+            <div class="form-group">
+                <label class="form-label" for="exportReportType">Report Type</label>
+                <select name="report_type" id="exportReportType" class="form-input" onchange="toggleExportOptions()">
+                    <option value="current">Current View (with active filters)</option>
+                    <option value="monthly">Monthly Report</option>
+                    <option value="quarterly">Quarterly Report</option>
+                </select>
+            </div>
+
+            <div class="filter-grid" id="currentFilters">
+                <div class="form-group filter-grid-full">
+                    <label class="form-label" for="exportSearch">Search Term</label>
+                    <input type="text" name="search" id="exportSearch" class="form-input" placeholder="Company name, email, or ID">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="exportStatus">Status</label>
+                    <select name="status" id="exportStatus" class="form-input">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="pending">Pending</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="reject">Rejected</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="exportIndustry">Industry</label>
+                    <select name="industry" id="exportIndustry" class="form-input">
+                        <option value="all">All Industries</option>
+                        <?php
+                        // Get unique industries from database
+                        $industries_result = $conn->query("SELECT DISTINCT industry_type FROM companies WHERE industry_type IS NOT NULL ORDER BY industry_type");
+                        while ($ind = $industries_result->fetch_assoc()):
+                        ?>
+                            <option value="<?= htmlspecialchars($ind['industry_type']) ?>">
+                                <?= htmlspecialchars($ind['industry_type']) ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="exportDateFrom">Registration From</label>
+                    <input type="date" name="date_from" id="exportDateFrom" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="exportDateTo">Registration To</label>
+                    <input type="date" name="date_to" id="exportDateTo" class="form-input">
+                </div>
+            </div>
+
+            <div class="filter-grid" id="monthlyFilters" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Month</label>
+                    <select name="month" class="form-input">
+                        <?php for($m = 1; $m <= 12; $m++): ?>
+                            <option value="<?= $m ?>" <?= $m == date('m') ? 'selected' : '' ?>>
+                                <?= date('F', mktime(0, 0, 0, $m, 1)) ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Year</label>
+                    <select name="year" class="form-input">
+                        <?php for($y = date('Y'); $y >= 2020; $y--): ?>
+                            <option value="<?= $y ?>"><?= $y ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-grid" id="quarterlyFilters" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Quarter</label>
+                    <select name="quarter" class="form-input">
+                        <option value="1" <?= ceil(date('m') / 3) == 1 ? 'selected' : '' ?>>Q1 (Jan - Mar)</option>
+                        <option value="2" <?= ceil(date('m') / 3) == 2 ? 'selected' : '' ?>>Q2 (Apr - Jun)</option>
+                        <option value="3" <?= ceil(date('m') / 3) == 3 ? 'selected' : '' ?>>Q3 (Jul - Sep)</option>
+                        <option value="4" <?= ceil(date('m') / 3) == 4 ? 'selected' : '' ?>>Q4 (Oct - Dec)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Year</label>
+                    <select name="year" class="form-input">
+                        <?php for($y = date('Y'); $y >= 2020; $y--): ?>
+                            <option value="<?= $y ?>"><?= $y ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="submit" class="modal-btn btn-excel">
+                    <i class="fas fa-download"></i>
+                    Export to Excel
+                </button>
+                <button type="button" class="modal-btn btn-cancel" onclick="closeExportModal()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
 // JavaScript for modal functionality
@@ -1940,6 +2098,72 @@ if (window.history.replaceState) {
     url.searchParams.delete('cleanup_status');
     window.history.replaceState(null, null, url);
 }
+// Excel Export modal functions
+function openExportModal() {
+    const modal = document.getElementById("exportModal");
+    
+    // Pre-fill with current filters
+    const currentSearch = document.getElementById("searchInput").value;
+    const currentStatus = document.getElementById("statusFilter").value;
+    
+    document.getElementById("exportSearch").value = currentSearch;
+    document.getElementById("exportStatus").value = currentStatus;
+    
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden";
+}
+
+function closeExportModal() {
+    const modal = document.getElementById("exportModal");
+    modal.classList.remove("show");
+    document.body.style.overflow = "auto";
+}
+
+function toggleExportOptions() {
+    const reportType = document.getElementById("exportReportType").value;
+    const currentFilters = document.getElementById("currentFilters");
+    const monthlyFilters = document.getElementById("monthlyFilters");
+    const quarterlyFilters = document.getElementById("quarterlyFilters");
+    
+    currentFilters.style.display = 'none';
+    monthlyFilters.style.display = 'none';
+    quarterlyFilters.style.display = 'none';
+    
+    if (reportType === 'current') {
+        currentFilters.style.display = 'grid';
+    } else if (reportType === 'monthly') {
+        monthlyFilters.style.display = 'grid';
+    } else if (reportType === 'quarterly') {
+        quarterlyFilters.style.display = 'grid';
+    }
+}
+
+// Handle export form submission
+document.getElementById("exportForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const params = new URLSearchParams(formData);
+    window.open('export_companies_excel.php?' + params.toString(), '_blank');
+    closeExportModal();
+});
+
+// Add export modal to click-outside handlers
+document.getElementById("exportModal").addEventListener("click", function(e) {
+    if (e.target === this) {
+        closeExportModal();
+    }
+});
+
+// Update the Escape key handler to include export modal
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+        closeModal();
+        closeCleanupModal();
+        closeApprovalModal();
+        closeMessageModal();
+        closeExportModal();
+    }
+});
 </script>
 
 <?php
