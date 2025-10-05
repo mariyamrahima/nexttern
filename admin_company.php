@@ -1,4 +1,5 @@
 <?php
+
 // PHP logic to connect to the database and handle POST requests
 $conn = new mysqli("localhost", "root", "", "nexttern_db");
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
@@ -47,6 +48,57 @@ $cleanup_status = '';
 $redirect_url = "admin_dashboard.php?page=companies";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check if the request is for sending a broadcast message
+    if (isset($_POST['send_broadcast'])) {
+        $subject = $_POST['message_subject'] ?? '';
+        $message = $_POST['message_content'] ?? '';
+        $target_status = $_POST['target_status'] ?? 'all';
+        
+        if (!empty($subject) && !empty($message)) {
+            // Build query based on target status
+            $query = "SELECT company_id FROM companies";
+            if ($target_status !== 'all') {
+                if ($target_status === 'blocked') {
+                    $query .= " WHERE status = 'inactive'";
+                } else {
+                    $query .= " WHERE status = '" . $conn->real_escape_string($target_status) . "'";
+                }
+            }
+            
+            $companies_result = $conn->query($query);
+            $message_count = 0;
+            
+            if ($companies_result && $companies_result->num_rows > 0) {
+                $stmt = $conn->prepare("INSERT INTO company_messages (sender_type, receiver_type, receiver_id, subject, message) VALUES ('admin', 'company', ?, ?, ?)");
+                
+                while ($company = $companies_result->fetch_assoc()) {
+                    $company_id = $company['company_id'];
+                    $stmt->bind_param("sss", $company_id, $subject, $message);
+                    if ($stmt->execute()) {
+                        $message_count++;
+                    }
+                }
+                $stmt->close();
+                
+                if ($message_count > 0) {
+                    $message_status = 'broadcast_success';
+                   
+                    $_SESSION['broadcast_count'] = $message_count;
+                    $_SESSION['broadcast_target'] = $target_status;
+                } else {
+                    $message_status = 'error';
+                }
+            } else {
+                $message_status = 'no_companies';
+            }
+        } else {
+            $message_status = 'error';
+        }
+        
+        echo '<script>window.location.href = "' . $redirect_url . '&msg_status=' . $message_status . '";</script>';
+        exit;
+    }
+    
     // Check if the request is for cleanup
     if (isset($_POST['cleanup_action'])) {
         $cleanup_action = $_POST['cleanup_action'];
@@ -69,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
         
-        // Use JavaScript redirect to maintain the page structure
         echo '<script>window.location.href = "' . $redirect_url . '&cleanup_status=' . $cleanup_status . '";</script>';
         exit;
     }
@@ -94,7 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_status = 'error';
         }
         
-        // Use JavaScript redirect to maintain the page structure
         echo '<script>window.location.href = "' . $redirect_url . '&msg_status=' . $message_status . '";</script>';
         exit;
     }
@@ -108,13 +158,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['confirm_action'];
 
         if ($action === 'accept') {
-            // Update company status to active
             $stmt = $conn->prepare("UPDATE companies SET status = 'active' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
             if ($stmt->execute()) {
                 $stmt->close();
                 
-                // Log the approval
                 $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'accept', ?)");
                 $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
                 $stmt->execute();
@@ -126,13 +174,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'reject') {
-            // Update company status to rejected
             $stmt = $conn->prepare("UPDATE companies SET status = 'reject' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
             if ($stmt->execute()) {
                 $stmt->close();
                 
-                // Log the rejection
                 $stmt = $conn->prepare("INSERT INTO company_approvals (company_id, company_name, company_email, action, admin_notes) VALUES (?, ?, ?, 'reject', ?)");
                 $stmt->bind_param("ssss", $company_id, $company_name, $company_email, $admin_notes);
                 $stmt->execute();
@@ -160,7 +206,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'block') {
-            // First check if company is already blocked
             $check_stmt = $conn->prepare("SELECT id FROM blocked_companies WHERE company_id = ?");
             $check_stmt->bind_param("s", $company_id);
             $check_stmt->execute();
@@ -174,8 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $check_stmt->close();
 
-            // Update company status to blocked
-$stmt = $conn->prepare("UPDATE companies SET status = 'inactive' WHERE company_id = ?");
+            $stmt = $conn->prepare("UPDATE companies SET status = 'inactive' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
             if ($stmt->execute()) {
                 $stmt->close();
@@ -186,13 +230,11 @@ $stmt = $conn->prepare("UPDATE companies SET status = 'inactive' WHERE company_i
         }
 
         if ($action === 'unblock') {
-            // Remove from blocked companies
             $stmt = $conn->prepare("DELETE FROM blocked_companies WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
             $stmt->execute();
             $stmt->close();
 
-            // Update company status to active
             $stmt = $conn->prepare("UPDATE companies SET status = 'active' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
             if ($stmt->execute()) {
@@ -203,7 +245,6 @@ $stmt = $conn->prepare("UPDATE companies SET status = 'inactive' WHERE company_i
             }
         }
         
-        // Use JavaScript redirect to maintain the page structure
         echo '<script>window.location.href = "' . $redirect_url . '&op_status=' . $operation_status . '";</script>';
         exit;
     }
@@ -218,6 +259,14 @@ if (isset($_GET['op_status'])) {
 }
 if (isset($_GET['cleanup_status'])) {
     $cleanup_status = $_GET['cleanup_status'];
+}
+
+// Get total company count for display
+$company_count_result = $conn->query("SELECT COUNT(*) as total FROM companies");
+$total_companies = 0;
+if ($company_count_result) {
+    $count_row = $company_count_result->fetch_assoc();
+    $total_companies = $count_row['total'];
 }
 ?>
 
@@ -276,6 +325,22 @@ if (isset($_GET['cleanup_status'])) {
     border: 1px solid rgba(52, 152, 219, 0.2);
 }
 
+.status-message.broadcast {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.15) 0%, rgba(3, 89, 70, 0.1) 100%);
+    color: var(--primary);
+    border: 1px solid rgba(78, 205, 196, 0.3);
+    font-size: 1.05rem;
+}
+
+.status-message .count-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 @keyframes slideInDown {
     to {
         opacity: 1;
@@ -306,6 +371,17 @@ if (isset($_GET['cleanup_status'])) {
     background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
 }
 
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.header-text {
+    flex: 1;
+}
+
 .page-title {
     font-family: 'Poppins', sans-serif;
     font-size: 2rem;
@@ -327,6 +403,51 @@ if (isset($_GET['cleanup_status'])) {
     color: var(--secondary);
     opacity: 0.8;
     font-size: 1.1rem;
+}
+
+.broadcast-btn-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.btn-broadcast-all {
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: var(--shadow-light);
+}
+
+.btn-broadcast-all:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
+}
+
+.btn-broadcast-all i {
+    font-size: 1.25rem;
+}
+
+.company-count-badge {
+    background: rgba(3, 89, 70, 0.1);
+    color: var(--primary);
+    padding: 0.375rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* Main Content Layout */
@@ -382,15 +503,14 @@ if (isset($_GET['cleanup_status'])) {
     gap: 1rem;
     font-size: 0.9rem;
     flex-wrap: wrap;
-    order: 2; /* Stats on the right */
-
+    order: 2;
 }
 
 .controls-group {
      display: flex;
     gap: 1rem;
     align-items: center;
-    order: 1; /* Controls on the left */
+    order: 1;
 }
 
 .search-input {
@@ -696,6 +816,15 @@ if (isset($_GET['cleanup_status'])) {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+.btn-excel {
+    background: #217346;
+    color: white;
+}
+
+.btn-excel:hover {
+    background: #1a5c37;
+}
+
 .no-data {
     text-align: center;
     padding: 3rem 2rem;
@@ -709,7 +838,6 @@ if (isset($_GET['cleanup_status'])) {
     color: var(--accent);
 }
 
-/* Modal Styles */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -724,11 +852,13 @@ if (isset($_GET['cleanup_status'])) {
     z-index: 1000;
     opacity: 0;
     transition: var(--transition);
+    overflow-y: auto; /* Add this */
+    padding: 2rem 0; /* Add padding for breathing room */
 }
-
 .modal-overlay.show {
     display: flex;
     opacity: 1;
+    align-items: flex-start; /* Change from center to flex-start */
 }
 
 .modal {
@@ -743,8 +873,10 @@ if (isset($_GET['cleanup_status'])) {
     width: 90%;
     transform: scale(0.9);
     transition: var(--transition);
+    margin: auto; /* Add this for vertical centering when content is short */
+    max-height: calc(100vh - 4rem); /* Prevent modal from exceeding viewport */
+    overflow-y: auto; /* Make modal content scrollable */
 }
-
 .modal-overlay.show .modal {
     transform: scale(1);
 }
@@ -756,6 +888,16 @@ if (isset($_GET['cleanup_status'])) {
 
 .approval-modal {
     max-width: 550px;
+    text-align: left;
+}
+
+.broadcast-modal {
+    max-width: 600px;
+    text-align: left;
+}
+
+.export-modal {
+    max-width: 600px;
     text-align: left;
 }
 
@@ -799,6 +941,10 @@ if (isset($_GET['cleanup_status'])) {
     background: linear-gradient(135deg, var(--warning) 0%, #e67e22 100%);
 }
 
+.modal-icon.broadcast {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+}
+
 .modal h3 {
     font-family: 'Poppins', sans-serif;
     margin-bottom: 1rem;
@@ -810,6 +956,32 @@ if (isset($_GET['cleanup_status'])) {
     color: var(--secondary);
     margin-bottom: 2rem;
     opacity: 0.8;
+}
+
+.broadcast-info {
+    background: rgba(78, 205, 196, 0.1);
+    border: 1px solid rgba(78, 205, 196, 0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.broadcast-info i {
+    color: var(--accent);
+    font-size: 1.25rem;
+}
+
+.broadcast-info-text {
+    flex: 1;
+}
+
+.broadcast-info strong {
+    color: var(--primary);
+    display: block;
+    margin-bottom: 0.25rem;
 }
 
 .form-group {
@@ -826,7 +998,8 @@ if (isset($_GET['cleanup_status'])) {
 }
 
 .form-input,
-.form-textarea {
+.form-textarea,
+.form-select {
     width: 100%;
     padding: 0.75rem 1rem;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -839,7 +1012,8 @@ if (isset($_GET['cleanup_status'])) {
 }
 
 .form-input:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.form-select:focus {
     outline: none;
     border-color: var(--accent);
     background: rgba(255, 255, 255, 0.9);
@@ -850,6 +1024,50 @@ if (isset($_GET['cleanup_status'])) {
     min-height: 100px;
     resize: vertical;
     font-family: inherit;
+}
+
+.target-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.target-option {
+    position: relative;
+}
+
+.target-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.target-option label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.target-option input[type="radio"]:checked + label {
+    border-color: var(--accent);
+    background: rgba(78, 205, 196, 0.1);
+    color: var(--primary);
+}
+
+.target-option label:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.target-option i {
+    font-size: 1rem;
 }
 
 .modal-buttons {
@@ -929,7 +1147,31 @@ if (isset($_GET['cleanup_status'])) {
     transform: translateY(-1px);
 }
 
-/* Recent Activities - Stack Layout */
+.btn-broadcast {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-broadcast:hover {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    transform: translateY(-1px);
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-grid-full {
+    grid-column: 1 / -1;
+}
+
+/* Recent Activities */
 .recent-activities {
     display: flex;
     flex-direction: column;
@@ -1035,8 +1277,6 @@ if (isset($_GET['cleanup_status'])) {
     opacity: 0.8;
     max-width: 800px;
     overflow: hidden;
-    
-   
 }
 
 /* Animation Styles */
@@ -1076,6 +1316,26 @@ if (isset($_GET['cleanup_status'])) {
 }
 
 /* Responsive Design */
+@media (max-width: 992px) {
+    .header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .broadcast-btn-container {
+        align-items: stretch;
+    }
+    
+    .btn-broadcast-all {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .target-status-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .page-header {
         padding: 1.5rem;
@@ -1140,6 +1400,10 @@ if (isset($_GET['cleanup_status'])) {
         margin: 1rem;
         padding: 1.5rem;
     }
+    
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1163,43 +1427,36 @@ if (isset($_GET['cleanup_status'])) {
         padding: 0.2rem 0.6rem;
     }
 }
-/* Add to existing styles - Excel button styling */
-.btn-excel {
-    background: #217346;
-    color: white;
-}
-
-.btn-excel:hover {
-    background: #1a5c37;
-}
-
-.export-modal {
-    max-width: 600px;
-    text-align: left;
-}
-
-.filter-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.filter-grid-full {
-    grid-column: 1 / -1;
-}
-
-@media (max-width: 768px) {
-    .filter-grid {
-        grid-template-columns: 1fr;
-    }
-}
 </style>
+
+<?php
+// Fetch total companies count
+$broadcast_count = isset($_SESSION['broadcast_count']) ? $_SESSION['broadcast_count'] : 0;
+$broadcast_target = isset($_SESSION['broadcast_target']) ? $_SESSION['broadcast_target'] : 'all';
+?>
 
 <?php if ($message_status === 'success'): ?>
     <div class="status-message success">
         <i class="fas fa-check-circle"></i>
         Message sent successfully!
+    </div>
+<?php elseif ($message_status === 'broadcast_success'): ?>
+    <div class="status-message broadcast">
+        <i class="fas fa-bullhorn"></i>
+        Broadcast message sent successfully to
+        <span class="count-badge"><?= $broadcast_count ?> companies</span>
+        <?php if ($broadcast_target !== 'all'): ?>
+            (<?= ucfirst($broadcast_target === 'blocked' ? 'Blocked' : $broadcast_target) ?> companies)
+        <?php endif; ?>
+    </div>
+    <?php 
+    unset($_SESSION['broadcast_count']);
+    unset($_SESSION['broadcast_target']);
+    ?>
+<?php elseif ($message_status === 'no_companies'): ?>
+    <div class="status-message error">
+        <i class="fas fa-exclamation-triangle"></i>
+        No companies found matching the selected criteria.
     </div>
 <?php elseif ($message_status === 'error'): ?>
     <div class="status-message error">
@@ -1258,11 +1515,25 @@ if (isset($_GET['cleanup_status'])) {
 <?php endif; ?>
 
 <div class="page-header loading">
-    <h1 class="page-title">
-        <i class="fas fa-building"></i>
-        Company Management
-    </h1>
-    <p class="page-description">Manage company accounts, review applications, and maintain platform integrity.</p>
+    <div class="header-content">
+        <div class="header-text">
+            <h1 class="page-title">
+                <i class="fas fa-building"></i>
+                Company Management
+            </h1>
+            <p class="page-description">Manage company accounts, review applications, and maintain platform integrity.</p>
+        </div>
+        <div class="broadcast-btn-container">
+            <button class="btn-broadcast-all" onclick="openBroadcastModal()">
+                <i class="fas fa-bullhorn"></i>
+                Send Message to Companies
+            </button>
+            <div class="company-count-badge">
+                <i class="fas fa-building"></i>
+                <?= $total_companies ?> Total Companies
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="content-container">
@@ -1276,10 +1547,10 @@ if (isset($_GET['cleanup_status'])) {
             </div>
             
             <?php
-            // Get statistics - refresh data after operations
+            // Get statistics
             $total_result = $conn->query("SELECT COUNT(*) as total FROM companies");
             $active_result = $conn->query("SELECT COUNT(*) as active FROM companies WHERE status = 'active'");
-  $blocked_result = $conn->query("SELECT COUNT(*) as blocked FROM companies WHERE status = 'inactive'");
+            $blocked_result = $conn->query("SELECT COUNT(*) as blocked FROM companies WHERE status = 'inactive'");
             $pending_result = $conn->query("SELECT COUNT(*) as pending FROM companies WHERE status = 'pending'");
             $rejected_result = $conn->query("SELECT COUNT(*) as rejected FROM companies WHERE status = 'reject'");
             
@@ -1314,21 +1585,20 @@ if (isset($_GET['cleanup_status'])) {
                     </div>
                 </div>
                 
-              
-<div class="controls-group">
-    <input type="text" id="searchInput" class="search-input" placeholder="Search companies...">
-    <select id="statusFilter" class="status-filter">
-        <option value="all">All Status</option>
-        <option value="pending">Pending</option>
-        <option value="active">Active</option>
-     <option value="inactive">Blocked</option>
-        <option value="reject">Rejected</option>
-    </select>
-    <button class="action-btn btn-excel" onclick="openExportModal()">
-        <i class="fas fa-file-excel"></i>
-        Export Excel
-    </button>
-</div>
+                <div class="controls-group">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search companies...">
+                    <select id="statusFilter" class="status-filter">
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Blocked</option>
+                        <option value="reject">Rejected</option>
+                    </select>
+                    <button class="action-btn btn-excel" onclick="openExportModal()">
+                        <i class="fas fa-file-excel"></i>
+                        Export Excel
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -1375,13 +1645,13 @@ if (isset($_GET['cleanup_status'])) {
                                 <td><?= htmlspecialchars($row['year_established']) ?></td>
                                 <td>
                                     <span class="status-badge status-<?= $row['status'] === 'inactive' ? 'blocked' : $row['status'] ?>">
-    <i class="fas fa-<?= 
-        $row['status'] === 'active' ? 'check-circle' : 
-        ($row['status'] === 'pending' ? 'clock' : 
-        ($row['status'] === 'inactive' ? 'ban' : 'times-circle')) 
-    ?>"></i>
-    <?= $row['status'] === 'inactive' ? 'Blocked' : ($row['status'] === 'reject' ? 'Rejected' : ucfirst($row['status'])) ?>
-</span>
+                                        <i class="fas fa-<?= 
+                                            $row['status'] === 'active' ? 'check-circle' : 
+                                            ($row['status'] === 'pending' ? 'clock' : 
+                                            ($row['status'] === 'inactive' ? 'ban' : 'times-circle')) 
+                                        ?>"></i>
+                                        <?= $row['status'] === 'inactive' ? 'Blocked' : ($row['status'] === 'reject' ? 'Rejected' : ucfirst($row['status'])) ?>
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="actions-group">
@@ -1406,7 +1676,7 @@ if (isset($_GET['cleanup_status'])) {
                                                 <i class="fas fa-ban"></i>
                                                 Block
                                             </button>
-                                      <?php elseif ($row['status'] === 'inactive'): ?>
+                                        <?php elseif ($row['status'] === 'inactive'): ?>
                                             <button class="action-btn btn-unblock" onclick="openModal('<?= htmlspecialchars($row['company_id']) ?>', '<?= htmlspecialchars($row['company_name']) ?>', '<?= htmlspecialchars($row['company_email']) ?>', 'unblock')">
                                                 <i class="fas fa-check-circle"></i>
                                                 Unblock
@@ -1670,7 +1940,7 @@ if (isset($_GET['cleanup_status'])) {
     </div>
 </div>
 
-<!-- Message Modal -->
+<!-- Individual Message Modal -->
 <div class="modal-overlay" id="messageModal">
     <div class="modal message-modal">
         <div class="modal-icon message">
@@ -1705,6 +1975,91 @@ if (isset($_GET['cleanup_status'])) {
         </form>
     </div>
 </div>
+
+<!-- Broadcast Message Modal -->
+<div class="modal-overlay" id="broadcastModal">
+    <div class="modal broadcast-modal">
+        <div class="modal-icon broadcast">
+            <i class="fas fa-bullhorn"></i>
+        </div>
+        <h3>Broadcast Message to Companies</h3>
+        <p>Send a message to multiple companies based on their status</p>
+        
+        <div class="broadcast-info">
+            <i class="fas fa-info-circle"></i>
+            <div class="broadcast-info-text">
+                <strong>Select Target Companies</strong>
+                <span>Choose which companies should receive this message</span>
+            </div>
+        </div>
+        
+        <form method="post" id="broadcastForm">
+            <input type="hidden" name="send_broadcast" value="1">
+            
+            <div class="form-group">
+                <label class="form-label">Target Companies</label>
+                <div class="target-status-grid">
+                    <div class="target-option">
+                        <input type="radio" name="target_status" id="target_all" value="all" checked>
+                        <label for="target_all">
+                            <i class="fas fa-building"></i>
+                            All Companies (<?= $total ?>)
+                        </label>
+                    </div>
+                    <div class="target-option">
+                        <input type="radio" name="target_status" id="target_active" value="active">
+                        <label for="target_active">
+                            <i class="fas fa-check-circle"></i>
+                            Active (<?= $active ?>)
+                        </label>
+                    </div>
+                    <div class="target-option">
+                        <input type="radio" name="target_status" id="target_pending" value="pending">
+                        <label for="target_pending">
+                            <i class="fas fa-clock"></i>
+                            Pending (<?= $pending ?>)
+                        </label>
+                    </div>
+                    <div class="target-option">
+                        <input type="radio" name="target_status" id="target_blocked" value="blocked">
+                        <label for="target_blocked">
+                            <i class="fas fa-ban"></i>
+                            Blocked (<?= $blocked ?>)
+                        </label>
+                    </div>
+                    <div class="target-option">
+                        <input type="radio" name="target_status" id="target_rejected" value="reject">
+                        <label for="target_rejected">
+                            <i class="fas fa-times-circle"></i>
+                            Rejected (<?= $rejected ?>)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="broadcastSubject">Subject</label>
+                <input type="text" name="message_subject" id="broadcastSubject" class="form-input" placeholder="Enter broadcast subject" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="broadcastContent">Message</label>
+                <textarea name="message_content" id="broadcastContent" class="form-textarea" placeholder="Type your broadcast message here..." required style="min-height: 150px;"></textarea>
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="submit" class="modal-btn btn-broadcast">
+                    <i class="fas fa-bullhorn"></i>
+                    Send Broadcast
+                </button>
+                <button type="button" class="modal-btn btn-cancel" onclick="closeBroadcastModal()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Excel Export Modal -->
 <div class="modal-overlay" id="exportModal">
     <div class="modal export-modal">
@@ -1746,7 +2101,6 @@ if (isset($_GET['cleanup_status'])) {
                     <select name="industry" id="exportIndustry" class="form-input">
                         <option value="all">All Industries</option>
                         <?php
-                        // Get unique industries from database
                         $industries_result = $conn->query("SELECT DISTINCT industry_type FROM companies WHERE industry_type IS NOT NULL ORDER BY industry_type");
                         while ($ind = $industries_result->fetch_assoc()):
                         ?>
@@ -1827,7 +2181,6 @@ if (isset($_GET['cleanup_status'])) {
 <script>
 // JavaScript for modal functionality
 
-// General modal functions
 function openModal(companyId, companyName, companyEmail, action) {
     const modal = document.getElementById("confirmModal");
     const modalIcon = document.getElementById("modalIcon");
@@ -1839,7 +2192,6 @@ function openModal(companyId, companyName, companyEmail, action) {
     document.getElementById("modalCompanyEmail").value = companyEmail;
     document.getElementById("modalAction").value = action;
     
-    // Set modal content based on action
     if (action === 'delete') {
         modalIcon.className = "modal-icon delete";
         modalIcon.innerHTML = '<i class="fas fa-trash-alt"></i>';
@@ -1848,6 +2200,7 @@ function openModal(companyId, companyName, companyEmail, action) {
     } else if (action === 'block') {
         modalIcon.className = "modal-icon block";
         modalIcon.innerHTML = '<i class="fas fa-ban"></i>';
+        modalTitle.textContent = "Block Company";
         modalMessage.textContent = `Are you sure you want to block ${companyName}? They will no longer be able to access their account or post internships.`;
     } else if (action === 'unblock') {
         modalIcon.className = "modal-icon unblock";
@@ -1866,7 +2219,6 @@ function closeModal() {
     document.body.style.overflow = "auto";
 }
 
-// Cleanup modal functions
 function openCleanupModal(type) {
     const modal = document.getElementById("cleanupModal");
     const modalTitle = document.getElementById("cleanupModalTitle");
@@ -1892,7 +2244,6 @@ function closeCleanupModal() {
     document.body.style.overflow = "auto";
 }
 
-// Approval modal functions
 function openApprovalModal(companyId, companyName, companyEmail, action) {
     const modal = document.getElementById("approvalModal");
     const modalIcon = document.getElementById("approvalModalIcon");
@@ -1905,10 +2256,8 @@ function openApprovalModal(companyId, companyName, companyEmail, action) {
     document.getElementById("approvalCompanyEmail").value = companyEmail;
     document.getElementById("approvalAction").value = action;
     
-    // Clear previous notes
     document.getElementById("adminNotes").value = "";
     
-    // Set modal content based on action
     if (action === 'accept') {
         modalIcon.className = "modal-icon accept";
         modalIcon.innerHTML = '<i class="fas fa-check"></i>';
@@ -1928,7 +2277,6 @@ function openApprovalModal(companyId, companyName, companyEmail, action) {
     modal.classList.add("show");
     document.body.style.overflow = "hidden";
     
-    // Focus on notes field
     setTimeout(() => {
         document.getElementById("adminNotes").focus();
     }, 300);
@@ -1940,20 +2288,17 @@ function closeApprovalModal() {
     document.body.style.overflow = "auto";
 }
 
-// Message modal functions
 function openMessageModal(companyId, companyName) {
     const modal = document.getElementById("messageModal");
     document.getElementById("messageCompanyName").textContent = companyName;
     document.getElementById("messageReceiverId").value = companyId;
     
-    // Clear form
     document.getElementById("messageSubject").value = "";
     document.getElementById("messageContent").value = "";
     
     modal.classList.add("show");
     document.body.style.overflow = "hidden";
     
-    // Focus on subject field
     setTimeout(() => {
         document.getElementById("messageSubject").focus();
     }, 300);
@@ -1965,142 +2310,30 @@ function closeMessageModal() {
     document.body.style.overflow = "auto";
 }
 
-// Close modals when clicking outside
-document.getElementById("confirmModal").addEventListener("click", function(e) {
-    if (e.target === this) {
-        closeModal();
-    }
-});
-
-document.getElementById("cleanupModal").addEventListener("click", function(e) {
-    if (e.target === this) {
-        closeCleanupModal();
-    }
-});
-
-document.getElementById("approvalModal").addEventListener("click", function(e) {
-    if (e.target === this) {
-        closeApprovalModal();
-    }
-});
-
-document.getElementById("messageModal").addEventListener("click", function(e) {
-    if (e.target === this) {
-        closeMessageModal();
-    }
-});
-
-// Close modals with Escape key
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape") {
-        closeModal();
-        closeCleanupModal();
-        closeApprovalModal();
-        closeMessageModal();
-    }
-});
-
-// Add loading animations on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const elements = document.querySelectorAll('.loading');
-    elements.forEach((el, index) => {
-        setTimeout(() => {
-            el.classList.remove('loading');
-        }, index * 100);
-    });
+function openBroadcastModal() {
+    const modal = document.getElementById("broadcastModal");
     
-    // Initialize search and filter functionality
-    initializeSearchAndFilter();
+    document.getElementById("broadcastSubject").value = "";
+    document.getElementById("broadcastContent").value = "";
+    document.getElementById("target_all").checked = true;
     
-    // Auto-hide status messages after 5 seconds
-    const statusMessages = document.querySelectorAll('.status-message');
-    statusMessages.forEach(msg => {
-        setTimeout(() => {
-            msg.style.animation = 'fadeOut 0.5s ease-out forwards';
-            setTimeout(() => {
-                msg.remove();
-            }, 500);
-        }, 5000);
-    });
-});
-
-// Initialize search and filter functionality
-function initializeSearchAndFilter() {
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden";
     
-    if (searchInput && statusFilter) {
-        // Search functionality
-        searchInput.addEventListener('input', function() {
-            filterTable();
-        });
-        
-        // Filter functionality
-        statusFilter.addEventListener('change', function() {
-            filterTable();
-        });
-    }
+    setTimeout(() => {
+        document.getElementById("broadcastSubject").focus();
+    }, 300);
 }
 
-// Combined filter function
-function filterTable() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const filterValue = document.getElementById('statusFilter').value;
-    const rows = document.querySelectorAll('.companies-table tbody tr');
-    
-    rows.forEach(row => {
-        let showRow = true;
-        
-        // Check search term
-        if (searchTerm) {
-            const text = row.textContent.toLowerCase();
-            if (!text.includes(searchTerm)) {
-                showRow = false;
-            }
-        }
-        
-        // Check status filter
-        if (filterValue !== 'all' && showRow) {
-            const statusBadge = row.querySelector('.status-badge');
-            const status = statusBadge.textContent.toLowerCase().trim();
-            if (status !== filterValue) {
-                showRow = false;
-            }
-        }
-        
-        row.style.display = showRow ? '' : 'none';
-    });
+function closeBroadcastModal() {
+    const modal = document.getElementById("broadcastModal");
+    modal.classList.remove("show");
+    document.body.style.overflow = "auto";
 }
 
-// Add fadeOut animation for status messages
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// Prevent form resubmission on page refresh
-if (window.history.replaceState) {
-    const url = new URL(window.location);
-    url.searchParams.delete('msg_status');
-    url.searchParams.delete('op_status');
-    url.searchParams.delete('cleanup_status');
-    window.history.replaceState(null, null, url);
-}
-// Excel Export modal functions
 function openExportModal() {
     const modal = document.getElementById("exportModal");
     
-    // Pre-fill with current filters
     const currentSearch = document.getElementById("searchInput").value;
     const currentStatus = document.getElementById("statusFilter").value;
     
@@ -2136,7 +2369,44 @@ function toggleExportOptions() {
     }
 }
 
-// Handle export form submission
+// Close modals when clicking outside
+document.getElementById("confirmModal").addEventListener("click", function(e) {
+    if (e.target === this) closeModal();
+});
+
+document.getElementById("cleanupModal").addEventListener("click", function(e) {
+    if (e.target === this) closeCleanupModal();
+});
+
+document.getElementById("approvalModal").addEventListener("click", function(e) {
+    if (e.target === this) closeApprovalModal();
+});
+
+document.getElementById("messageModal").addEventListener("click", function(e) {
+    if (e.target === this) closeMessageModal();
+});
+
+document.getElementById("broadcastModal").addEventListener("click", function(e) {
+    if (e.target === this) closeBroadcastModal();
+});
+
+document.getElementById("exportModal").addEventListener("click", function(e) {
+    if (e.target === this) closeExportModal();
+});
+
+// Close modals with Escape key
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+        closeModal();
+        closeCleanupModal();
+        closeApprovalModal();
+        closeMessageModal();
+        closeBroadcastModal();
+        closeExportModal();
+    }
+});
+
+// Export form submission
 document.getElementById("exportForm").addEventListener("submit", function(e) {
     e.preventDefault();
     const formData = new FormData(this);
@@ -2145,23 +2415,96 @@ document.getElementById("exportForm").addEventListener("submit", function(e) {
     closeExportModal();
 });
 
-// Add export modal to click-outside handlers
-document.getElementById("exportModal").addEventListener("click", function(e) {
-    if (e.target === this) {
-        closeExportModal();
+// Initialize search and filter functionality
+function initializeSearchAndFilter() {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (searchInput && statusFilter) {
+        searchInput.addEventListener('input', function() {
+            filterTable();
+        });
+        
+        statusFilter.addEventListener('change', function() {
+            filterTable();
+        });
     }
+}
+
+// Combined filter function
+function filterTable() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const filterValue = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('.companies-table tbody tr');
+    
+    rows.forEach(row => {
+        let showRow = true;
+        
+        if (searchTerm) {
+            const text = row.textContent.toLowerCase();
+            if (!text.includes(searchTerm)) {
+                showRow = false;
+            }
+        }
+        
+        if (filterValue !== 'all' && showRow) {
+            const statusBadge = row.querySelector('.status-badge');
+            const status = statusBadge.textContent.toLowerCase().trim();
+            if (status !== filterValue) {
+                showRow = false;
+            }
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+    });
+}
+
+// Page load animations
+document.addEventListener('DOMContentLoaded', function() {
+    const elements = document.querySelectorAll('.loading');
+    elements.forEach((el, index) => {
+        setTimeout(() => {
+            el.classList.remove('loading');
+        }, index * 100);
+    });
+    
+    initializeSearchAndFilter();
+    
+    const statusMessages = document.querySelectorAll('.status-message');
+    statusMessages.forEach(msg => {
+        setTimeout(() => {
+            msg.style.animation = 'fadeOut 0.5s ease-out forwards';
+            setTimeout(() => {
+                msg.remove();
+            }, 500);
+        }, 5000);
+    });
 });
 
-// Update the Escape key handler to include export modal
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape") {
-        closeModal();
-        closeCleanupModal();
-        closeApprovalModal();
-        closeMessageModal();
-        closeExportModal();
+// Add fadeOut animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
     }
-});
+`;
+document.head.appendChild(style);
+
+// Prevent form resubmission on page refresh
+if (window.history.replaceState) {
+    const url = new URL(window.location);
+    url.searchParams.delete('msg_status');
+    url.searchParams.delete('op_status');
+    url.searchParams.delete('cleanup_status');
+    window.history.replaceState(null, null, url);
+}
 </script>
 
 <?php

@@ -23,14 +23,63 @@ $operation_status = '';
 $redirect_url = "admin_dashboard.php?page=students";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Check if the request is for sending a message
+    // Check if the request is for sending a message to all students
+    if (isset($_POST['send_broadcast'])) {
+        $subject = $_POST['message_subject'] ?? '';
+        $message = $_POST['message_content'] ?? '';
+        
+        if (!empty($subject) && !empty($message)) {
+            // Create messages table if it doesn't exist
+            $conn->query("CREATE TABLE IF NOT EXISTS student_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sender_type VARCHAR(20),
+                receiver_type VARCHAR(20),
+                receiver_id VARCHAR(50),
+                subject VARCHAR(200),
+                message TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+            
+            // Get all student IDs
+            $students_result = $conn->query("SELECT student_id FROM students");
+            $message_count = 0;
+            
+            if ($students_result && $students_result->num_rows > 0) {
+                $stmt = $conn->prepare("INSERT INTO student_messages (sender_type, receiver_type, receiver_id, subject, message) VALUES ('admin', 'student', ?, ?, ?)");
+                
+                while ($student = $students_result->fetch_assoc()) {
+                    $student_id = $student['student_id'];
+                    $stmt->bind_param("sss", $student_id, $subject, $message);
+                    if ($stmt->execute()) {
+                        $message_count++;
+                    }
+                }
+                $stmt->close();
+                
+                if ($message_count > 0) {
+                    $message_status = 'broadcast_success';
+                    $_SESSION['broadcast_count'] = $message_count;
+                } else {
+                    $message_status = 'error';
+                }
+            } else {
+                $message_status = 'no_students';
+            }
+        } else {
+            $message_status = 'error';
+        }
+        
+        echo '<script>window.location.href = "' . $redirect_url . '&msg_status=' . $message_status . '";</script>';
+        exit;
+    }
+    
+    // Check if the request is for sending a message to individual student
     if (isset($_POST['send_message'])) {
         $receiver_id = $_POST['receiver_id'] ?? '';
         $subject = $_POST['message_subject'] ?? '';
         $message = $_POST['message_content'] ?? '';
         
         if (!empty($receiver_id) && !empty($subject) && !empty($message)) {
-            // Create messages table if it doesn't exist
             $conn->query("CREATE TABLE IF NOT EXISTS student_messages (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 sender_type VARCHAR(20),
@@ -54,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_status = 'error';
         }
         
-        // Use JavaScript redirect to maintain the page structure
         echo '<script>window.location.href = "' . $redirect_url . '&msg_status=' . $message_status . '";</script>';
         exit;
     }
@@ -90,7 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Use JavaScript redirect to maintain the page structure
         echo '<script>window.location.href = "' . $redirect_url . '&op_status=' . $operation_status . '";</script>';
         exit;
     }
@@ -102,6 +149,14 @@ if (isset($_GET['msg_status'])) {
 }
 if (isset($_GET['op_status'])) {
     $operation_status = $_GET['op_status'];
+}
+
+// Get total student count for display
+$student_count_result = $conn->query("SELECT COUNT(*) as total FROM students");
+$total_students = 0;
+if ($student_count_result) {
+    $count_row = $student_count_result->fetch_assoc();
+    $total_students = $count_row['total'];
 }
 ?>
 
@@ -158,6 +213,22 @@ if (isset($_GET['op_status'])) {
     border: 1px solid rgba(52, 152, 219, 0.2);
 }
 
+.status-message.broadcast {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.15) 0%, rgba(3, 89, 70, 0.1) 100%);
+    color: var(--primary);
+    border: 1px solid rgba(78, 205, 196, 0.3);
+    font-size: 1.05rem;
+}
+
+.status-message .count-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 @keyframes slideInDown {
     to {
         opacity: 1;
@@ -188,6 +259,17 @@ if (isset($_GET['op_status'])) {
     background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
 }
 
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.header-text {
+    flex: 1;
+}
+
 .page-title {
     font-family: 'Poppins', sans-serif;
     font-size: 2rem;
@@ -209,6 +291,51 @@ if (isset($_GET['op_status'])) {
     color: var(--secondary);
     opacity: 0.8;
     font-size: 1.1rem;
+}
+
+.broadcast-btn-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.btn-broadcast-all {
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: var(--shadow-light);
+}
+
+.btn-broadcast-all:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
+}
+
+.btn-broadcast-all i {
+    font-size: 1.25rem;
+}
+
+.student-count-badge {
+    background: rgba(3, 89, 70, 0.1);
+    color: var(--primary);
+    padding: 0.375rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* Main Content Layout */
@@ -412,6 +539,11 @@ if (isset($_GET['op_status'])) {
     text-align: left;
 }
 
+.broadcast-modal {
+    max-width: 600px;
+    text-align: left;
+}
+
 .modal-icon {
     width: 64px;
     height: 64px;
@@ -436,6 +568,10 @@ if (isset($_GET['op_status'])) {
     background: linear-gradient(135deg, var(--info) 0%, #2980b9 100%);
 }
 
+.modal-icon.broadcast {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+}
+
 .modal h3 {
     font-family: 'Poppins', sans-serif;
     margin-bottom: 1rem;
@@ -447,6 +583,32 @@ if (isset($_GET['op_status'])) {
     color: var(--secondary);
     margin-bottom: 2rem;
     opacity: 0.8;
+}
+
+.broadcast-info {
+    background: rgba(78, 205, 196, 0.1);
+    border: 1px solid rgba(78, 205, 196, 0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.broadcast-info i {
+    color: var(--accent);
+    font-size: 1.25rem;
+}
+
+.broadcast-info-text {
+    flex: 1;
+}
+
+.broadcast-info strong {
+    color: var(--primary);
+    display: block;
+    margin-bottom: 0.25rem;
 }
 
 .form-group {
@@ -533,6 +695,19 @@ if (isset($_GET['op_status'])) {
 
 .btn-send:hover {
     background: #2980b9;
+    transform: translateY(-1px);
+}
+
+.btn-broadcast {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-broadcast:hover {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
     transform: translateY(-1px);
 }
 
@@ -673,6 +848,22 @@ if (isset($_GET['op_status'])) {
 }
 
 /* Responsive Design */
+@media (max-width: 992px) {
+    .header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .broadcast-btn-container {
+        align-items: stretch;
+    }
+    
+    .btn-broadcast-all {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 768px) {
     .page-header {
         padding: 1.5rem;
@@ -725,6 +916,17 @@ if (isset($_GET['op_status'])) {
         <i class="fas fa-check-circle"></i>
         Message sent successfully!
     </div>
+<?php elseif ($message_status === 'broadcast_success'): ?>
+    <div class="status-message broadcast">
+        <i class="fas fa-bullhorn"></i>
+        Broadcast message sent successfully to
+        <span class="count-badge"><?= isset($_SESSION['broadcast_count']) ? $_SESSION['broadcast_count'] : $total_students ?> students</span>
+    </div>
+<?php elseif ($message_status === 'no_students'): ?>
+    <div class="status-message error">
+        <i class="fas fa-exclamation-triangle"></i>
+        No students found to send message to.
+    </div>
 <?php elseif ($message_status === 'error'): ?>
     <div class="status-message error">
         <i class="fas fa-exclamation-circle"></i>
@@ -750,11 +952,25 @@ if (isset($_GET['op_status'])) {
 <?php endif; ?>
 
 <div class="page-header loading">
-    <h1 class="page-title">
-        <i class="fas fa-user-graduate"></i>
-        Student Management
-    </h1>
-    <p class="page-description">Manage student accounts, monitor activities, and maintain platform integrity.</p>
+    <div class="header-content">
+        <div class="header-text">
+            <h1 class="page-title">
+                <i class="fas fa-user-graduate"></i>
+                Student Management
+            </h1>
+            <p class="page-description">Manage student accounts, monitor activities, and maintain platform integrity.</p>
+        </div>
+        <div class="broadcast-btn-container">
+            <button class="btn-broadcast-all" onclick="openBroadcastModal()">
+                <i class="fas fa-bullhorn"></i>
+                Send Message to All Students
+            </button>
+            <div class="student-count-badge">
+                <i class="fas fa-users"></i>
+                <?= $total_students ?> Total Students
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="content-container">
@@ -900,6 +1116,7 @@ if (isset($_GET['op_status'])) {
     </div>
 </div>
 
+<!-- Confirmation Modal for Delete/Block -->
 <div class="modal-overlay" id="confirmModal">
     <div class="modal">
         <div class="modal-icon" id="modalIcon">
@@ -921,6 +1138,7 @@ if (isset($_GET['op_status'])) {
     </div>
 </div>
 
+<!-- Individual Message Modal -->
 <div class="modal-overlay" id="messageModal">
     <div class="modal message-modal">
         <div class="modal-icon message">
@@ -949,6 +1167,49 @@ if (isset($_GET['op_status'])) {
                     Send Message
                 </button>
                 <button type="button" class="modal-btn btn-cancel" onclick="closeMessageModal()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Broadcast Message Modal -->
+<div class="modal-overlay" id="broadcastModal">
+    <div class="modal broadcast-modal">
+        <div class="modal-icon broadcast">
+            <i class="fas fa-bullhorn"></i>
+        </div>
+        <h3>Broadcast Message to All Students</h3>
+        <p>This message will be sent to all registered students</p>
+        
+        <div class="broadcast-info">
+            <i class="fas fa-info-circle"></i>
+            <div class="broadcast-info-text">
+                <strong>Recipients: <?= $total_students ?> students</strong>
+                <span>This message will be delivered to all student accounts</span>
+            </div>
+        </div>
+        
+        <form method="post" id="broadcastForm">
+            <input type="hidden" name="send_broadcast" value="1">
+            
+            <div class="form-group">
+                <label class="form-label" for="broadcastSubject">Subject</label>
+                <input type="text" name="message_subject" id="broadcastSubject" class="form-input" placeholder="Enter broadcast subject" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="broadcastContent">Message</label>
+                <textarea name="message_content" id="broadcastContent" class="form-textarea" placeholder="Type your broadcast message here..." required style="min-height: 150px;"></textarea>
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="submit" class="modal-btn btn-broadcast">
+                    <i class="fas fa-bullhorn"></i>
+                    Send to All Students
+                </button>
+                <button type="button" class="modal-btn btn-cancel" onclick="closeBroadcastModal()">
                     Cancel
                 </button>
             </div>
@@ -1015,7 +1276,29 @@ function closeMessageModal() {
     document.body.style.overflow = "auto";
 }
 
-// Close modal when clicking outside
+function openBroadcastModal() {
+    const modal = document.getElementById("broadcastModal");
+    
+    // Clear form
+    document.getElementById("broadcastSubject").value = "";
+    document.getElementById("broadcastContent").value = "";
+    
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden";
+    
+    // Focus on subject field
+    setTimeout(() => {
+        document.getElementById("broadcastSubject").focus();
+    }, 300);
+}
+
+function closeBroadcastModal() {
+    const modal = document.getElementById("broadcastModal");
+    modal.classList.remove("show");
+    document.body.style.overflow = "auto";
+}
+
+// Close modals when clicking outside
 document.getElementById("confirmModal").addEventListener("click", function(e) {
     if (e.target === this) {
         closeModal();
@@ -1028,11 +1311,18 @@ document.getElementById("messageModal").addEventListener("click", function(e) {
     }
 });
 
-// Close modal with Escape key
+document.getElementById("broadcastModal").addEventListener("click", function(e) {
+    if (e.target === this) {
+        closeBroadcastModal();
+    }
+});
+
+// Close modals with Escape key
 document.addEventListener("keydown", function(e) {
     if (e.key === "Escape") {
         closeModal();
         closeMessageModal();
+        closeBroadcastModal();
     }
 });
 
