@@ -566,66 +566,124 @@ if (!$stories_conn->connect_error) {
             margin: 0 auto;
         }
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-        }
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+}
 
-        .feature-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 2.5rem;
-            position: relative;
-            overflow: hidden;
-            transition: var(--transition);
-            cursor: pointer;
-        }
+.feature-bubble {
+    background: white;
+    border-radius: 24px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 8px 30px rgba(3, 89, 70, 0.08);
+    position: relative;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    overflow: hidden;
+    z-index: 5;
+}
 
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--gradient-primary);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s ease;
-        }
+.feature-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(3, 89, 70, 0.05) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
 
-        .feature-card:hover::before { transform: scaleX(1); }
-        .feature-card:hover { transform: translateY(-10px); box-shadow: var(--shadow-lg); }
+.feature-bubble:hover {
+    transform: translateY(-10px) scale(1.05);
+    box-shadow: 0 20px 50px rgba(3, 89, 70, 0.15);
+    border-color: rgba(3, 89, 70, 0.2);
+    z-index: 15;
+}
 
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: var(--gradient-primary);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            transition: var(--transition);
-        }
+.feature-bubble:hover::before {
+    opacity: 1;
+}
 
-        .feature-icon i { font-size: 1.5rem; color: var(--white); }
-        .feature-card:hover .feature-icon { transform: scale(1.1) rotate(5deg); }
+.feature-bubble-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #93c5fd 0%, #a78bfa 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(147, 197, 253, 0.45);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 1.25rem;
+    position: relative;
+    z-index: 1;
+}
 
-        .feature-card h3 {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 1rem;
-        }
+.feature-bubble:nth-child(2) .feature-bubble-icon {
+    background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
+    box-shadow: 0 10px 30px rgba(251, 191, 36, 0.45);
+}
 
-        .feature-card p { color: var(--text-light); line-height: 1.6; }
+.feature-bubble:nth-child(3) .feature-bubble-icon {
+    background: linear-gradient(135deg, #6ee7b7 0%, #34d399 100%);
+    box-shadow: 0 10px 30px rgba(110, 231, 183, 0.45);
+}
 
+.feature-bubble:nth-child(4) .feature-bubble-icon {
+    background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
+    box-shadow: 0 10px 30px rgba(253, 164, 175, 0.45);
+}
+
+.feature-bubble:nth-child(5) .feature-bubble-icon {
+    background: linear-gradient(135deg, #a78bfa 0%, #c084fc 100%);
+    box-shadow: 0 10px 30px rgba(167, 139, 250, 0.45);
+}
+
+.feature-bubble:nth-child(6) .feature-bubble-icon {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    box-shadow: 0 10px 30px rgba(74, 222, 128, 0.45);
+}
+
+.feature-bubble:hover .feature-bubble-icon {
+    transform: scale(1.15) rotate(360deg);
+}
+
+.feature-bubble-icon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.feature-bubble-content {
+    position: relative;
+    z-index: 1;
+}
+
+.feature-bubble-content h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.85rem;
+    transition: color 0.3s ease;
+}
+
+.feature-bubble:hover .feature-bubble-content h3 {
+    color: var(--primary);
+}
+
+.feature-bubble-content p {
+    color: var(--text-light);
+    line-height: 1.65;
+    font-size: 0.9rem;
+}
         /* Companies Section */
         .companies-section {
             padding: 120px 0;
@@ -996,68 +1054,80 @@ if (!$stories_conn->connect_error) {
         </div>
     </section>
 
-  <section class="features-section">
-        <div class="features-container">
-            <div class="section-header">
-                <div class="section-badge">
-                    <i class="fas fa-rocket"></i>
-                    Why Choose Nexttern
-                </div>
-                <h2 class="section-title">Everything You Need to <span class="highlight">Succeed</span></h2>
-                <p class="section-description">Our platform provides comprehensive tools and resources to help you find the perfect internship and accelerate your career growth.</p>
+<section class="features-section">
+    <div class="features-container">
+        <div class="section-header">
+            <div class="section-badge">
+                <i class="fas fa-rocket"></i>
+                Why Choose Nexttern
             </div>
-            
-            <div class="features-grid">
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
-                    <div class="feature-icon">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    <h3>Smart Matching Algorithm</h3>
-                    <p>Our AI-powered system matches you with internships that align perfectly with your skills, interests, and career aspirations.</p>
+            <h2 class="section-title">Everything You Need to <span class="highlight">Succeed</span></h2>
+            <p class="section-description">Our platform provides comprehensive tools and resources to help you find the perfect internship and accelerate your career growth.</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-bubble" data-aos="fade-up" data-aos-delay="0">
+                <div class="feature-bubble-icon">
+                    <i class="fas fa-search"></i>
                 </div>
-                
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="feature-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
+                <div class="feature-bubble-content">
+                    <h3>Smart Matching</h3>
+                    <p>Our smart system connects you with courses that match your goals.</p>
+                </div>
+            </div>
+
+            <div class="feature-bubble" data-aos="fade-up" data-aos-delay="100">
+                <div class="feature-bubble-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="feature-bubble-content">
                     <h3>Verified Companies</h3>
-                    <p>All partner companies are thoroughly vetted to ensure legitimate opportunities and safe, professional work environments.</p>
+                    <p>Thoroughly vetted partners ensure legitimate and safe work environments.</p>
                 </div>
-                
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="feature-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <h3>Skill Development Hub</h3>
-                    <p>Access exclusive workshops, courses, and mentorship programs designed to enhance your professional skills.</p>
+            </div>
+
+            <div class="feature-bubble" data-aos="fade-up" data-aos-delay="200">
+                <div class="feature-bubble-icon">
+                    <i class="fas fa-headset"></i>
                 </div>
-                
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3>Career Analytics Dashboard</h3>
-                    <p>Track your application progress and career growth with detailed insights and performance metrics.</p>
+                <div class="feature-bubble-content">
+                    <h3>24/7 Support</h3>
+                    <p>Our dedicated team is here to assist you at every step of your journey.</p>
                 </div>
-                
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="feature-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>Community Network</h3>
-                    <p>Connect with alumni and industry professionals to expand your professional network and opportunities.</p>
+            </div>
+
+            <div class="feature-bubble" data-aos="fade-up" data-aos-delay="300">
+                <div class="feature-bubble-icon">
+                    <i class="fas fa-chart-line"></i>
                 </div>
-                
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="feature-icon">
-                        <i class="fas fa-file-contract"></i>
-                    </div>
-                    <h3>One-Click Applications</h3>
-                    <p>Apply to multiple internships effortlessly using our streamlined application process and profile system.</p>
+                <div class="feature-bubble-content">
+                    <h3>Career Analytics</h3>
+                    <p>Track progress with detailed insights and performance metrics.</p>
+                </div>
+            </div>
+
+            <div class="feature-bubble" data-aos="fade-up" data-aos-delay="400">
+                <div class="feature-bubble-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <div class="feature-bubble-content">
+                    <h3>Quick Applications</h3>
+                    <p>Apply effortlessly with our streamlined one-click system.</p>
+                </div>
+            </div>
+
+            <div class="feature-bubble" data-aos="fade-up" data-aos-delay="500">
+                <div class="feature-bubble-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div class="feature-bubble-content">
+                    <h3>Expert Mentorship</h3>
+                    <p>Learn from industry professionals who guide your career journey.</p>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
     <section class="companies-section">
         <div class="companies-container">
             <div class="section-header">

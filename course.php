@@ -568,9 +568,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             align-items: center;
             gap: 1rem;
         }
-
-  
-/* Enhanced Profile Navigation with Photo Support */
+/* Enhanced Profile Navigation with Photo Support - Match About Us Page */
 .nav-profile {
     position: relative;
     display: flex;
@@ -584,7 +582,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     gap: 0.75rem;
     padding: 0.5rem 1rem;
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur));
+    backdrop-filter: blur(14px);
     border: 1px solid var(--glass-border);
     border-radius: 25px;
     cursor: pointer;
@@ -592,14 +590,13 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     text-decoration: none;
     color: var(--primary);
     font-weight: 500;
-    box-shadow: var(--shadow-light);
-    border: none;
+    box-shadow: var(--shadow-md);
     position: relative;
 }
 
 .profile-trigger:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
+    box-shadow: var(--shadow-lg);
     background: rgba(255, 255, 255, 0.4);
 }
 
@@ -616,7 +613,11 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     transition: var(--transition);
 }
 
-.profile-avatar.default {
+.profile-avatar.default,
+.company-initial {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     background: var(--gradient-primary);
     display: flex;
     align-items: center;
@@ -625,6 +626,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     font-weight: 700;
     font-size: 1rem;
     font-family: 'Poppins', sans-serif;
+    border: 2px solid var(--primary-light);
 }
 
 .profile-info {
@@ -673,7 +675,6 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     50% { transform: scale(1.1); }
     100% { transform: scale(1); }
 }
-
         /* Standard Login Button */
         .btn {
             padding: 0.75rem 1.5rem;

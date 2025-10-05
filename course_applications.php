@@ -154,22 +154,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_online_notificat
         }
     }
 }
-
 // Handle sending message to individual student
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message'])) {
     $student_email = $_POST['student_email'];
     $message_subject = $_POST['message_subject'];
     $message_content = $_POST['message_content'];
     
-    // Get student ID from email
-    $student_stmt = $conn->prepare("SELECT id FROM students WHERE email = ?");
+    // Get student ID (student_id column, not id) from email
+    $student_stmt = $conn->prepare("SELECT student_id FROM students WHERE email = ?");
     $student_stmt->bind_param("s", $student_email);
     $student_stmt->execute();
     $student_result = $student_stmt->get_result();
     
     if ($student_result->num_rows > 0) {
         $student = $student_result->fetch_assoc();
-        $student_id = $student['id'];
+        $student_id = $student['student_id']; // This should be something like ST4050, ST1907
         
         // Insert message into student_messages table
         $message_stmt = $conn->prepare("INSERT INTO student_messages (sender_type, receiver_type, receiver_id, subject, message, is_read, created_at) 
@@ -183,11 +182,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message'])) {
         }
         $message_stmt->close();
     } else {
-        $error_message = "Student not found with this email address.";
+        $error_message = "Student account not found. The student may not be registered in the system yet.";
     }
     $student_stmt->close();
 }
-
 // Fetch course details if course_id is provided
 $course = null;
 if ($course_id > 0) {
@@ -700,39 +698,41 @@ $conn->close();
             color: #721c24;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
+      .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
 
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 2rem;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 600px;
-            box-shadow: var(--shadow-medium);
-        }
+.modal-content {
+    background-color: white;
+    margin: 3% auto;
+    padding: 2.5rem;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: var(--shadow-medium);
+    max-height: 90vh;
+    overflow-y: auto;
+}
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
 
-        .modal-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
+.modal-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--primary);
+}
 
         .close {
             font-size: 2rem;
@@ -878,7 +878,7 @@ $conn->close();
     <div class="page-container">
         <div class="page-header">
             <div class="breadcrumb">
-                <a href="?page=manage-internships"><i class="fas fa-arrow-left"></i> Back to Courses</a>
+                <a href="?page= manage-courses"><i class="fas fa-arrow-left"></i> Back to Courses</a>
                 <span>/</span>
                 <span>Applications</span>
             </div>

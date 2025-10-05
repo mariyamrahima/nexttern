@@ -171,7 +171,24 @@ if ($isLoggedIn && $user_id) {
         $user_conn->close();
     }
 }
+// Fetch about content from database
+$about_data = [];
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "nexttern_db";
 
+$about_conn = new mysqli($servername, $username, $password, $dbname);
+
+if (!$about_conn->connect_error) {
+    $result = $about_conn->query("SELECT section_key, content FROM about_content");
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $about_data[$row['section_key']] = $row['content'];
+        }
+    }
+    $about_conn->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1228,7 +1245,7 @@ body {
                 <div class="footer-bottom-links">
                     <a href="#privacy-content" onclick="scrollToSection('privacy-content')">Privacy Policy</a>
                     <a href="#terms-content" onclick="scrollToSection('terms-content')">Terms of Service</a>
-                    <a href="#">Cookie Policy</a>
+                   
                 </div>
             </div>
         </div>

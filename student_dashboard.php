@@ -1,10 +1,11 @@
 <?php
+// CRITICAL: Add these cache-busting headers FIRST
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 $page = $_GET['page'] ?? 'dashboard';
 session_start();
-
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 
 // Check if student is logged in
 if (!isset($_SESSION['email'])) {
@@ -19,8 +20,9 @@ if ($conn->connect_error) {
 }
 
 $email = $_SESSION['email'];
-// Updated SELECT query to fetch 'qualifications' as well
-$stmt = $conn->prepare("SELECT student_id, first_name, last_name, contact, gender, dob,qualifications FROM students WHERE email = ?");
+
+// Get student info first
+$stmt = $conn->prepare("SELECT student_id, first_name, last_name, contact, gender, dob, qualifications FROM students WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -30,47 +32,54 @@ if ($result->num_rows === 0) {
 }
 
 $row = $result->fetch_assoc();
-$student_id = htmlspecialchars($row['student_id']);
+// FIXED: Don't use htmlspecialchars on IDs used for database queries
+$student_id = $row['student_id'];  // Raw value for DB operations
+$student_id_display = htmlspecialchars($row['student_id']); // For HTML display only
 $first_name = htmlspecialchars($row['first_name']);
 $last_name = htmlspecialchars($row['last_name']);
 $contact = htmlspecialchars($row['contact']);
 $gender = htmlspecialchars($row['gender']);
 $dob = htmlspecialchars(date('Y-m-d', strtotime($row['dob'])));
-
-// 'qualifications' data is now being fetched.
-// Using null coalescing operator to avoid "Deprecated" warning
 $qualifications = htmlspecialchars($row['qualifications'] ?? '');
 
-$error_message = '';
-$success_message = '';
-$update_success = false;
-    // Updated query with the 'qualifications' column
-    if ($update_success) {
+// Handle profile update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+    $new_first_name = trim($_POST['first_name']);
+    $new_last_name = trim($_POST['last_name']);
+    $new_contact = trim($_POST['contact']);
+    $new_gender = $_POST['gender'];
+    $new_dob = $_POST['dob'];
+    $new_qualifications = $_POST['qualifications'];
+    
+    if (empty($new_first_name) || empty($new_last_name)) {
+        $error_message = "First name and last name are required.";
+    } else {
         $stmt_update = $conn->prepare("UPDATE students SET first_name = ?, last_name = ?, contact = ?, gender = ?, dob = ?, qualifications = ? WHERE student_id = ?");
         $stmt_update->bind_param("sssssss", $new_first_name, $new_last_name, $new_contact, $new_gender, $new_dob, $new_qualifications, $student_id);
         
         if ($stmt_update->execute()) {
-            $_SESSION['email'] = $email;
             $success_message = "Profile updated successfully!";
-            // Redirect to prevent form resubmission
-            header("Location: " . $_SERVER['PHP_SELF'] . "?page=profile&success=1");
+            $first_name = htmlspecialchars($new_first_name);
+            $last_name = htmlspecialchars($new_last_name);
+            header("Location: student_dashboard.php?page=profile&success=1");
             exit;
         } else {
             $error_message = "Error updating record: " . $stmt_update->error;
         }
         $stmt_update->close();
     }
+}
+
 // Handle profile photo upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === 0) {
     $upload_dir = 'uploads/profile_photos/';
     
-    // Create directory if it doesn't exist
     if (!file_exists($upload_dir)) {
         mkdir($upload_dir, 0755, true);
     }
     
     $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    $max_size = 5 * 1024 * 1024; // 5MB
+    $max_size = 5 * 1024 * 1024;
     
     $file_type = $_FILES['profile_photo']['type'];
     $file_size = $_FILES['profile_photo']['size'];
@@ -86,12 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_photo']) && 
         $upload_path = $upload_dir . $new_filename;
         
         if (move_uploaded_file($file_tmp, $upload_path)) {
-            // Update database with new photo path
             $stmt_photo = $conn->prepare("UPDATE students SET profile_photo = ? WHERE student_id = ?");
             $stmt_photo->bind_param("ss", $upload_path, $student_id);
             
             if ($stmt_photo->execute()) {
-                // Delete old photo if exists and not default
                 $old_photo_stmt = $conn->prepare("SELECT profile_photo FROM students WHERE student_id = ?");
                 $old_photo_stmt->bind_param("s", $student_id);
                 $old_photo_stmt->execute();
@@ -103,12 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_photo']) && 
                 }
                 
                 $success_message = "Profile photo updated successfully!";
-                // Refresh page to show new photo
-                header("Location: " . $_SERVER['PHP_SELF'] . "?page=profile&success=1");
+                header("Location: student_dashboard.php?page=profile&success=1");
                 exit;
             } else {
                 $error_message = "Error updating profile photo in database.";
-                unlink($upload_path); // Remove uploaded file on database error
+                unlink($upload_path);
             }
             $stmt_photo->close();
         } else {
@@ -117,26 +123,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_photo']) && 
     }
 }
 
-// Get current profile photo
-$photo_stmt = $conn->prepare("SELECT profile_photo FROM students WHERE student_id = ?");
-$photo_stmt->bind_param("s", $student_id);
-$photo_stmt->execute();
-$photo_result = $photo_stmt->get_result();
-$photo_data = $photo_result->fetch_assoc();
-$current_photo = $photo_data['profile_photo'] ?? '';
-
-
 // Handle resume upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['resume_file']) && $_FILES['resume_file']['error'] === 0) {
     $upload_dir = 'uploads/resume/';
     
-    // Create directory if it doesn't exist
     if (!file_exists($upload_dir)) {
         mkdir($upload_dir, 0755, true);
     }
     
     $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    $max_size = 10 * 1024 * 1024; // 10MB
+    $max_size = 10 * 1024 * 1024;
     
     $file_type = $_FILES['resume_file']['type'];
     $file_size = $_FILES['resume_file']['size'];
@@ -152,12 +148,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['resume_file']) && $_
         $upload_path = $upload_dir . $new_filename;
         
         if (move_uploaded_file($file_tmp, $upload_path)) {
-            // Update database with new resume path
             $stmt_resume = $conn->prepare("UPDATE students SET resume_path = ? WHERE student_id = ?");
             $stmt_resume->bind_param("ss", $upload_path, $student_id);
             
             if ($stmt_resume->execute()) {
-                // Delete old resume if exists
                 $old_resume_stmt = $conn->prepare("SELECT resume_path FROM students WHERE student_id = ?");
                 $old_resume_stmt->bind_param("s", $student_id);
                 $old_resume_stmt->execute();
@@ -169,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['resume_file']) && $_
                 }
                 
                 $success_message = "Resume updated successfully!";
-                header("Location: " . $_SERVER['PHP_SELF'] . "?page=profile&success=1");
+                header("Location: student_dashboard.php?page=profile&success=1");
                 exit;
             } else {
                 $error_message = "Error updating resume in database.";
@@ -199,21 +193,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_resume'])) {
     
     if ($remove_resume_stmt->execute()) {
         $success_message = "Resume removed successfully!";
-        header("Location: " . $_SERVER['PHP_SELF'] . "?page=profile&success=1");
+        header("Location: student_dashboard.php?page=profile&success=1");
         exit;
     } else {
         $error_message = "Error removing resume.";
     }
     $remove_resume_stmt->close();
 }
-
-// Get current resume
-$resume_stmt = $conn->prepare("SELECT resume_path FROM students WHERE student_id = ?");
-$resume_stmt->bind_param("s", $student_id);
-$resume_stmt->execute();
-$resume_result = $resume_stmt->get_result();
-$resume_data = $resume_result->fetch_assoc();
-$current_resume = $resume_data['resume_path'] ?? '';
 
 // Handle course application submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
@@ -222,7 +208,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     $cover_letter = $_POST['cover_letter'];
     $applicant_name = $first_name . ' ' . $last_name;
     
-    // Check if student already applied for this course
     $check_stmt = $conn->prepare("SELECT id FROM course_applications WHERE course_id = ? AND student_id = ?");
     $check_stmt->bind_param("is", $course_id, $student_id);
     $check_stmt->execute();
@@ -236,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
         
         if ($app_stmt->execute()) {
             $success_message = "Application submitted successfully!";
-            header("Location: " . $_SERVER['PHP_SELF'] . "?page=applications&success=1");
+            header("Location: student_dashboard.php?page=applications&success=1");
             exit;
         } else {
             $error_message = "Error submitting application: " . $app_stmt->error;
@@ -245,9 +230,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     }
     $check_stmt->close();
 }
+
+// Handle story submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_story'])) {
+    $story_title = trim($_POST['story_title']);
+    $story_category = trim($_POST['story_category']);
+    $story_content = trim($_POST['story_content']);
+    $feedback_rating = (int)$_POST['feedback_rating'];
+    
+    if (empty($story_title) || empty($story_category) || empty($story_content)) {
+        $error_message = "Please fill in all required fields.";
+    } elseif ($feedback_rating < 1 || $feedback_rating > 5) {
+        $error_message = "Please provide a valid rating (1-5 stars).";
+    } else {
+        $story_stmt = $conn->prepare("INSERT INTO stories (story_title, story_category, story_content, feedback_rating, student_id, first_name, last_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
+        $story_stmt->bind_param("sssisss", $story_title, $story_category, $story_content, $feedback_rating, $student_id, $first_name, $last_name);
+
+        if ($story_stmt->execute()) {
+            $_SESSION['success_message'] = "Story submitted successfully! Your submission is under review.";
+            header("Location: student_dashboard.php?page=stories");
+            exit;
+        } else {
+            $error_message = "Error submitting story: " . $story_stmt->error;
+        }
+        $story_stmt->close();
+    }
+}
+
+// ==========================================
+// FETCH DATA FOR DISPLAY
+// ==========================================
+
+// Get current profile photo
+$photo_stmt = $conn->prepare("SELECT profile_photo FROM students WHERE student_id = ?");
+$photo_stmt->bind_param("s", $student_id);
+$photo_stmt->execute();
+$photo_result = $photo_stmt->get_result();
+$photo_data = $photo_result->fetch_assoc();
+$current_photo = $photo_data['profile_photo'] ?? '';
+
+// Get current resume
+$resume_stmt = $conn->prepare("SELECT resume_path FROM students WHERE student_id = ?");
+$resume_stmt->bind_param("s", $student_id);
+$resume_stmt->execute();
+$resume_result = $resume_stmt->get_result();
+$resume_data = $resume_result->fetch_assoc();
+$current_resume = $resume_data['resume_path'] ?? '';
+
 // Get student's submitted stories count
 $stories_count_stmt = $conn->prepare("SELECT COUNT(*) as stories_count FROM stories WHERE student_id = ?");
-$stories_count_stmt->bind_param("s", $student_id); // Changed to "s" for string consistency
+$stories_count_stmt->bind_param("s", $student_id);
 $stories_count_stmt->execute();
 $stories_count_result = $stories_count_stmt->get_result();
 $total_stories = $stories_count_result->fetch_assoc()['stories_count'];
@@ -260,59 +292,11 @@ $student_stories_stmt = $conn->prepare("
     WHERE student_id = ? 
     ORDER BY submission_date DESC
 ");
-$student_stories_stmt->bind_param("s", $student_id); // Changed to "s" for string consistency
+$student_stories_stmt->bind_param("s", $student_id);
 $student_stories_stmt->execute();
 $student_stories_result = $student_stories_stmt->get_result();
-/// Handle story submission - FIXED VERSION
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_story'])) {
-    $story_title = trim($_POST['story_title']);
-    $story_category = trim($_POST['story_category']);
-    $story_content = trim($_POST['story_content']);
-    $feedback_rating = (int)$_POST['feedback_rating'];
-    
-    // Validate inputs
-    if (empty($story_title) || empty($story_category) || empty($story_content)) {
-        $error_message = "Please fill in all required fields.";
-    } elseif ($feedback_rating < 1 || $feedback_rating > 5) {
-        $error_message = "Please provide a valid rating (1-5 stars).";
-    } else {
-        $story_stmt = $conn->prepare("INSERT INTO stories (story_title, story_category, story_content, feedback_rating, student_id, first_name, last_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
-        $story_stmt->bind_param("sssisss", $story_title, $story_category, $story_content, $feedback_rating, $student_id, $first_name, $last_name);
 
-        if ($story_stmt->execute()) {
-            $_SESSION['success_message'] = "Story submitted successfully! Your submission is under review.";
-            header("Location: " . $_SERVER['PHP_SELF'] . "?page=stories");
-            exit;
-        } else {
-            $error_message = "Error submitting story: " . $story_stmt->error;
-        }
-        $story_stmt->close();
-    }
-}
-// Handle mark as read functionality
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_read'])) {
-    $message_id = $_POST['message_id'];
-    $stmt = $conn->prepare("UPDATE student_messages SET is_read = TRUE WHERE id = ? AND receiver_id = ?");
-    $stmt->bind_param("is", $message_id, $student_id);
-    $stmt->execute();
-    $stmt->close();
-
-    header("Location: " . $_SERVER['PHP_SELF'] . "?page=messages");
-    exit;
-}
-
-// Handle mark all as read functionality
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read'])) {
-    $stmt = $conn->prepare("UPDATE student_messages SET is_read = TRUE WHERE receiver_type = 'student' AND receiver_id = ?");
-    $stmt->bind_param("s", $student_id);
-    $stmt->execute();
-    $stmt->close();
-
-    header("Location: " . $_SERVER['PHP_SELF'] . "?page=messages");
-    exit;
-}
-
-// Fetch messages for the current student with improved query
+// Fetch messages for the current student
 $messages_stmt = $conn->prepare("
     SELECT id, sender_type, subject, message, is_read, created_at 
     FROM student_messages 
@@ -324,7 +308,7 @@ $messages_stmt->execute();
 $messages_result = $messages_stmt->get_result();
 
 // Get unread message count
-$unread_stmt = $conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = FALSE");
+$unread_stmt = $conn->prepare("SELECT COUNT(*) as unread_count FROM student_messages WHERE receiver_type = 'student' AND receiver_id = ? AND is_read = 0");
 $unread_stmt->bind_param("s", $student_id);
 $unread_stmt->execute();
 $unread_result = $unread_stmt->get_result();
@@ -356,7 +340,7 @@ $student_apps_stmt->bind_param("s", $student_id);
 $student_apps_stmt->execute();
 $student_apps_result = $student_apps_stmt->get_result();
 
-// NEW: Fetch course notifications for online courses the student has applied to
+// Fetch course notifications for online courses the student has applied to
 $course_notifications_stmt = $conn->prepare("
     SELECT 
         cn.*,
@@ -379,7 +363,7 @@ $course_notifications_result = $course_notifications_stmt->get_result();
 // Get count of course notifications
 $course_notifications_count = $course_notifications_result->num_rows;
 
-// Function to get sender display name
+// Helper functions
 function getSenderDisplayName($sender_type) {
     switch($sender_type) {
         case 'admin':
@@ -393,7 +377,6 @@ function getSenderDisplayName($sender_type) {
     }
 }
 
-// Function to get sender icon
 function getSenderIcon($sender_type) {
     switch($sender_type) {
         case 'admin':
@@ -407,7 +390,6 @@ function getSenderIcon($sender_type) {
     }
 }
 
-// Function to get time ago format
 function timeAgo($datetime) {
     $time = time() - strtotime($datetime);
     
@@ -420,7 +402,6 @@ function timeAgo($datetime) {
     return date('M j, Y', strtotime($datetime));
 }
 
-// Function to get application status badge
 function getStatusBadge($status) {
     $badges = [
         'pending' => '<span class="status-badge pending"><i class="fas fa-clock"></i> Pending</span>',
@@ -431,7 +412,6 @@ function getStatusBadge($status) {
     return $badges[$status] ?? '<span class="status-badge">' . ucfirst($status) . '</span>';
 }
 
-// Determine page title
 $titles = [
     'dashboard' => 'Student Dashboard',
     'profile' => 'My Profile', 
@@ -450,1824 +430,7 @@ $titles = [
     <title>Student Dashboard | Nexttern</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #035946;
-            --primary-light: #0a7058;
-            --primary-dark: #023d32;
-            --secondary: #64748b;
-            --accent: #4ecdc4;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --info: #3b82f6;
-            
-            /* Modern neutrals */
-            --slate-50: #f8fafc;
-            --slate-100: #f1f5f9;
-            --slate-200: #e2e8f0;
-            --slate-300: #cbd5e1;
-            --slate-400: #94a3b8;
-            --slate-500: #64748b;
-            --slate-600: #475569;
-            --slate-700: #334155;
-            --slate-800: #1e293b;
-            --slate-900: #0f172a;
-            
-            --sidebar-width: 280px;
-            --sidebar-collapsed-width: 80px;
-            --header-height: 70px;
-            --border-radius: 12px;
-            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        /* Course Notification Styles */
-        .notification-badge {
-            background: linear-gradient(135deg, var(--info), #2563eb);
-            color: white;
-            padding: 0.375rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            margin-left: 1rem;
-        }
-
-        .course-notification-item {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border: 1px solid var(--info);
-            border-left: 4px solid var(--info);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            transition: var(--transition);
-            position: relative;
-        }
-
-        .course-notification-item:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
-        }
-
-        .notification-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .notification-course-info h4 {
-            color: var(--primary-dark);
-            margin-bottom: 0.25rem;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .notification-course-info .company-name {
-            color: var(--slate-600);
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .notification-meta {
-            text-align: right;
-        }
-
-        .notification-date {
-            font-size: 0.8rem;
-            color: var(--slate-500);
-            margin-bottom: 0.5rem;
-        }
-
-        .meeting-details {
-            background: white;
-            border-radius: 10px;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-            box-shadow: var(--shadow);
-        }
-
-        .meeting-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .meeting-detail {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .meeting-detail i {
-            color: var(--info);
-            width: 16px;
-        }
-
-        .meeting-link {
-            background: var(--info);
-            color: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: var(--border-radius);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-            transition: var(--transition);
-            margin-top: 1rem;
-        }
-
-        .meeting-link:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
-            box-shadow: var(--shadow);
-            color: white;
-            text-decoration: none;
-        }
-
-        .additional-notes {
-            background: var(--slate-50);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            border-left: 3px solid var(--accent);
-        }
-
-        .notification-icon {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            width: 40px;
-            height: 40px;
-            background: var(--info);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-        }
-
-        .empty-notifications {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: var(--slate-500);
-        }
-
-        .empty-notifications i {
-            font-size: 3rem;
-            color: var(--slate-300);
-            margin-bottom: 1rem;
-        }
-.profile-photo-section {
-    display: flex;
-    align-items: flex-start;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    padding: 2rem;
-    background: var(--slate-50);
-    border-radius: var(--border-radius);
-    border: 1px solid var(--slate-200);
-}
-
-.current-photo-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-}
-
-.profile-photo-display {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: 4px solid white;
-    box-shadow: var(--shadow-lg);
-    object-fit: cover;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 2.5rem;
-    font-weight: 700;
-    position: relative;
-    overflow: hidden;
-}
-
-.profile-photo-display img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.photo-upload-area {
-    flex: 1;
-    border: 2px dashed var(--slate-300);
-    border-radius: var(--border-radius);
-    padding: 2rem;
-    text-align: center;
-    background: white;
-    transition: var(--transition);
-    cursor: pointer;
-    position: relative;
-}
-
-.photo-upload-area:hover,
-.photo-upload-area.dragover {
-    border-color: var(--primary);
-    background: rgba(3, 89, 70, 0.05);
-}
-
-.photo-upload-area.has-file {
-    border-color: var(--success);
-    background: rgba(16, 185, 129, 0.05);
-}
-
-.upload-icon {
-    font-size: 2.5rem;
-    color: var(--slate-400);
-    margin-bottom: 1rem;
-}
-
-.photo-upload-area.has-file .upload-icon {
-    color: var(--success);
-}
-
-.upload-text h4 {
-    color: var(--slate-700);
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-}
-
-.upload-text p {
-    color: var(--slate-500);
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-}
-
-.file-input-wrapper {
-    position: relative;
-    overflow: hidden;
-    display: inline-block;
-}
-
-.file-input-wrapper input[type=file] {
-    position: absolute;
-    left: -9999px;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.file-select-btn {
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: var(--border-radius);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.925rem;
-}
-
-.file-select-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
-}
-
-.file-info {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: var(--slate-100);
-    border-radius: var(--border-radius);
-    display: none;
-}
-
-.file-info.show {
-    display: block;
-}
-
-.file-details {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.file-name {
-    font-weight: 600;
-    color: var(--slate-900);
-    flex: 1;
-    text-align: left;
-}
-
-.file-size {
-    color: var(--slate-500);
-    font-size: 0.875rem;
-}
-
-.remove-file-btn {
-    background: var(--danger);
-    color: white;
-    border: none;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: var(--transition);
-}
-
-.remove-file-btn:hover {
-    background: #dc2626;
-}
-
-.photo-preview {
-    margin-top: 1rem;
-    display: none;
-}
-
-.photo-preview.show {
-    display: block;
-}
-
-.preview-image {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 12px;
-    border: 2px solid var(--slate-200);
-    box-shadow: var(--shadow);
-}
-
-@media (max-width: 768px) {
-    .profile-photo-section {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-    }
-    
-    .profile-photo-display {
-        width: 100px;
-        height: 100px;
-        font-size: 2rem;
-    }
-}
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--slate-50);
-            color: var(--slate-700);
-            line-height: 1.6;
-        }
-
-        /* Layout Structure */
-        .dashboard-layout {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: white;
-            border-right: 1px solid var(--slate-200);
-            box-shadow: var(--shadow);
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 50;
-            transition: var(--transition);
-            overflow: hidden;
-        }
-
-        .sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--slate-200);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: var(--header-height);
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: var(--primary);
-            transition: var(--transition);
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-
-        .logo-text {
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-
-        .sidebar.collapsed .logo-text {
-            opacity: 0;
-            width: 0;
-            overflow: hidden;
-        }
-
-        .sidebar-toggle {
-            background: none;
-            border: none;
-            padding: 0.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            color: var(--slate-500);
-            transition: var(--transition);
-        }
-
-        .sidebar-toggle:hover {
-            background-color: var(--slate-100);
-            color: var(--primary);
-        }
-
-        .sidebar.collapsed .sidebar-toggle {
-            transform: rotate(180deg);
-        }
-
-        /* User Profile in Sidebar */
-        .sidebar-user {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--slate-200);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .user-avatar {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
-            flex-shrink: 0;
-        }
-
-        .user-details {
-            flex: 1;
-            min-width: 0;
-            transition: var(--transition);
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: var(--slate-900);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .user-id {
-            font-size: 0.875rem;
-            color: var(--slate-500);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sidebar.collapsed .user-details {
-            opacity: 0;
-            width: 0;
-            overflow: hidden;
-        }
-
-        /* Navigation Menu */
-        .sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 0;
-            overflow-y: auto;
-        }
-
-        .nav-item {
-            margin-bottom: 0.25rem;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.875rem 1.5rem;
-            color: var(--slate-600);
-            text-decoration: none;
-            transition: var(--transition);
-            position: relative;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .nav-link:hover {
-            background-color: var(--slate-50);
-            color: var(--primary);
-        }
-
-        .nav-link.active {
-            background-color: rgba(3, 89, 70, 0.1);
-            color: var(--primary);
-            border-right: 3px solid var(--primary);
-        }
-
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 1.1rem;
-        }
-
-        .nav-text {
-            white-space: nowrap;
-            transition: var(--transition);
-        }
-
-       .nav-badge {
-    margin-left: auto;
-    background-color: var(--danger);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.125rem 0.5rem;
-    border-radius: 12px;
-    min-width: 20px;
-    text-align: center;
-    transition: var(--transition);
-    position: absolute; /* Add this */
-    right: 8px; /* Add this */
-    top: 50%; /* Add this */
-    transform: translateY(-50%); /* Add this */
-}
-.sidebar.collapsed .nav-badge {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-    right: 50%; /* Add this for centered alignment when collapsed */
-    transform: translate(50%, -50%); /* Modify this */
-}
-
-        .sidebar.collapsed .nav-text,
-        .sidebar.collapsed .nav-badge {
-            opacity: 0;
-            width: 0;
-            overflow: hidden;
-        }
-
-        .sidebar.collapsed .nav-link {
-            justify-content: center;
-            padding: 0.875rem;
-        }
-
-        /* Logout Button */
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid var(--slate-200);
-        }
-
-        .logout-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem;
-            background: linear-gradient(135deg, var(--danger), #dc2626);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .logout-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .sidebar.collapsed .logout-btn .logout-text {
-            display: none;
-        }
-
-        /* Main Content Area */
-        .main-content {
-            flex: 1;
-            margin-left: var(--sidebar-width);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .sidebar.collapsed ~ .main-content {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-
-        /* Top Header */
-        .top-header {
-            height: var(--header-height);
-            background: white;
-            border-bottom: 1px solid var(--slate-200);
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: var(--shadow);
-        }
-
-        .header-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--slate-900);
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .header-stat {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background-color: var(--slate-100);
-            border-radius: var(--border-radius);
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        /* Content Container */
-        .content-container {
-            flex: 1;
-            padding: 2rem;
-            max-width: 1400px;
-            width: 100%;
-        }
-
-        /* Content Sections */
-        .content-section {
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .content-section.active {
-            display: block;
-        }
-
-        /* Cards */
-        .content-card {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--slate-200);
-            margin-bottom: 2rem;
-        }
-
-        .card-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--slate-200);
-            display: flex;
-            align-items: center;
-            justify-content: between;
-            gap: 1rem;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--slate-900);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .card-title i {
-            color: var(--primary);
-            font-size: 1.1rem;
-        }
-
-        .card-body {
-            padding: 2rem;
-        }
-
-        /* Dashboard Overview Cards */
-        .overview-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--slate-200);
-            transition: var(--transition);
-        }
-
-        .stat-card:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
-        }
-
-        .stat-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--slate-600);
-        }
-
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-        }
-
-        .stat-icon.messages { background: linear-gradient(135deg, var(--info), #2563eb); }
-        .stat-icon.applications { background: linear-gradient(135deg, var(--warning), #d97706); }
-        .stat-icon.stories { background: linear-gradient(135deg, var(--success), #059669); }
-        .stat-icon.feedback { background: linear-gradient(135deg, var(--accent), #06b6d4); }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--slate-900);
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-description {
-            font-size: 0.875rem;
-            color: var(--slate-500);
-        }
-
-        /* Form Styles */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-label {
-            font-weight: 500;
-            color: var(--slate-700);
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .form-input {
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--slate-300);
-            border-radius: var(--border-radius);
-            background-color: white;
-            transition: var(--transition);
-            font-size: 0.925rem;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(3, 89, 70, 0.1);
-        }
-
-        .form-textarea {
-            resize: vertical;
-            min-height: 120px;
-            font-family: inherit;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 2rem;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: var(--border-radius);
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.925rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .btn-secondary {
-            background-color: var(--slate-200);
-            color: var(--slate-700);
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--slate-300);
-        }
-
-        /* Messages */
-        .messages-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .messages-stats {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .message-stat {
-            text-align: center;
-        }
-
-        .message-stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            display: block;
-        }
-
-        .message-stat-label {
-            font-size: 0.75rem;
-            color: var(--slate-500);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
-        .message-item {
-            background: white;
-            border: 1px solid var(--slate-200);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: var(--transition);
-        }
-
-        .message-item:hover {
-            box-shadow: var(--shadow);
-        }
-
-        .message-item.unread {
-            border-left: 4px solid var(--primary);
-            background-color: rgba(3, 89, 70, 0.02);
-        }
-
-        .message-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .sender-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .sender-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            color: white;
-            font-weight: 600;
-        }
-
-        .sender-avatar.admin { background: linear-gradient(135deg, var(--danger), #dc2626); }
-        .sender-avatar.company { background: linear-gradient(135deg, var(--info), #2563eb); }
-        .sender-avatar.student { background: linear-gradient(135deg, var(--success), #059669); }
-
-        .sender-details h4 {
-            font-weight: 600;
-            color: var(--slate-900);
-            margin-bottom: 0.25rem;
-            font-size: 0.925rem;
-        }
-
-        .sender-type {
-            font-size: 0.8rem;
-            color: var(--slate-500);
-        }
-
-        .message-time {
-            font-size: 0.8rem;
-            color: var(--slate-500);
-        }
-
-        .message-subject {
-            font-weight: 600;
-            color: var(--slate-900);
-            margin-bottom: 0.75rem;
-            font-size: 1.05rem;
-        }
-
-        .message-content {
-            color: var(--slate-600);
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-
-        .message-actions {
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        .mark-read-btn {
-            background: linear-gradient(135deg, var(--success), #059669);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius);
-            font-size: 0.825rem;
-            cursor: pointer;
-            font-weight: 500;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-        }
-
-        .mark-read-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow);
-        }
-
-        /* Status Badges */
-        .status-badge {
-            padding: 0.375rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-        }
-
-        .status-badge.pending {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-        }
-
-        .status-badge.approved {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-        }
-
-        .status-badge.rejected {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-        }
-
-        .status-badge.waitlisted {
-            background: rgba(139, 92, 246, 0.1);
-            color: #8b5cf6;
-        }
-
-        /* Application Items */
-        .application-item {
-            background: white;
-            border: 1px solid var(--slate-200);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: var(--transition);
-        }
-
-        .application-item:hover {
-            box-shadow: var(--shadow);
-        }
-
-        .application-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .application-course h4 {
-            font-weight: 600;
-            color: var(--slate-900);
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .application-date {
-            font-size: 0.8rem;
-            color: var(--slate-500);
-            margin-bottom: 0.5rem;
-        }
-
-        /* Alerts */
-        .alert {
-            padding: 1rem 1.25rem;
-            border-radius: var(--border-radius);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        /* Empty States */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            color: var(--slate-500);
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            color: var(--slate-300);
-        }
-
-        .empty-state h3 {
-            margin-bottom: 0.75rem;
-            font-size: 1.25rem;
-            color: var(--slate-700);
-        }
-
-        .empty-state p {
-            font-size: 1rem;
-            line-height: 1.5;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        /* Rating Stars */
-        .rating-stars {
-            display: flex;
-            gap: 0.25rem;
-            margin-top: 0.5rem;
-        }
-
-        .rating-stars input[type="radio"] {
-            display: none;
-        }
-
-        .rating-stars label {
-            font-size: 1.5rem;
-            color: var(--slate-300);
-            cursor: pointer;
-            transition: var(--transition);
-            margin: 0;
-        }
-
-        .rating-stars label:hover,
-        .rating-stars input[type="radio"]:checked ~ label,
-        .rating-stars label:hover ~ label {
-            color: var(--warning);
-        }
-
-        .rating-stars input[type="radio"]:checked + label {
-            color: var(--warning);
-        }
-
-        /* Upload Area */
-        .upload-area {
-            border: 2px dashed var(--slate-300);
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            text-align: center;
-            background: var(--slate-50);
-            transition: var(--transition);
-            cursor: pointer;
-        }
-
-        .upload-area:hover,
-        .upload-area.dragover {
-            border-color: var(--primary);
-            background: rgba(3, 89, 70, 0.05);
-        }
-
-        .upload-icon {
-            font-size: 2.5rem;
-            color: var(--slate-400);
-            margin-bottom: 1rem;
-        }
-
-        .upload-text h4 {
-            color: var(--slate-700);
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .upload-text p {
-            color: var(--slate-500);
-            font-size: 0.9rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1024px) {
-            /* Updated CSS for sidebar without arrow - replace the existing sidebar styles */
-
-.sidebar-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--slate-200);
-    display: flex;
-    align-items: center;
-    justify-content: center; /* Center the logo since no arrow button */
-    height: var(--header-height);
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-weight: 700;
-    font-size: 1.25rem;
-    color: var(--primary);
-    transition: var(--transition);
-}
-
-.logo-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.logo-text {
-    transition: var(--transition);
-    white-space: nowrap;
-}
-
-/* Remove arrow button styles */
-.sidebar-toggle {
-    display: none; /* Hide any remaining arrow buttons in sidebar */
-}
-
-/* Collapsed state styles - now only triggered by hamburger */
-.sidebar.collapsed {
-    width: var(--sidebar-collapsed-width);
-}
-
-.sidebar.collapsed .logo-text {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-}
-
-.sidebar.collapsed .nav-text,
-.sidebar.collapsed .nav-badge,
-.sidebar.collapsed .user-details {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-}
-
-.sidebar.collapsed .nav-link {
-    justify-content: center;
-    padding: 0.875rem;
-}
-
-.sidebar.collapsed .logout-btn .logout-text {
-    display: none;
-}
-
-.sidebar.collapsed .sidebar-header {
-    justify-content: center;
-}
-
-/* Enhanced mobile styles */
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-        z-index: 100;
-        width: 280px; /* Fixed width on mobile */
-    }
-
-    .sidebar.mobile-open {
-        transform: translateX(0);
-    }
-    
-    /* Reset collapsed state on mobile */
-    .sidebar.collapsed {
-        width: 280px;
-    }
-    
-    .sidebar.collapsed .logo-text,
-    .sidebar.collapsed .nav-text,
-    .sidebar.collapsed .nav-badge,
-    .sidebar.collapsed .user-details {
-        opacity: 1;
-        width: auto;
-        overflow: visible;
-    }
-    
-    .sidebar.collapsed .nav-link {
-        justify-content: flex-start;
-        padding: 0.875rem 1.5rem;
-    }
-    
-    .sidebar.collapsed .logout-btn .logout-text {
-        display: inline;
-    }
-    
-    .sidebar.collapsed .sidebar-header {
-        justify-content: center;
-    }
-}
-
-/* Tablet responsive behavior */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .sidebar {
-        width: var(--sidebar-collapsed-width);
-    }
-    
-    .sidebar .logo-text,
-    .sidebar .nav-text,
-    .sidebar .nav-badge,
-    .sidebar .user-details {
-        opacity: 0;
-        width: 0;
-        overflow: hidden;
-    }
-
-    .sidebar .nav-link {
-        justify-content: center;
-        padding: 0.875rem;
-    }
-    
-    .sidebar .logout-btn .logout-text {
-        display: none;
-    }
-}
-
-/* Desktop behavior - expandable via hamburger */
-@media (min-width: 1025px) {
-    .main-content {
-        margin-left: var(--sidebar-width);
-    }
-    
-    .sidebar.collapsed ~ .main-content {
-        margin-left: var(--sidebar-collapsed-width);
-    }
-}
-
-            .main-content {
-                margin-left: 0;
-            }
-
-            .content-container {
-                padding: 1rem;
-            }
-
-            .overview-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .messages-header,
-            .application-header {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .messages-stats {
-                justify-content: space-around;
-                width: 100%;
-            }
-        }
-
-        /* Mobile Overlay */
-        .mobile-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 99;
-        }
-
-        @media (max-width: 768px) {
-            .mobile-overlay.active {
-                display: block;
-            }
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Scrollbar Styling */
-        .sidebar-nav::-webkit-scrollbar,
-        .messages-container::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .sidebar-nav::-webkit-scrollbar-track,
-        .messages-container::-webkit-scrollbar-track {
-            background: var(--slate-100);
-        }
-
-        .sidebar-nav::-webkit-scrollbar-thumb,
-        .messages-container::-webkit-scrollbar-thumb {
-            background: var(--slate-300);
-            border-radius: 2px;
-        }
-
-        .sidebar-nav::-webkit-scrollbar-thumb:hover,
-        .messages-container::-webkit-scrollbar-thumb:hover {
-            background: var(--slate-400);
-        }
-
-        /* Focus Styles */
-        .nav-link:focus,
-        .btn:focus,
-        .form-input:focus {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
-        }
-       .resume-section {
-    display: flex;
-    align-items: flex-start;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    padding: 2rem;
-    background: var(--slate-50);
-    border-radius: var(--border-radius);
-    border: 1px solid var(--slate-200);
-}
-
-.current-resume-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    min-width: 200px;
-}
-
-.resume-display {
-    width: 120px;
-    height: 150px;
-    border-radius: var(--border-radius);
-    border: 3px solid var(--slate-300);
-    background: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--slate-500);
-    font-size: 2.5rem;
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: var(--transition);
-}
-
-.resume-display:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.resume-display.has-resume {
-    border-color: var(--success);
-    background: linear-gradient(135deg, var(--success), #059669);
-    color: white;
-}
-
-.resume-info h4 {
-    color: var(--slate-900);
-    margin-bottom: 0.25rem;
-    font-size: 1rem;
-}
-
-.resume-info p {
-    color: var(--slate-500);
-    font-size: 0.8rem;
-}
-
-.resume-upload-area {
-    flex: 1;
-    border: 2px dashed var(--slate-300);
-    border-radius: var(--border-radius);
-    padding: 2rem;
-    text-align: center;
-    background: white;
-    transition: var(--transition);
-    cursor: pointer;
-    position: relative;
-}
-
-.resume-upload-area:hover,
-.resume-upload-area.dragover {
-    border-color: var(--primary);
-    background: rgba(3, 89, 70, 0.05);
-}
-
-.resume-upload-area.has-file {
-    border-color: var(--success);
-    background: rgba(16, 185, 129, 0.05);
-}
-
-.resume-file-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 1rem;
-}
-
-.download-resume-btn {
-    background: linear-gradient(135deg, var(--info), #2563eb);
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: var(--border-radius);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    text-decoration: none;
-}
-
-.download-resume-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow);
-    color: white;
-}
-
-.remove-resume-btn {
-    background: var(--danger);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.remove-resume-btn:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow);
-}
-
-@media (max-width: 768px) {
-    .resume-section {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-    }
-    
-    .current-resume-container {
-        min-width: auto;
-        align-self: center;
-    }
-    
-    .resume-file-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-}
-/* Enhanced Application Item Styles */
-.enhanced-application {
-    border-left: 4px solid var(--primary);
-    transition: var(--transition);
-}
-
-.enhanced-application:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-}
-
-.company-info-small {
-    display: flex;
-    align-items: center;
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-}
-
-.course-meta-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-}
-
-.meta-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.meta-tag.duration {
-    background: rgba(52, 152, 219, 0.1);
-    color: var(--info);
-}
-
-.meta-tag.price {
-    background: rgba(39, 174, 96, 0.1);
-    color: var(--success);
-}
-
-.meta-tag.difficulty.beginner {
-    background: rgba(39, 174, 96, 0.1);
-    color: var(--success);
-}
-
-.meta-tag.difficulty.intermediate {
-    background: rgba(243, 156, 18, 0.1);
-    color: var(--warning);
-}
-
-.meta-tag.difficulty.advanced {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-}
-
-.meta-tag.start-date {
-    background: rgba(139, 92, 246, 0.1);
-    color: #8b5cf6;
-}
-
-.course-description-section {
-    border-left: 4px solid var(--accent);
-    background: var(--slate-50);
-    padding: 1rem;
-    border-radius: var(--border-radius);
-    margin-bottom: 1rem;
-}
-
-.application-details-section {
-    margin-top: 1rem;
-}
-
-.detail-item {
-    margin-bottom: 1rem;
-}
-
-.btn-link {
-    color: var(--primary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: var(--transition);
-    font-size: 0.9rem;
-}
-
-.btn-link:hover {
-    text-decoration: underline;
-    color: var(--primary-light);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .course-meta-tags {
-        justify-content: flex-start;
-    }
-    
-    .meta-tag {
-        font-size: 0.75rem;
-        padding: 0.2rem 0.6rem;
-    }
-    
-    .enhanced-application {
-        border-left-width: 3px;
-    }
-}
-/* Saved Courses Styles */
-.saved-course-item {
-    background: white;
-    border: 1px solid var(--slate-200);
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    transition: var(--transition);
-}
-
-.saved-course-item:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-1px);
-}
-
-.saved-course-item .course-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-}
-
-.saved-course-item .course-info h4 {
-    color: var(--slate-900);
-    margin-bottom: 0.25rem;
-    font-size: 1.1rem;
-}
-
-.saved-course-item .course-category {
-    color: var(--primary);
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.75rem;
-}
-
-.saved-course-item .course-meta {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.saved-course-item .course-actions {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.saved-course-item .course-description {
-    margin-bottom: 1rem;
-}
-
-.saved-course-item .course-description p {
-    color: var(--slate-600);
-    line-height: 1.5;
-    margin: 0;
-}
-
-.saved-course-item .course-skills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.saved-course-item .course-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 1rem;
-    border-top: 1px solid var(--slate-200);
-}
-
-.certificate-badge {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--success);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-@media (max-width: 768px) {
-    .saved-course-item .course-header {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .saved-course-item .course-actions {
-        width: 100%;
-    }
-    
-    .saved-course-item .course-actions .btn {
-        flex: 1;
-    }
-    
-    .saved-course-item .course-footer {
-        flex-direction: column;
-        gap: 0.75rem;
-        align-items: flex-start;
-    }
-}
-.skill-tag {
-    background: rgba(3, 89, 70, 0.1);
-    color: var(--primary);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-    </style>
+    <link href="student_dashboard.css?v=<?php echo time(); ?>" rel="stylesheet">
 </head>
 <body>
     <div class="dashboard-layout">
@@ -2284,6 +447,14 @@ $titles = [
             <span class="logo-text">Nexttern</span>
         </div>
         <!-- Arrow button removed -->
+    </div>
+    
+    <!-- Back to Home Button -->
+    <div style="padding: 1.5rem 1rem 1rem 1rem;">
+        <a href="index.php" class="back-to-home-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span class="back-text">Back to Home</span>
+        </a>
     </div>
 
     <div class="sidebar-user">
@@ -2670,104 +841,86 @@ $titles = [
     </div>
 </div>
 
-                <!-- Messages Section -->
-                <div id="messages" class="content-section <?php echo ($page === 'messages') ? 'active' : ''; ?>">
-                    <div class="content-card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-envelope"></i>
-                                My Messages
-                            </div>
-                            <?php if ($unread_count > 0): ?>
-                            <form method="post" style="margin: 0;">
-                                <button type="submit" name="mark_all_read" class="btn btn-secondary">
-                                    <i class="fas fa-check-double"></i>
-                                    Mark All Read
-                                </button>
-                            </form>
-                            <?php endif; ?>
-                        </div>
-                        <div class="card-body">
-                            <div class="messages-header">
-                                <div class="messages-stats">
-                                    <div class="message-stat">
-                                        <span class="message-stat-value"><?php echo $total_messages; ?></span>
-                                        <span class="message-stat-label">Total</span>
-                                    </div>
-                                    <div class="message-stat">
-                                        <span class="message-stat-value"><?php echo $unread_count; ?></span>
-                                        <span class="message-stat-label">Unread</span>
-                                    </div>
-                                    <div class="message-stat">
-                                        <span class="message-stat-value"><?php echo $total_messages - $unread_count; ?></span>
-                                        <span class="message-stat-label">Read</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <?php if ($total_messages > 0): ?>
-                                <div class="messages-container">
-                                    <?php
-                                    $messages_stmt->execute();
-                                    $messages_result = $messages_stmt->get_result();
-                                    
-                                    while ($message = $messages_result->fetch_assoc()): 
-                                        $sender_display = getSenderDisplayName($message['sender_type']);
-                                        $sender_icon = getSenderIcon($message['sender_type']);
-                                        $time_ago = timeAgo($message['created_at']);
-                                        $formatted_date = date('M j, Y g:i A', strtotime($message['created_at']));
-                                    ?>
-                                        <div class="message-item <?php echo !$message['is_read'] ? 'unread' : ''; ?>">
-                                            <div class="message-header">
-                                                <div class="sender-info">
-                                                    <div class="sender-avatar <?php echo $message['sender_type']; ?>">
-                                                        <i class="<?php echo $sender_icon; ?>"></i>
-                                                    </div>
-                                                    <div class="sender-details">
-                                                        <h4><?php echo $sender_display; ?></h4>
-                                                        <div class="sender-type"><?php echo ucfirst($message['sender_type']); ?></div>
-                                                    </div>
-                                                </div>
-                                                <div class="message-time"><?php echo $time_ago; ?></div>
-                                            </div>
-                                            
-                                            <div class="message-subject">
-                                                <?php echo htmlspecialchars($message['subject']); ?>
-                                            </div>
-                                            
-                                            <div class="message-content">
-                                                <?php echo nl2br(htmlspecialchars($message['message'])); ?>
-                                            </div>
-                                            
-                                            <div class="message-actions">
-                                                <?php if (!$message['is_read']): ?>
-                                                    <form method="post" style="margin: 0;">
-                                                        <input type="hidden" name="message_id" value="<?php echo $message['id']; ?>">
-                                                        <button type="submit" name="mark_read" class="mark-read-btn">
-                                                            <i class="fas fa-check"></i>
-                                                            Mark as Read
-                                                        </button>
-                                                    </form>
-                                                <?php else: ?>
-                                                    <div style="color: var(--success); font-size: 0.875rem; font-weight: 500;">
-                                                        <i class="fas fa-check-circle"></i> Read
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    <?php endwhile; ?>
-                                </div>
-                            <?php else: ?>
-                                <div class="empty-state">
-                                    <i class="fas fa-envelope-open"></i>
-                                    <h3>No Messages Yet</h3>
-                                    <p>Your messages from administrators and companies will appear here. Check back later for updates!</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+              <!-- Messages Section -->
+<div id="messages" class="content-section <?php echo ($page === 'messages') ? 'active' : ''; ?>">
+    <div class="content-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-envelope"></i>
+                My Messages
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="messages-header">
+                <div class="messages-stats">
+                    <div class="message-stat">
+                        <span class="message-stat-value"><?php echo $total_messages; ?></span>
+                        <span class="message-stat-label">Total</span>
+                    </div>
+                    <div class="message-stat">
+                        <span class="message-stat-value"><?php echo $unread_count; ?></span>
+                        <span class="message-stat-label">Unread</span>
+                    </div>
+                    <div class="message-stat">
+                        <span class="message-stat-value"><?php echo $total_messages - $unread_count; ?></span>
+                        <span class="message-stat-label">Read</span>
                     </div>
                 </div>
+            </div>
 
+            <?php if ($total_messages > 0): ?>
+                <div class="messages-container">
+                    <?php
+                    $messages_stmt->execute();
+                    $messages_result = $messages_stmt->get_result();
+                    
+                    while ($message = $messages_result->fetch_assoc()): 
+                        $sender_display = getSenderDisplayName($message['sender_type']);
+                        $sender_icon = getSenderIcon($message['sender_type']);
+                        $time_ago = timeAgo($message['created_at']);
+                        $formatted_date = date('M j, Y g:i A', strtotime($message['created_at']));
+                    ?>
+                        <div class="message-item <?php echo !$message['is_read'] ? 'unread' : ''; ?>">
+                            <div class="message-header">
+                                <div class="sender-info">
+                                    <div class="sender-avatar <?php echo $message['sender_type']; ?>">
+                                        <i class="<?php echo $sender_icon; ?>"></i>
+                                    </div>
+                                    <div class="sender-details">
+                                        <h4><?php echo $sender_display; ?></h4>
+                                        <div class="sender-type"><?php echo ucfirst($message['sender_type']); ?></div>
+                                    </div>
+                                </div>
+                                <div class="message-time"><?php echo $time_ago; ?></div>
+                            </div>
+                            
+                            <div class="message-subject">
+                                <?php echo htmlspecialchars($message['subject']); ?>
+                            </div>
+                            
+                            <div class="message-content">
+                                <?php echo nl2br(htmlspecialchars($message['message'])); ?>
+                            </div>
+                            
+                            <div class="message-actions">
+                                <div style="color: var(--slate-500); font-size: 0.875rem; font-weight: 500;">
+                                    <i class="fas fa-info-circle"></i> 
+                                    <?php echo $message['is_read'] ? 'Read' : 'Unread'; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-envelope-open"></i>
+                    <h3>No Messages Yet</h3>
+                    <p>Your messages from administrators and companies will appear here. Check back later for updates!</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
            <!-- Applications Section with Course Notifications -->
         <div id="applications" class="content-section <?php echo ($page === 'applications') ? 'active' : ''; ?>">
             <div class="content-card">

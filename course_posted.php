@@ -167,23 +167,36 @@ foreach ($courses as $course) {
             line-height: 1.6;
         }
 
-        .page-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+     .page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0;
+}
+.page-header {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--shadow-light);
+    margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
 
-        .page-header {
-            background: var(--glass-bg);
-            backdrop-filter: blur(14px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: var(--shadow-light);
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
+.page-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: 20px 20px 0 0;
+}
         .page-title {
             font-size: 2.2rem;
             font-weight: 700;
@@ -201,13 +214,14 @@ foreach ($courses as $course) {
             opacity: 0.9;
         }
 
-        .stats-overview {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
+  .stats-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
+}
         .stat-card {
             background: white;
             border-radius: 15px;
@@ -240,14 +254,15 @@ foreach ($courses as $course) {
         }
 
         .actions-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
         .btn {
             padding: 0.75rem 1.5rem;
             border: none;
@@ -312,12 +327,13 @@ foreach ($courses as $course) {
             font-size: 0.9rem;
         }
 
-        /* Vertical Long Cards Layout */
-        .courses-vertical {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
+      .courses-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-left: 0;
+    margin-right: 0;
+}
 
         .course-card-vertical {
             background: white;
@@ -457,11 +473,13 @@ foreach ($courses as $course) {
             font-weight: 600;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--secondary);
-        }
+       .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--secondary);
+    margin-left: 0;
+    margin-right: 0;
+}
 
         .empty-state i {
             font-size: 4rem;
@@ -474,14 +492,14 @@ foreach ($courses as $course) {
             margin-bottom: 0.5rem;
             color: var(--secondary);
         }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid;
-        }
-
+.alert {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    margin-left: 0;
+    margin-right: 0;
+    border-left: 4px solid;
+}
         .alert-success {
             background: #d4edda;
             border-color: var(--success);

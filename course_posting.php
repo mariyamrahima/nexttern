@@ -121,23 +121,21 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
     --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.page-container {
-    max-width: 1000px;
+}.page-container {
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: transparent;
     min-height: 100vh;
-}
-
-.page-header {
+}.page-header {
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(10px);
     border-radius: 16px;
     padding: 2.5rem;
     margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
     box-shadow: var(--shadow-md);
     border: 1px solid rgba(255, 255, 255, 0.3);
     position: relative;
@@ -221,17 +219,17 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     border-radius: 16px;
     overflow: hidden;
 }
-
 .form-section {
     padding: 2.5rem;
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(10px);
     border-radius: 16px;
     margin-bottom: 1.5rem;
+    margin-left: 0;
+    margin-right: 0;
     box-shadow: var(--shadow-md);
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
-
 .form-section:nth-child(even) {
     background: rgba(255, 255, 255, 0.5);
 }
@@ -331,9 +329,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     width: 20px;
     height: 20px;
     cursor: pointer;
-}
-
-.form-actions {
+}.form-actions {
     padding: 2.5rem;
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
@@ -343,8 +339,9 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     border-radius: 16px;
     box-shadow: var(--shadow-md);
     border: 1px solid rgba(255, 255, 255, 0.3);
+    margin-left: 0;
+    margin-right: 0;
 }
-
 .btn-primary, .btn-secondary {
     padding: 1rem 2rem;
     border-radius: 12px;

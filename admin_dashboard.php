@@ -557,7 +557,6 @@ h1, h2, h3, h4, h5, h6 {
     max-width: 1200px;
     margin: 0 auto;
 }
-
 .welcome-header {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--blur));
@@ -569,6 +568,19 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 2rem;
     position: relative;
     overflow: hidden;
+}
+
+.welcome-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: 20px 20px 0 0;
+    z-index: 3;
 }
 
 .welcome-header::before {
@@ -788,7 +800,9 @@ h1, h2, h3, h4, h5, h6 {
 .action-card:nth-child(3) .action-icon {
     background: linear-gradient(135deg, var(--warning) 0%, #e67e22 100%);
 }
-
+.action-card:nth-child(4) .action-icon {
+    background: linear-gradient(135deg, var(--danger) 0%, #c0392b 100%);
+}
 .action-card:hover .action-icon {
     transform: scale(1.15) rotate(-5deg);
 }
@@ -1281,6 +1295,7 @@ h1, h2, h3, h4, h5, h6 {
                     <i class="fas fa-book"></i>
                     <span>Stories</span>
                 </a>
+                
             </div>
            <div class="nav-section">
     <h4>Financial</h4>
@@ -1291,6 +1306,10 @@ h1, h2, h3, h4, h5, h6 {
 </div>
             <div class="nav-section">
                 <h4>General</h4>
+                <a href="?page=messages" class="nav-link <?= ($page === 'messages') ? 'active' : '' ?>">
+    <i class="fas fa-envelope-open-text"></i>
+    <span>Messages</span>
+</a>
                 <a href="?page=about" class="nav-link <?= ($page === 'about') ? 'active' : '' ?>">
                     <i class="fas fa-info-circle"></i>
                     <span>About Us</span>
@@ -1335,6 +1354,12 @@ h1, h2, h3, h4, h5, h6 {
         include 'admin_payment.php';
     } else {
         echo '<div class="error-message">Payments management page not found.</div>';
+    }
+}elseif ($page === 'messages') {
+    if (file_exists('admin_messages.php')) {
+        include 'admin_messages.php';
+    } else {
+        echo '<div class="error-message">Messages page not found.</div>';
     }
 }
         elseif ($page === 'about') {
@@ -1447,12 +1472,22 @@ h1, h2, h3, h4, h5, h6 {
                                 </div>
                                 <div class="action-title">stories Management</div>
                             </div>
-                            <div class="action-desc">Publish stories </div>
+                            <div class="action-desc">Read and review the stories to Publish  </div>
                         </a>
-                    </div>
+                        <a href="?page=messages" class="action-card">
+                            <div class="action-header">
+                                <div class="action-icon">
+                                    <i class="fas fa-envelope-open-text"></i>
+                                </div>
+                                <div class="action-title">View Messages</div>
+                            </div>
+                            <div class="action-desc">Read and respond to messages from users and visitors. Manage communication effectively.</div>
+</a>
+                        </div>
                 </div>
             </div>
             <?php
+
         }
         ?>
     </main>

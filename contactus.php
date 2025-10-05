@@ -5,6 +5,57 @@ header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
+// Initialize form status variables
+$form_success = false;
+$form_error = '';
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submitted'])) {
+    $name = trim($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $subject = trim($_POST['subject'] ?? '');
+    $message = trim($_POST['message'] ?? '');
+    
+    // Validate inputs
+    if (empty($name) || empty($email) || empty($subject) || empty($message)) {
+        $form_error = 'All fields are required. Please fill in all the information.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $form_error = 'Please enter a valid email address.';
+    } else {
+        // Database connection
+        $servername = "localhost";
+        $username = "root";
+        $password = "";
+        $dbname = "nexttern_db";
+        
+        $conn = new mysqli($servername, $username, $password, $dbname);
+        
+        if ($conn->connect_error) {
+            $form_error = 'Database connection failed. Please try again later.';
+        } else {
+            // Prepare and execute insert statement
+            $stmt = $conn->prepare("INSERT INTO contact_messages (name, email, subject, message, status, created_at) VALUES (?, ?, ?, ?, 'new', NOW())");
+            $stmt->bind_param("ssss", $name, $email, $subject, $message);
+            
+            if ($stmt->execute()) {
+                $form_success = true;
+                // Clear POST data to prevent resubmission
+                header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
+                exit();
+            } else {
+                $form_error = 'Failed to send message. Please try again later.';
+            }
+            
+            $stmt->close();
+            $conn->close();
+        }
+    }
+}
+
+// Check for success parameter in URL
+if (isset($_GET['success']) && $_GET['success'] == '1') {
+    $form_success = true;
+}
 function validateUserSession() {
     // Check admin session
     if (isset($_SESSION['admin_id'])) {
@@ -1112,10 +1163,6 @@ if ($isLoggedIn && $user_id) {
                 padding: 2.5rem 1.5rem;
             }
 
-            .hero-image {
-                width: 280px;
-                height: 180px;
-            }
 
             .alert {
                 margin: 1rem;
@@ -1410,7 +1457,7 @@ if ($isLoggedIn && $user_id) {
             <div class="hero-content">
                 <h1 class="hero-title">Get in Touch</h1>
                 <p class="hero-subtitle">Connect with our team for partnerships, support, or any inquiries about Nexttern's internship platform.</p>
-                <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="Professional Team Meeting" class="hero-image">
+             <!--  <img src="Subject.png" alt="Professional Team Meeting" class="hero-image">-->
             </div>
         </section>
 

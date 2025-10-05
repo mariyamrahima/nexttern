@@ -156,8 +156,7 @@ function getCount($conn, $query, $params = [], $default = 0) {
 // Initialize statistics
 $active_internships_count = 0;
 $total_applications_count = 0;
-$monthly_payments_count = 0;
-$hired_interns_count = 0;
+
 
 // Only fetch data for home page
 if ($page === 'home' && !empty($company_id)) {
@@ -171,30 +170,13 @@ if ($page === 'home' && !empty($company_id)) {
                 [$company_id]
             );
             
-            $total_applications_count = getCount(
-                $conn, 
-                "SELECT COUNT(DISTINCT a.id) as count FROM applications a 
-                 INNER JOIN course c ON a.course_id = c.id 
-                 WHERE c.company_id = ?", 
-                [$company_id]
-            );
-            
-            $monthly_payments_count = getCount(
-                $conn, 
-                "SELECT COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN 1 ELSE 0 END), 0) as count
-                 FROM company_payments WHERE company_id = ? 
-                 AND payment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')", 
-                [$company_id]
-            );
-            
-            $hired_interns_count = getCount(
-                $conn, 
-                "SELECT COUNT(DISTINCT a.id) as count FROM applications a 
-                 INNER JOIN course c ON a.course_id = c.id 
-                 WHERE c.company_id = ? AND a.status = 'hired'", 
-                [$company_id]
-            );
-            
+           $total_applications_count = getCount(
+    $conn, 
+    "SELECT COUNT(ca.id) as count FROM course_applications ca 
+     JOIN course c ON ca.course_id = c.id 
+     WHERE c.company_id = ?", 
+    [$company_id]
+);
         } catch (Exception $e) {
             error_log("Dashboard stats error: " . $e->getMessage());
         } finally {
@@ -659,30 +641,44 @@ if ($page === 'home' && !empty($company_id)) {
             margin: 0 auto;
         }
 
-        .welcome-header {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 2.5rem;
-            box-shadow: var(--shadow-light);
-            text-align: center;
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
+       .welcome-header {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: var(--shadow-light);
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
 
-        .welcome-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(78, 205, 196, 0.08) 50%, transparent 70%);
-            animation: shimmer 8s infinite;
-        }
+/* Gradient line at the top */
+.welcome-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: 20px 20px 0 0;
+    z-index: 3;
+}
 
+/* Keep the shimmer effect */
+.welcome-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(78, 205, 196, 0.08) 50%, transparent 70%);
+    animation: shimmer 8s infinite;
+    z-index: 1;
+}
         @keyframes shimmer {
             from {
                 opacity: 0;
@@ -1068,11 +1064,11 @@ if ($page === 'home' && !empty($company_id)) {
             
             <div class="nav-section">
                 <h4>Courses</h4>
-                <a href="?page=post-internship" class="nav-link <?= ($page === 'post-internship') ? 'active' : '' ?>">
+                <a href="?page=post-courses" class="nav-link <?= ($page === 'post-courses') ? 'active' : '' ?>">
                     <i class="fas fa-plus-circle"></i>
                     <span>Post New Course</span>
                 </a>
-                <a href="?page=manage-internships" class="nav-link <?= ($page === 'manage-internships') ? 'active' : '' ?>">
+                <a href="?page=manage-courses" class="nav-link <?= ($page === 'manage-courses') ? 'active' : '' ?>">
                     <i class="fas fa-tasks"></i>
                     <span>Manage Courses</span>
                 </a>
@@ -1084,6 +1080,10 @@ if ($page === 'home' && !empty($company_id)) {
                     <i class="fas fa-credit-card"></i>
                     <span>Payments</span>
                 </a>
+                <a href="?page=messages" class="nav-link <?= ($page === 'messages') ? 'active' : '' ?>">
+    <i class="fas fa-envelope"></i>
+    <span>Messages</span>
+</a>
                 <a href="?page=profile" class="nav-link <?= ($page === 'profile') ? 'active' : '' ?>">
                     <i class="fas fa-user-circle"></i>
                     <span>Profile</span>
@@ -1091,10 +1091,10 @@ if ($page === 'home' && !empty($company_id)) {
             </div>
             
             <div class="nav-section">
-                <a href="logoutcompany.php" class="logout-btn" onclick="return confirmLogout()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </a>
+              <a href="javascript:void(0)" class="logout-btn" onclick="showLogoutModal()">
+    <i class="fas fa-sign-out-alt"></i>
+    <span>Logout</span>
+</a>
             </div>
         </div>
     </nav>
@@ -1102,7 +1102,7 @@ if ($page === 'home' && !empty($company_id)) {
     <main class="main">
         <?php
         switch ($page) {
-            case 'post-internship':
+            case 'post-courses':
                 if (file_exists('course_posting.php')) {
                     include 'course_posting.php';
                 } else {
@@ -1110,7 +1110,7 @@ if ($page === 'home' && !empty($company_id)) {
                 }
                 break;
 
-            case 'manage-internships':
+            case 'manage-courses':
                 if (file_exists('course_posted.php')) {
                     include 'course_posted.php';
                 } else {
@@ -1125,7 +1125,13 @@ if ($page === 'home' && !empty($company_id)) {
                     echo '<div class="error-message">Payments page not found.</div>';
                 }
                 break;
-
+case 'messages':
+    if (file_exists('company_messages.php')) {
+        include 'company_messages.php';
+    } else {
+        echo '<div class="error-message">Messages page not found.</div>';
+    }
+    break;
             case 'profile':
                 if (file_exists('company_profile.php')) {
                     include 'company_profile.php';
@@ -1181,32 +1187,7 @@ if ($page === 'home' && !empty($company_id)) {
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <div>
-                                    <div class="stat-number"><?= number_format($monthly_payments_count) ?></div>
-                                    <div class="stat-label">Monthly Payments</div>
-                                </div>
-                                <div class="stat-icon payments">
-                                    <i class="fas fa-dollar-sign"></i>
-                                </div>
-                            </div>
                         </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <div>
-                                    <div class="stat-number"><?= number_format($hired_interns_count) ?></div>
-                                    <div class="stat-label">Enrolled Students</div>
-                                </div>
-                                <div class="stat-icon hired">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="quick-actions">
                         <h3 class="section-title">
                             <i class="fas fa-bolt"></i>
@@ -1214,7 +1195,7 @@ if ($page === 'home' && !empty($company_id)) {
                         </h3>
                         
                         <div class="actions-grid">
-                            <a href="?page=post-internship" class="action-card">
+                            <a href="?page=post-courses" class="action-card">
                                 <div class="action-header">
                                     <div class="action-icon">
                                         <i class="fas fa-plus"></i>
@@ -1224,7 +1205,7 @@ if ($page === 'home' && !empty($company_id)) {
                                 <div class="action-desc">Create new learning programs and attract talented students.</div>
                             </a>
                             
-                            <a href="?page=manage-internships" class="action-card">
+                            <a href="?page=manage-courses" class="action-card">
                                 <div class="action-header">
                                     <div class="action-icon">
                                         <i class="fas fa-list-ul"></i>
@@ -1234,14 +1215,14 @@ if ($page === 'home' && !empty($company_id)) {
                                 <div class="action-desc">View and manage your published courses.</div>
                             </a>
                             
-                            <a href="?page=applications" class="action-card">
+                            <a href="?page=profile" class="action-card">
                                 <div class="action-header">
                                     <div class="action-icon">
                                         <i class="fas fa-eye"></i>
                                     </div>
-                                    <div class="action-title">Review Applications</div>
+                                    <div class="action-title">Review Profile </div>
                                 </div>
-                                <div class="action-desc">Evaluate candidates and select the best fit.</div>
+                                <div class="action-desc">Preview and Update Profile.</div>
                             </a>
                             
                             <a href="?page=payments" class="action-card">
@@ -1306,38 +1287,55 @@ if ($page === 'home' && !empty($company_id)) {
             }
         }
 
-        function confirmLogout() {
-            const dialog = document.createElement('div');
-            dialog.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
-                display: flex; justify-content: center; align-items: center; z-index: 2000;
-            `;
-            
-            dialog.innerHTML = `
-                <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); text-align: center; max-width: 400px; margin: 1rem;">
-                    <h3 style="color: #e74c3c; margin-bottom: 1rem; font-size: 1.3rem;"><i class="fas fa-sign-out-alt"></i> Confirm Logout</h3>
-                    <p style="color: #666; margin-bottom: 2rem; line-height: 1.6;">Are you sure you want to logout?</p>
-                    <div style="display: flex; gap: 1rem; justify-content: center;">
-                        <button onclick="closeLogoutDialog()" style="padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: #95a5a6; color: white;">Cancel</button>
-                        <button onclick="proceedLogout()" style="padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: #e74c3c; color: white;">Yes, Logout</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(dialog);
-            
-            window.closeLogoutDialog = function() {
-                document.body.removeChild(dialog);
-            };
-            
-            window.proceedLogout = function() {
-                window.location.href = 'logoutcompany.php';
-            };
-            
-            return false;
-        }
+    
+     // Show logout modal
+function showLogoutModal() {
+    document.getElementById('logoutModal').style.display = 'flex';
+}
 
+// Close logout modal
+function closeLogoutModal() {
+    document.getElementById('logoutModal').style.display = 'none';
+}
+
+// Confirm logout and redirect
+function confirmLogout() {
+    const modal = document.getElementById('logoutModal');
+    const modalContent = modal.querySelector('div');
+    
+    // Show loading state
+    modalContent.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div style="width: 60px; height: 60px; margin: 0 auto 1rem; 
+                 border: 4px solid rgba(231, 76, 60, 0.2); 
+                 border-top: 4px solid #e74c3c; 
+                 border-radius: 50%; 
+                 animation: spin 1s linear infinite;">
+            </div>
+            <p style="color: var(--secondary); font-weight: 500;">Logging out...</p>
+        </div>
+    `;
+    
+    // Redirect to logout after a brief delay
+    setTimeout(() => {
+        window.location.href = 'logoutcompany.php';
+    }, 500);
+}
+
+// Close modal on outside click
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('logoutModal');
+    if (e.target === modal) {
+        closeLogoutModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeLogoutModal();
+    }
+});
         document.addEventListener('DOMContentLoaded', function() {
             validateSession();
             setInterval(validateSession, 300000);
@@ -1365,5 +1363,62 @@ if ($page === 'home' && !empty($company_id)) {
             });
         });
     </script>
+    <!-- Logout Confirmation Modal -->
+<div id="logoutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+     background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; padding: 2rem; max-width: 450px; width: 90%; 
+         box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; animation: modalSlideIn 0.3s ease-out;">
+        
+        <!-- Header -->
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="width: 50px; height: 50px; border-radius: 12px; 
+                 background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); 
+                 display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3 style="color: var(--primary); margin: 0; font-size: 1.5rem;">Confirm Logout</h3>
+        </div>
+        
+        <!-- Message -->
+        <p style="color: var(--secondary); line-height: 1.6; margin-bottom: 2rem; font-size: 1rem;">
+            Are you sure you want to logout? Your session will be terminated and you'll be redirected to the login page.
+        </p>
+        
+        <!-- Buttons -->
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="closeLogoutModal()" 
+                    style="background: #6c757d; color: white; border: none; padding: 0.8rem 1.5rem; 
+                    border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; 
+                    font-size: 0.95rem; min-width: 100px;">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button onclick="confirmLogout()" 
+                    style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; 
+                    border: none; padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; 
+                    font-weight: 600; transition: all 0.3s ease; font-size: 0.95rem; min-width: 100px;
+                    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);">
+                <i class="fas fa-check"></i> Logout
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+#logoutModal button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+</style>
 </body>
 </html>

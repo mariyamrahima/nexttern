@@ -175,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_stmt->close();
 
             // Update company status to blocked
-            $stmt = $conn->prepare("UPDATE companies SET status = 'blocked' WHERE company_id = ?");
+$stmt = $conn->prepare("UPDATE companies SET status = 'inactive' WHERE company_id = ?");
             $stmt->bind_param("s", $company_id);
             if ($stmt->execute()) {
                 $stmt->close();
@@ -1279,7 +1279,7 @@ if (isset($_GET['cleanup_status'])) {
             // Get statistics - refresh data after operations
             $total_result = $conn->query("SELECT COUNT(*) as total FROM companies");
             $active_result = $conn->query("SELECT COUNT(*) as active FROM companies WHERE status = 'active'");
-            $blocked_result = $conn->query("SELECT COUNT(*) as blocked FROM companies WHERE status = 'blocked'");
+  $blocked_result = $conn->query("SELECT COUNT(*) as blocked FROM companies WHERE status = 'inactive'");
             $pending_result = $conn->query("SELECT COUNT(*) as pending FROM companies WHERE status = 'pending'");
             $rejected_result = $conn->query("SELECT COUNT(*) as rejected FROM companies WHERE status = 'reject'");
             
@@ -1321,7 +1321,7 @@ if (isset($_GET['cleanup_status'])) {
         <option value="all">All Status</option>
         <option value="pending">Pending</option>
         <option value="active">Active</option>
-        <option value="blocked">Blocked</option>
+     <option value="inactive">Blocked</option>
         <option value="reject">Rejected</option>
     </select>
     <button class="action-btn btn-excel" onclick="openExportModal()">
@@ -1334,15 +1334,13 @@ if (isset($_GET['cleanup_status'])) {
         
         <div class="table-container">
             <?php
-            // Fetch all companies from the database - refresh data after operations
             $result = $conn->query("SELECT company_id, company_name, industry_type, company_email, year_established, contact_name, designation, contact_phone, status FROM companies ORDER BY 
-                CASE 
-                    WHEN status = 'pending' THEN 1 
-                    WHEN status = 'active' THEN 2 
-                    WHEN status = 'blocked' THEN 3 
-                    WHEN status = 'rejected' THEN 4 
-                    ELSE 5 
-                END, id DESC");
+    CASE 
+        WHEN status = 'pending' THEN 1 
+        WHEN status = 'active' THEN 2 
+        WHEN status = 'inactive' THEN 3 
+        ELSE 4 
+    END, id DESC");
             if ($result && $result->num_rows > 0): ?>
                 <table class="companies-table">
                     <thead>
@@ -1376,14 +1374,14 @@ if (isset($_GET['cleanup_status'])) {
                                 </td>
                                 <td><?= htmlspecialchars($row['year_established']) ?></td>
                                 <td>
-                                    <span class="status-badge status-<?= $row['status'] ?>">
-                                        <i class="fas fa-<?= 
-                                            $row['status'] === 'active' ? 'check-circle' : 
-                                            ($row['status'] === 'pending' ? 'clock' : 
-                                            ($row['status'] === 'blocked' ? 'ban' : 'times-circle')) 
-                                        ?>"></i>
-                                        <?= $row['status'] === 'reject' ? 'Rejected' : ucfirst($row['status']) ?>
-                                    </span>
+                                    <span class="status-badge status-<?= $row['status'] === 'inactive' ? 'blocked' : $row['status'] ?>">
+    <i class="fas fa-<?= 
+        $row['status'] === 'active' ? 'check-circle' : 
+        ($row['status'] === 'pending' ? 'clock' : 
+        ($row['status'] === 'inactive' ? 'ban' : 'times-circle')) 
+    ?>"></i>
+    <?= $row['status'] === 'inactive' ? 'Blocked' : ($row['status'] === 'reject' ? 'Rejected' : ucfirst($row['status'])) ?>
+</span>
                                 </td>
                                 <td>
                                     <div class="actions-group">
@@ -1408,7 +1406,7 @@ if (isset($_GET['cleanup_status'])) {
                                                 <i class="fas fa-ban"></i>
                                                 Block
                                             </button>
-                                        <?php elseif ($row['status'] === 'blocked'): ?>
+                                      <?php elseif ($row['status'] === 'inactive'): ?>
                                             <button class="action-btn btn-unblock" onclick="openModal('<?= htmlspecialchars($row['company_id']) ?>', '<?= htmlspecialchars($row['company_name']) ?>', '<?= htmlspecialchars($row['company_email']) ?>', 'unblock')">
                                                 <i class="fas fa-check-circle"></i>
                                                 Unblock

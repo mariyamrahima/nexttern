@@ -129,20 +129,66 @@ if (!$existing_payment || $existing_payment['payment_status'] !== 'completed') {
     --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
     --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
-
 .payment-container {
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}.page-header-section {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
+    box-shadow: 0 4px 12px rgba(3, 89, 70, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
 }
 
-.payment-header {
+.page-header-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: 16px 16px 0 0;
+}
+
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.page-title i {
+    color: var(--primary);
+    font-size: 2rem;
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    color: var(--secondary);
+    margin-bottom: 0;
+    line-height: 1.5;
+}.payment-header {
     text-align: center;
     margin-bottom: 3rem;
     animation: fadeInDown 0.6s ease-out;
+    margin-left: 0;
+    margin-right: 0;
 }
-
 .payment-header h1 {
     font-size: 2.5rem;
     font-weight: 700;
@@ -156,11 +202,12 @@ if (!$existing_payment || $existing_payment['payment_status'] !== 'completed') {
     color: var(--text-light);
     font-weight: 400;
 }
-
 .alert {
     padding: 1.25rem 1.5rem;
     border-radius: 12px;
     margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -183,15 +230,14 @@ if (!$existing_payment || $existing_payment['payment_status'] !== 'completed') {
     background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
     color: var(--danger);
     border-color: var(--danger);
-}
-
-.payment-grid {
+}.payment-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
     margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
 }
-
 .payment-card {
     background: white;
     border-radius: 20px;
@@ -551,12 +597,12 @@ if (!$existing_payment || $existing_payment['payment_status'] !== 'completed') {
     color: var(--secondary);
     font-weight: 500;
 }
-
 .transaction-history {
     margin-top: 3rem;
+    margin-left: 0;
+    margin-right: 0;
     animation: fadeInUp 0.8s ease-out;
 }
-
 .history-card {
     background: white;
     border-radius: 20px;
@@ -721,10 +767,15 @@ if (!$existing_payment || $existing_payment['payment_status'] !== 'completed') {
         padding: 1.25rem 1.5rem;
     }
 }
-
 @media (max-width: 768px) {
     .payment-container {
-        padding: 1rem;
+        padding: 0;
+    }
+    
+    .page-header-section {
+        margin-left: 0;
+        margin-right: 0;
+        border-radius: 12px;
     }
     
     .payment-header h1 {
@@ -766,13 +817,13 @@ if (!$existing_payment || $existing_payment['payment_status'] !== 'completed') {
     }
 }
 </style>
-
-<div class="payment-container">
-    <div class="payment-header">
-        <h1><i class="fas fa-credit-card"></i> Payment Management</h1>
-        <p>Secure company registration fee payment portal</p>
-    </div>
-
+<div class="page-header-section">
+    <h1 class="page-title">
+        <i class="fas fa-credit-card"></i>
+        Payment Management
+    </h1>
+    <p class="page-subtitle">Secure company registration fee payment portal</p>
+</div>
     <?php if (isset($payment_success) && $payment_success): ?>
         <div class="alert alert-success">
             <i class="fas fa-check-circle"></i>
@@ -788,48 +839,61 @@ if (!$existing_payment || $existing_payment['payment_status'] !== 'completed') {
     <?php endif; ?>
 
     <div class="payment-grid">
-        <!-- Payment Status Card -->
-        <div class="payment-card">
-            <div class="status-header">
-                <div class="status-icon <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'paid' : 'pending' ?>">
-                    <i class="fas <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'fa-check-circle' : 'fa-clock' ?>"></i>
-                </div>
-                <div class="status-content">
-                    <h3>Registration Status</h3>
-                    <span class="status-badge <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'paid' : 'pending' ?>">
-                        <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'Paid' : 'Payment Required' ?>
-                    </span>
-                </div>
-            </div>
-            
-            <?php if ($existing_payment && $existing_payment['payment_status'] === 'completed'): ?>
-                <div class="payment-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Payment ID</span>
-                        <span class="detail-value"><?= htmlspecialchars($existing_payment['razorpay_payment_id']) ?></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Amount Paid</span>
-                        <span class="detail-value">₹<?= isset($existing_payment['amount']) && $existing_payment['amount'] ? number_format($existing_payment['amount'], 2) : '999.00' ?></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Payment Date</span>
-                        <span class="detail-value">
-                            <?php 
-                            if (isset($existing_payment['payment_date']) && $existing_payment['payment_date']) {
-                                echo date('d M Y, h:i A', strtotime($existing_payment['payment_date']));
-                            } else if (isset($existing_payment['created_at']) && $existing_payment['created_at']) {
-                                echo date('d M Y, h:i A', strtotime($existing_payment['created_at']));
-                            } else {
-                                echo date('d M Y, h:i A');
-                            }
-                            ?>
-                        </span>
-                    </div>
-                </div>
-            <?php endif; ?>
+      <!-- Payment Status Card -->
+<div class="payment-card">
+    <div class="status-header">
+        <div class="status-icon <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'paid' : 'pending' ?>">
+            <i class="fas <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'fa-check-circle' : 'fa-clock' ?>"></i>
         </div>
-
+        <div class="status-content">
+            <h3>Registration Status</h3>
+            <span class="status-badge <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'paid' : 'pending' ?>">
+                <?= ($existing_payment && $existing_payment['payment_status'] === 'completed') ? 'Paid' : 'Payment Required' ?>
+            </span>
+        </div>
+    </div>
+    
+    <!-- Company Information -->
+    <div class="payment-details">
+        <div class="detail-row">
+            <span class="detail-label">Company Name</span>
+            <span class="detail-value"><?= htmlspecialchars($company_name) ?></span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Company ID</span>
+            <span class="detail-value"><?= htmlspecialchars($company_id) ?></span>
+        </div>
+       
+    </div>
+    
+    <!-- Payment Details -->
+    <?php if ($existing_payment && $existing_payment['payment_status'] === 'completed'): ?>
+        <div class="payment-details" style="margin-top: 1.5rem;">
+            <div class="detail-row">
+                <span class="detail-label">Payment ID</span>
+                <span class="detail-value"><?= htmlspecialchars($existing_payment['razorpay_payment_id']) ?></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Amount Paid</span>
+                <span class="detail-value">₹<?= isset($existing_payment['amount']) && $existing_payment['amount'] ? number_format($existing_payment['amount'], 2) : '999.00' ?></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Date</span>
+                <span class="detail-value">
+                    <?php 
+                    if (isset($existing_payment['payment_date']) && $existing_payment['payment_date']) {
+                        echo date('d M Y, h:i A', strtotime($existing_payment['payment_date']));
+                    } else if (isset($existing_payment['created_at']) && $existing_payment['created_at']) {
+                        echo date('d M Y, h:i A', strtotime($existing_payment['created_at']));
+                    } else {
+                        echo date('d M Y, h:i A');
+                    }
+                    ?>
+                </span>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
         <!-- Payment Action Card -->
         <div class="payment-card">
             <div class="amount-display">

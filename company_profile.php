@@ -1,7 +1,4 @@
 <?php
-// This file should be included by the main company_dashboard.php
-// It contains the profile page content
-
 // Ensure we have a database connection
 if (!function_exists('getDatabaseConnection')) {
     function getDatabaseConnection() {
@@ -110,14 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     </div>
 
     <?php if ($success_message): ?>
-        <div class="success-message" style="background: rgba(39, 174, 96, 0.1); color: var(--success); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--success); font-weight: 500;">
+       <div class="success-message" style="background: rgba(39, 174, 96, 0.1); color: var(--success); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; margin-left: 0; margin-right: 0; border-left: 4px solid var(--success); font-weight: 500;">
             <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
         </div>
     <?php endif; ?>
 
     <?php if ($error_message): ?>
-        <div class="error-message" style="background: rgba(231, 76, 60, 0.1); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--danger); font-weight: 500;">
-            <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
+<div class="error-message" style="background: rgba(231, 76, 60, 0.1); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; margin-left: 0; margin-right: 0; border-left: 4px solid var(--danger); font-weight: 500;">            <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
         </div>
     <?php endif; ?>
 
@@ -304,15 +300,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
 </div>
 
 <style>
-/* Additional CSS for profile page to match dashboard */
 .page-container {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0;
     position: relative;
     z-index: 2;
-}
-
-.page-header {
+}.page-header {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--blur));
     border: 1px solid var(--glass-border);
@@ -321,10 +315,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     box-shadow: var(--shadow-light);
     text-align: center;
     margin-bottom: 2rem;
+    margin-left: 0;
+    margin-right: 0;
     position: relative;
     overflow: hidden;
 }
 
+.page-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: 20px 20px 0 0;
+    z-index: 3;
+}
 .page-header::before {
     content: '';
     position: absolute;
@@ -334,8 +341,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     height: 200%;
     background: linear-gradient(45deg, transparent 30%, rgba(78, 205, 196, 0.08) 50%, transparent 70%);
     animation: shimmer 8s infinite;
+    z-index: 1;
 }
-
 .page-title {
     font-size: 2.5rem;
     font-weight: 700;
@@ -355,7 +362,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     position: relative;
     z-index: 2;
 }
-
 .glass-card {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--blur));
@@ -366,6 +372,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .glass-card::before {
