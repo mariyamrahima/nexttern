@@ -1,5 +1,9 @@
 <?php
+// DIAGNOSTIC VERSION - Replace your current get_saved_courses_detailed.php with this
 session_start();
+
+// Output buffering to catch any stray output
+ob_start();
 
 // Prevent caching
 header('Content-Type: application/json');
@@ -7,15 +11,13 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+// Clean any output buffer
+ob_clean();
 
 // Database connection
 $conn = new mysqli("localhost", "root", "", "nexttern_db");
 if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $conn->connect_error]);
+    echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $conn->connect_error, 'step' => 'connection']);
     exit();
 }
 
@@ -24,42 +26,60 @@ $user_id = $_GET['user_id'] ?? '';
 $user_type = $_GET['user_type'] ?? '';
 
 if (empty($user_id) || empty($user_type)) {
-    echo json_encode(['success' => false, 'message' => 'Missing user_id or user_type parameters']);
+    echo json_encode(['success' => false, 'message' => 'Missing parameters', 'step' => 'parameters', 'received' => ['user_id' => $user_id, 'user_type' => $user_type]]);
     exit();
 }
 
 try {
-    // First check if saved_courses table exists
-    $table_check = $conn->query("SHOW TABLES LIKE 'saved_courses'");
-    if ($table_check->num_rows == 0) {
-        echo json_encode(['success' => false, 'message' => 'saved_courses table does not exist']);
+    // Step 1: Check saved_courses table
+    $count_sql = "SELECT COUNT(*) as count FROM saved_courses WHERE user_id = ? AND user_type = ?";
+    $count_stmt = $conn->prepare($count_sql);
+    
+    if (!$count_stmt) {
+        throw new Exception("Count query prepare failed: " . $conn->error);
+    }
+    
+    $count_stmt->bind_param("ss", $user_id, $user_type);
+    $count_stmt->execute();
+    $count_result = $count_stmt->get_result();
+    $count_row = $count_result->fetch_assoc();
+    $total_saved = $count_row['count'];
+    
+    if ($total_saved == 0) {
+        echo json_encode([
+            'success' => true,
+            'saved_courses' => [],
+            'count' => 0,
+            'message' => 'No saved courses in database',
+            'step' => 'count_check',
+            'query_params' => ['user_id' => $user_id, 'user_type' => $user_type]
+        ]);
         exit();
     }
 
-    // Query to get saved courses with detailed information
+    // Step 2: Get detailed course information
     $sql = "SELECT 
                 sc.course_id,
                 sc.saved_at,
                 c.id,
+                c.company_name,
                 c.course_title,
                 c.course_description,
                 c.course_category,
+                c.course_type,
                 c.duration,
                 c.difficulty_level,
-                c.course_price_type,
-                c.price_amount,
                 c.skills_taught,
-                c.certificate_provided,
-                c.company_name,
-                c.created_at
+                c.certificate_provided
             FROM saved_courses sc
             JOIN course c ON sc.course_id = c.id
             WHERE sc.user_id = ? AND sc.user_type = ?
             ORDER BY sc.saved_at DESC";
     
     $stmt = $conn->prepare($sql);
+    
     if (!$stmt) {
-        throw new Exception("Prepare failed: " . $conn->error);
+        throw new Exception("Main query prepare failed: " . $conn->error);
     }
     
     $stmt->bind_param("ss", $user_id, $user_type);
@@ -75,40 +95,47 @@ try {
         $saved_courses[] = [
             'id' => (int)$row['id'],
             'course_id' => (int)$row['course_id'],
-            'course_title' => htmlspecialchars($row['course_title'] ?? ''),
-            'course_description' => htmlspecialchars($row['course_description'] ?? ''),
-            'course_category' => htmlspecialchars($row['course_category'] ?? ''),
-            'duration' => htmlspecialchars($row['duration'] ?? 'Not specified'),
-            'difficulty_level' => htmlspecialchars($row['difficulty_level'] ?? 'Beginner'),
-            'course_price_type' => htmlspecialchars($row['course_price_type'] ?? 'free'),
-            'price_amount' => $row['price_amount'] ?? 0,
-            'skills_taught' => htmlspecialchars($row['skills_taught'] ?? ''),
-            'certificate_provided' => (bool)$row['certificate_provided'],
-            'company_name' => htmlspecialchars($row['company_name'] ?? ''),
-            'saved_at' => $row['saved_at'],
-            'created_at' => $row['created_at']
+            'company_name' => $row['company_name'] ?? '',
+            'course_title' => $row['course_title'] ?? '',
+            'course_description' => $row['course_description'] ?? '',
+            'course_category' => $row['course_category'] ?? '',
+            'course_type' => $row['course_type'] ?? 'self_paced',
+            'duration' => $row['duration'] ?? 'Not specified',
+            'difficulty_level' => $row['difficulty_level'] ?? 'Beginner',
+            'skills_taught' => $row['skills_taught'] ?? '',
+            'certificate_provided' => (bool)($row['certificate_provided'] ?? false),
+            'saved_at' => $row['saved_at']
         ];
     }
     
-    echo json_encode([
+    $response = [
         'success' => true,
         'saved_courses' => $saved_courses,
         'count' => count($saved_courses),
         'user_id' => $user_id,
-        'user_type' => $user_type
-    ]);
+        'user_type' => $user_type,
+        'step' => 'completed',
+        'debug_info' => [
+            'total_in_db' => $total_saved,
+            'fetched' => count($saved_courses),
+            'sql' => $sql
+        ]
+    ];
+    
+    echo json_encode($response);
     
     $stmt->close();
     
 } catch (Exception $e) {
-    error_log("Error in get_saved_courses_detailed.php: " . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Error fetching saved courses: ' . $e->getMessage(),
+        'message' => $e->getMessage(),
+        'step' => 'exception',
         'user_id' => $user_id,
         'user_type' => $user_type
     ]);
 }
 
 $conn->close();
+ob_end_flush();
 ?>

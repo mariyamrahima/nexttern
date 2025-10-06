@@ -1,6 +1,5 @@
 <?php
-// course_posted.php - Manage Company Courses
-// session_start() is already called in the main dashboard file, so we don't need it here
+// course_posted.php - Manage Company Courses (Free Online Only)
 
 // Check if company is logged in
 if (!isset($_SESSION['company_id'])) {
@@ -25,6 +24,10 @@ $company_name = $_SESSION['company_name'] ?? 'Company';
 // Handle course status updates and edits
 $success_message = '';
 $error_message = '';
+
+if (isset($_GET['success']) && $_GET['success'] == '1') {
+    $success_message = 'Course posted successfully!';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_status'])) {
@@ -63,24 +66,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $course_category = $_POST['course_category'];
         $duration = $_POST['duration'];
         $difficulty_level = $_POST['difficulty_level'];
-        $mode = $_POST['mode'];
         $course_description = $_POST['course_description'];
         $max_students = $_POST['max_students'];
-        $course_price_type = $_POST['course_price_type'];
-        $price_amount = $_POST['price_amount'];
         $start_date = $_POST['start_date'];
         $enrollment_deadline = $_POST['enrollment_deadline'];
+        $course_type = $_POST['course_type'];
+        $meeting_link = $_POST['meeting_link'] ?? '';
+        $course_link = $_POST['course_link'] ?? '';
+        
+        // Clear fields based on course type
+        if ($course_type === 'self_paced') {
+            $start_date = null;
+            $enrollment_deadline = null;
+            $meeting_link = '';
+        } else {
+            $course_link = '';
+        }
         
         $update_stmt = $conn->prepare("UPDATE course SET 
             course_title = ?, course_category = ?, duration = ?, difficulty_level = ?, 
-            mode = ?, course_description = ?, max_students = ?, course_price_type = ?, 
-            price_amount = ?, start_date = ?, enrollment_deadline = ?, updated_at = NOW() 
+            course_description = ?, max_students = ?, 
+            start_date = ?, enrollment_deadline = ?, meeting_link = ?, course_link = ?, updated_at = NOW() 
             WHERE id = ? AND company_id = ?");
         
-        $update_stmt->bind_param("ssssssissssis", 
+        $update_stmt->bind_param("sssssissssis", 
             $course_title, $course_category, $duration, $difficulty_level,
-            $mode, $course_description, $max_students, $course_price_type,
-            $price_amount, $start_date, $enrollment_deadline, $course_id, $company_id);
+            $course_description, $max_students,
+            $start_date, $enrollment_deadline, $meeting_link, $course_link, $course_id, $company_id);
         
         if ($update_stmt->execute()) {
             $success_message = "Course updated successfully!";
@@ -103,15 +115,15 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Get total application count for all company courses
-$total_apps_stmt = $conn->prepare("SELECT COUNT(*) as total FROM course_applications ca 
+// Get total enrollment/application count for all company courses
+$total_count_stmt = $conn->prepare("SELECT COUNT(*) as total FROM course_applications ca 
                                  INNER JOIN course c ON ca.course_id = c.id 
                                  WHERE c.company_id = ?");
-$total_apps_stmt->bind_param("s", $company_id);
-$total_apps_stmt->execute();
-$total_apps_result = $total_apps_stmt->get_result();
-$total_apps = $total_apps_result->fetch_assoc();
-$total_apps_stmt->close();
+$total_count_stmt->bind_param("s", $company_id);
+$total_count_stmt->execute();
+$total_count_result = $total_count_stmt->get_result();
+$total_count = $total_count_result->fetch_assoc();
+$total_count_stmt->close();
 
 $conn->close();
 
@@ -167,36 +179,38 @@ foreach ($courses as $course) {
             line-height: 1.6;
         }
 
-     .page-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0;
-}
-.page-header {
-    background: var(--glass-bg);
-    backdrop-filter: blur(14px);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: var(--shadow-light);
-    margin-bottom: 2rem;
-    margin-left: 0;
-    margin-right: 0;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+        }
 
-.page-header::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-    border-radius: 20px 20px 0 0;
-}
+        .page-header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 2rem;
+            margin-left: 0;
+            margin-right: 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 20px 20px 0 0;
+        }
+
         .page-title {
             font-size: 2.2rem;
             font-weight: 700;
@@ -214,14 +228,15 @@ foreach ($courses as $course) {
             opacity: 0.9;
         }
 
-  .stats-overview {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    margin-left: 0;
-    margin-right: 0;
-}
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            margin-left: 0;
+            margin-right: 0;
+        }
+
         .stat-card {
             background: white;
             border-radius: 15px;
@@ -245,7 +260,7 @@ foreach ($courses as $course) {
         .stat-inactive { color: var(--warning); }
         .stat-draft { color: var(--info); }
         .stat-total { color: var(--primary); }
-        .stat-applications { color: #9b59b6; }
+        .stat-enrollments { color: #9b59b6; }
 
         .stat-label {
             font-size: 0.9rem;
@@ -254,15 +269,16 @@ foreach ($courses as $course) {
         }
 
         .actions-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    margin-left: 0;
-    margin-right: 0;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            margin-left: 0;
+            margin-right: 0;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
         .btn {
             padding: 0.75rem 1.5rem;
             border: none;
@@ -327,13 +343,13 @@ foreach ($courses as $course) {
             font-size: 0.9rem;
         }
 
-      .courses-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    margin-left: 0;
-    margin-right: 0;
-}
+        .courses-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-left: 0;
+            margin-right: 0;
+        }
 
         .course-card-vertical {
             background: white;
@@ -431,6 +447,17 @@ foreach ($courses as $course) {
             font-size: 0.9rem;
         }
 
+        .detail-item a {
+            color: var(--info);
+            text-decoration: none;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .detail-item a:hover {
+            text-decoration: underline;
+        }
+
         .course-footer-vertical {
             padding: 1.5rem;
             background: #f8f9fa;
@@ -473,13 +500,13 @@ foreach ($courses as $course) {
             font-weight: 600;
         }
 
-       .empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: var(--secondary);
-    margin-left: 0;
-    margin-right: 0;
-}
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--secondary);
+            margin-left: 0;
+            margin-right: 0;
+        }
 
         .empty-state i {
             font-size: 4rem;
@@ -492,14 +519,16 @@ foreach ($courses as $course) {
             margin-bottom: 0.5rem;
             color: var(--secondary);
         }
-.alert {
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    margin-left: 0;
-    margin-right: 0;
-    border-left: 4px solid;
-}
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            margin-left: 0;
+            margin-right: 0;
+            border-left: 4px solid;
+        }
+
         .alert-success {
             background: #d4edda;
             border-color: var(--success);
@@ -598,6 +627,16 @@ foreach ($courses as $course) {
             margin-top: 2rem;
         }
 
+        .course-type-display {
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         @media (max-width: 768px) {
             .page-container {
                 padding: 1rem;
@@ -631,9 +670,9 @@ foreach ($courses as $course) {
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-tasks"></i>
-                Manage Courses
+                Manage Free Online Courses
             </h1>
-            <p class="page-subtitle">View, edit, and manage your published courses and programs</p>
+            <p class="page-subtitle">View, edit, and manage your published free online courses</p>
         </div>
 
         <?php if (!empty($success_message)): ?>
@@ -666,14 +705,14 @@ foreach ($courses as $course) {
                 <div class="stat-label">Draft Courses</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number stat-applications"><?php echo $total_apps['total']; ?></div>
-                <div class="stat-label">Total Applications</div>
+                <div class="stat-number stat-enrollments"><?php echo $total_count['total']; ?></div>
+                <div class="stat-label">Total Enrollments/Apps</div>
             </div>
         </div>
 
         <div class="actions-bar">
             <a href="?page=post-internship" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Post New Course
+                <i class="fas fa-plus"></i> Post New Free Course
             </a>
             
             <div class="filter-controls">
@@ -690,26 +729,26 @@ foreach ($courses as $course) {
             <div class="empty-state">
                 <i class="fas fa-graduation-cap"></i>
                 <h3>No Courses Posted Yet</h3>
-                <p>Start by creating your first course to attract talented students.</p>
-                <a href="?page=post-internship" class="btn btn-primary" style="margin-top: 1rem;">
-                    <i class="fas fa-plus"></i> Create Your First Course
+                <p>Start by creating your first free online course to attract talented students.</p>
+                <a href="?page=post-course" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="fas fa-plus"></i> Create Your First Free Course
                 </a>
             </div>
         <?php else: ?>
             <div class="courses-vertical" id="courses-container">
                 <?php 
-                // Re-establish connection for application counts
+                // Re-establish connection for enrollment/application counts
                 $conn = new mysqli($host, $username, $password, $database);
                 foreach ($courses as $course): 
-                    // Get application count for this course
-                    $app_count_stmt = $conn->prepare("SELECT COUNT(*) as total, 
+                    // Get enrollment/application count for this course
+                    $count_stmt = $conn->prepare("SELECT COUNT(*) as total, 
                                                     SUM(CASE WHEN application_status = 'pending' THEN 1 ELSE 0 END) as pending 
                                                     FROM course_applications WHERE course_id = ?");
-                    $app_count_stmt->bind_param("i", $course['id']);
-                    $app_count_stmt->execute();
-                    $app_count_result = $app_count_stmt->get_result();
-                    $app_counts = $app_count_result->fetch_assoc();
-                    $app_count_stmt->close();
+                    $count_stmt->bind_param("i", $course['id']);
+                    $count_stmt->execute();
+                    $count_result = $count_stmt->get_result();
+                    $counts = $count_result->fetch_assoc();
+                    $count_stmt->close();
                 ?>
                     <div class="course-card-vertical" data-status="<?php echo strtolower($course['course_status']); ?>">
                         <div class="course-header-vertical">
@@ -727,6 +766,25 @@ foreach ($courses as $course) {
                                     <i class="fas fa-clock"></i>
                                     <?php echo htmlspecialchars($course['duration']); ?>
                                 </span>
+                                <span class="meta-tag">
+                                    <i class="fas fa-globe"></i>
+                                    Online
+                                </span>
+                                <span class="meta-tag">
+                                    <i class="fas fa-gift"></i>
+                                    Free
+                                </span>
+                                <?php if ($course['course_type'] === 'live'): ?>
+                                <span class="meta-tag" style="background: #e3f2fd; color: #1976d2; border-color: #90caf9;">
+                                    <i class="fas fa-video"></i>
+                                    Live Sessions
+                                </span>
+                                <?php else: ?>
+                                <span class="meta-tag" style="background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7;">
+                                    <i class="fas fa-play-circle"></i>
+                                    Self-Paced
+                                </span>
+                                <?php endif; ?>
                                 <span class="course-status status-<?php echo strtolower($course['course_status']); ?>">
                                     <i class="fas fa-circle"></i>
                                     <?php echo $course['course_status']; ?>
@@ -740,6 +798,7 @@ foreach ($courses as $course) {
                             </p>
                             
                             <div class="course-details-grid">
+                                <?php if ($course['course_type'] === 'live'): ?>
                                 <div class="detail-item">
                                     <i class="fas fa-calendar-alt"></i>
                                     <div>
@@ -747,14 +806,18 @@ foreach ($courses as $course) {
                                         <?php echo $course['start_date'] ? date('M d, Y', strtotime($course['start_date'])) : 'Not set'; ?>
                                     </div>
                                 </div>
+                                <?php endif; ?>
+                                
                                 <div class="detail-item">
                                     <i class="fas fa-user-graduate"></i>
                                     <div>
-                                        <strong>Applications:</strong><br>
+                                        <strong>
+                                            <?php echo $course['course_type'] === 'self_paced' ? 'Enrollments:' : 'Applications:'; ?>
+                                        </strong><br>
                                         <?php 
-                                        echo $app_counts['total'] . ' total';
-                                        if ($app_counts['pending'] > 0) {
-                                            echo ' (' . $app_counts['pending'] . ' pending)';
+                                        echo $counts['total'] . ' total';
+                                        if ($course['course_type'] === 'live' && $counts['pending'] > 0) {
+                                            echo ' (' . $counts['pending'] . ' pending)';
                                         }
                                         ?>
                                     </div>
@@ -766,35 +829,40 @@ foreach ($courses as $course) {
                                         <?php echo $course['max_students'] ?? 'Unlimited'; ?>
                                     </div>
                                 </div>
-                                <div class="detail-item">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <div>
-                                        <strong>Mode:</strong><br>
-                                        <?php echo htmlspecialchars($course['mode'] ?? 'Not specified'); ?>
-                                    </div>
-                                </div>
-                                <div class="detail-item">
-                                    <i class="fas fa-dollar-sign"></i>
-                                    <div>
-                                        <strong>Price:</strong><br>
-                                        <?php 
-                                        if ($course['course_price_type'] === 'free') {
-                                            echo 'Free';
-                                        } else {
-                                            echo '$' . number_format($course['price_amount'] ?? 0, 2);
-                                        }
-                                        ?>
-                                    </div>
-                                </div>
-                                <?php if ($course['enrollment_deadline']): ?>
+                                <?php if ($course['course_type'] === 'live' && $course['enrollment_deadline']): ?>
                                 <div class="detail-item">
                                     <i class="fas fa-hourglass-end"></i>
                                     <div>
-                                        <strong>Enrollment Deadline:</strong><br>
+                                        <strong>Application Deadline:</strong><br>
                                         <?php echo date('M d, Y', strtotime($course['enrollment_deadline'])); ?>
                                     </div>
                                 </div>
                                 <?php endif; ?>
+                                
+                                <?php if ($course['course_type'] === 'live' && !empty($course['meeting_link'])): ?>
+                                <div class="detail-item">
+                                    <i class="fas fa-link"></i>
+                                    <div>
+                                        <strong>Meeting Link:</strong><br>
+                                        <a href="<?php echo htmlspecialchars($course['meeting_link']); ?>" target="_blank">
+                                            View Link <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if ($course['course_type'] === 'self_paced' && !empty($course['course_link'])): ?>
+                                <div class="detail-item">
+                                    <i class="fas fa-link"></i>
+                                    <div>
+                                        <strong>Course Content Link:</strong><br>
+                                        <a href="<?php echo htmlspecialchars($course['course_link']); ?>" target="_blank">
+                                            View Playlist <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                
                                 <?php if ($course['students_trained']): ?>
                                 <div class="detail-item">
                                     <i class="fas fa-user-graduate"></i>
@@ -804,17 +872,35 @@ foreach ($courses as $course) {
                                     </div>
                                 </div>
                                 <?php endif; ?>
+                                <?php if ($course['certificate_provided']): ?>
+                                <div class="detail-item">
+                                    <i class="fas fa-certificate"></i>
+                                    <div>
+                                        <strong>Certificate:</strong><br>
+                                        Provided
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                         
                         <div class="course-footer-vertical">
                             <div class="course-actions">
-                               <a href="?page=course-applications&course_id=<?php echo $course['id']; ?>" class="action-btn btn-info">
-            <i class="fas fa-users"></i> View Applications
-            <?php if ($app_counts['pending'] > 0): ?>
-                <span class="notification-badge"><?php echo $app_counts['pending']; ?></span>
-                                    <?php endif; ?>
-                                </a>
+                                <?php if ($course['course_type'] === 'self_paced'): ?>
+                                   <a href="?page=selfpaced_enrolled&course_id=<?php echo $course['id']; ?>" class="action-btn btn-success">
+                                        <i class="fas fa-users-check"></i> Enrolled Students
+                                        <?php if ($counts['total'] > 0): ?>
+                                            <span class="notification-badge"><?php echo $counts['total']; ?></span>
+                                        <?php endif; ?>
+                                    </a>
+                                <?php else: ?>
+                                    <a href="?page=course-applications&course_id=<?php echo $course['id']; ?>" class="action-btn btn-info">
+                                        <i class="fas fa-user-check"></i> View Applications
+                                        <?php if ($counts['pending'] > 0): ?>
+                                            <span class="notification-badge"><?php echo $counts['pending']; ?></span>
+                                        <?php endif; ?>
+                                    </a>
+                                <?php endif; ?>
                                 
                                 <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($course)); ?>)" class="action-btn btn-info">
                                     <i class="fas fa-edit"></i> Edit Course
@@ -849,13 +935,22 @@ foreach ($courses as $course) {
             <div class="modal-header">
                 <h3 class="modal-title">
                     <i class="fas fa-edit"></i>
-                    Edit Course
+                    Edit Free Online Course
                 </h3>
                 <button class="close-modal" onclick="closeEditModal()">&times;</button>
             </div>
             <form method="POST" id="editForm">
                 <input type="hidden" name="course_id" id="editCourseId">
                 <input type="hidden" name="edit_course" value="1">
+                <input type="hidden" name="course_type" id="editCourseType">
+                
+                <div class="form-group">
+                    <label class="form-label">Course Type</label>
+                    <div id="editCourseTypeDisplay" class="course-type-display">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 0.85rem;">Course type cannot be changed after creation</small>
+                </div>
                 
                 <div class="form-group">
                     <label class="form-label" for="edit_course_title">Course Title</label>
@@ -883,42 +978,35 @@ foreach ($courses as $course) {
                         <input type="text" class="form-control" id="edit_duration" name="duration" placeholder="e.g., 12 weeks" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="edit_mode">Mode</label>
-                        <select class="form-control" id="edit_mode" name="mode" required>
-                            <option value="Online">Online</option>
-                            <option value="Offline">Offline</option>
-                            <option value="Hybrid">Hybrid</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
                         <label class="form-label" for="edit_max_students">Max Students</label>
                         <input type="number" class="form-control" id="edit_max_students" name="max_students" min="1">
                     </div>
+                </div>
+                
+                <div id="editSelfPacedFields">
                     <div class="form-group">
-                        <label class="form-label" for="edit_course_price_type">Price Type</label>
-                        <select class="form-control" id="edit_course_price_type" name="course_price_type" required>
-                            <option value="free">Free</option>
-                            <option value="paid">Paid</option>
-                        </select>
+                        <label class="form-label" for="edit_course_link">Course Content Link (Playlist/Content)</label>
+                        <input type="url" class="form-control" id="edit_course_link" name="course_link" placeholder="https://youtube.com/playlist?list=...">
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">YouTube playlist or your course content link</small>
                     </div>
                 </div>
                 
-                <div class="form-group" id="priceAmountGroup" style="display: none;">
-                    <label class="form-label" for="edit_price_amount">Price Amount ($)</label>
-                    <input type="number" class="form-control" id="edit_price_amount" name="price_amount" step="0.01" min="0">
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="edit_start_date">Start Date</label>
-                        <input type="date" class="form-control" id="edit_start_date" name="start_date">
+                <div id="editLiveCourseFields">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="edit_start_date">Start Date</label>
+                            <input type="date" class="form-control" id="edit_start_date" name="start_date">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="edit_enrollment_deadline">Application Deadline</label>
+                            <input type="date" class="form-control" id="edit_enrollment_deadline" name="enrollment_deadline">
+                        </div>
                     </div>
+                    
                     <div class="form-group">
-                        <label class="form-label" for="edit_enrollment_deadline">Enrollment Deadline</label>
-                        <input type="date" class="form-control" id="edit_enrollment_deadline" name="enrollment_deadline">
+                        <label class="form-label" for="edit_meeting_link">Meeting Link</label>
+                        <input type="url" class="form-control" id="edit_meeting_link" name="meeting_link" placeholder="https://meet.google.com/xxx-xxxx-xxx">
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">Google Meet, Zoom, or Teams link for live sessions</small>
                     </div>
                 </div>
                 
@@ -971,20 +1059,38 @@ foreach ($courses as $course) {
 
         function openEditModal(course) {
             document.getElementById('editCourseId').value = course.id;
+            document.getElementById('editCourseType').value = course.course_type || 'self_paced';
             document.getElementById('edit_course_title').value = course.course_title || '';
             document.getElementById('edit_course_category').value = course.course_category || '';
             document.getElementById('edit_difficulty_level').value = course.difficulty_level || 'Beginner';
             document.getElementById('edit_duration').value = course.duration || '';
-            document.getElementById('edit_mode').value = course.mode || 'Online';
             document.getElementById('edit_max_students').value = course.max_students || '';
-            document.getElementById('edit_course_price_type').value = course.course_price_type || 'free';
-            document.getElementById('edit_price_amount').value = course.price_amount || '';
             document.getElementById('edit_start_date').value = course.start_date || '';
             document.getElementById('edit_enrollment_deadline').value = course.enrollment_deadline || '';
             document.getElementById('edit_course_description').value = course.course_description || '';
+            document.getElementById('edit_meeting_link').value = course.meeting_link || '';
+            document.getElementById('edit_course_link').value = course.course_link || '';
             
-            // Show/hide price amount based on price type
-            togglePriceAmountField();
+            // Display course type (read-only) and show/hide relevant fields
+            const courseTypeDisplay = document.getElementById('editCourseTypeDisplay');
+            const liveCourseFields = document.getElementById('editLiveCourseFields');
+            const selfPacedFields = document.getElementById('editSelfPacedFields');
+            
+            if (course.course_type === 'live') {
+                courseTypeDisplay.innerHTML = '<i class="fas fa-video"></i> Live Sessions (Approval Required)';
+                courseTypeDisplay.style.color = '#1976d2';
+                courseTypeDisplay.style.background = '#e3f2fd';
+                courseTypeDisplay.style.borderColor = '#90caf9';
+                liveCourseFields.style.display = 'block';
+                selfPacedFields.style.display = 'none';
+            } else {
+                courseTypeDisplay.innerHTML = '<i class="fas fa-play-circle"></i> Self-Paced (Auto-Enroll)';
+                courseTypeDisplay.style.color = '#2e7d32';
+                courseTypeDisplay.style.background = '#e8f5e9';
+                courseTypeDisplay.style.borderColor = '#a5d6a7';
+                liveCourseFields.style.display = 'none';
+                selfPacedFields.style.display = 'block';
+            }
             
             document.getElementById('editModal').style.display = 'flex';
         }
@@ -1002,21 +1108,6 @@ foreach ($courses as $course) {
         function closeDeleteModal() {
             document.getElementById('deleteModal').style.display = 'none';
         }
-
-        // Toggle price amount field based on price type
-        function togglePriceAmountField() {
-            const priceType = document.getElementById('edit_course_price_type').value;
-            const priceAmountGroup = document.getElementById('priceAmountGroup');
-            
-            if (priceType === 'paid') {
-                priceAmountGroup.style.display = 'block';
-            } else {
-                priceAmountGroup.style.display = 'none';
-            }
-        }
-
-        // Event listeners
-        document.getElementById('edit_course_price_type').addEventListener('change', togglePriceAmountField);
 
         // Close modals when clicking outside
         window.onclick = function(event) {

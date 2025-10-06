@@ -74,83 +74,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_all_applicati
     }
     $bulk_update_stmt->close();
 }
-
-// Handle sending online course notification to all applicants
+// Handle sending online course notification to approved applicants only
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_online_notification'])) {
     $meeting_datetime = $_POST['meeting_datetime'];
     $meeting_link = $_POST['meeting_link'];
     $additional_notes = $_POST['additional_notes'];
-    $notify_status = $_POST['notify_status'] ?? 'all'; // all, approved, pending
+    
+    // CRITICAL FIX: Force approved-only for security
+    // Meeting links should NEVER go to pending/rejected students
+    $notify_status = 'approved';
     
     // Validate meeting datetime
     if (strtotime($meeting_datetime) <= time()) {
         $error_message = "Meeting date and time must be in the future.";
     } else {
-        // Get applicants based on status filter
-        $status_condition = "";
-        $params = [$course_id, $company_id];
-        $types = "is";
-        
-        if ($notify_status === 'approved') {
-            $status_condition = "AND ca.application_status = 'approved'";
-        } elseif ($notify_status === 'pending') {
-            $status_condition = "AND ca.application_status = 'pending'";
-        }
-        
+        // ONLY fetch approved students - no exceptions
         $applicants_stmt = $conn->prepare("SELECT ca.applicant_name, ca.email, s.id as student_id 
                                           FROM course_applications ca 
                                           INNER JOIN course c ON ca.course_id = c.id 
                                           LEFT JOIN students s ON ca.email = s.email
-                                          WHERE ca.course_id = ? AND c.company_id = ? {$status_condition}");
-        $applicants_stmt->bind_param($types, ...$params);
+                                          WHERE ca.course_id = ? 
+                                          AND c.company_id = ? 
+                                          AND ca.application_status = 'approved'");
+        $applicants_stmt->bind_param("is", $course_id, $company_id);
         $applicants_stmt->execute();
         $applicants_result = $applicants_stmt->get_result();
         
         $notification_count = 0;
         $meeting_subject = "Online Course Meeting Details - " . htmlspecialchars($course['course_title'] ?? 'Course');
         
-        // Format meeting message
-        $meeting_message = "Dear Student,\n\n";
-        $meeting_message .= "We are excited to inform you about the upcoming online session for the course: " . htmlspecialchars($course['course_title'] ?? 'Course') . "\n\n";
-        $meeting_message .= "Meeting Details:\n";
-        $meeting_message .= "Date & Time: " . date('F j, Y \a\t g:i A', strtotime($meeting_datetime)) . "\n";
-        $meeting_message .= "Meeting Link: " . htmlspecialchars($meeting_link) . "\n\n";
-        
-        if (!empty($additional_notes)) {
-            $meeting_message .= "Additional Information:\n";
-            $meeting_message .= htmlspecialchars($additional_notes) . "\n\n";
-        }
-        
-        $meeting_message .= "Please make sure to join the meeting on time. We look forward to seeing you there!\n\n";
-        $meeting_message .= "Best regards,\n" . htmlspecialchars($company_name);
-        
-        // Send notifications to all matching applicants
         while ($applicant = $applicants_result->fetch_assoc()) {
-            if ($applicant['student_id']) {
-                $message_stmt = $conn->prepare("INSERT INTO student_messages (sender_type, receiver_type, receiver_id, subject, message, is_read, created_at) 
-                                               VALUES ('company', 'student', ?, ?, ?, 0, NOW())");
-                $message_stmt->bind_param("sss", $applicant['student_id'], $meeting_subject, $meeting_message);
-                
-                if ($message_stmt->execute()) {
-                    $notification_count++;
-                }
-                $message_stmt->close();
+            if (!$applicant['student_id']) continue;
+            
+            // Meeting details for approved applicants
+            $meeting_message = "Dear Student,\n\n";
+            $meeting_message .= "Congratulations! You have been approved for the course: " . htmlspecialchars($course['course_title'] ?? 'Course') . "\n\n";
+            $meeting_message .= "Meeting Details:\n";
+            $meeting_message .= "Date & Time: " . date('F j, Y \a\t g:i A', strtotime($meeting_datetime)) . "\n";
+            $meeting_message .= "Meeting Link: " . htmlspecialchars($meeting_link) . "\n\n";
+            
+            if (!empty($additional_notes)) {
+                $meeting_message .= "Additional Information:\n";
+                $meeting_message .= htmlspecialchars($additional_notes) . "\n\n";
             }
+            
+            $meeting_message .= "Please make sure to join the meeting on time. We look forward to seeing you there!\n\n";
+            $meeting_message .= "Best regards,\n" . htmlspecialchars($company_name);
+            
+            $message_stmt = $conn->prepare("INSERT INTO student_messages (sender_type, receiver_type, receiver_id, subject, message, is_read, created_at) 
+                                           VALUES ('company', 'student', ?, ?, ?, 0, NOW())");
+            $message_stmt->bind_param("sss", $applicant['student_id'], $meeting_subject, $meeting_message);
+            
+            if ($message_stmt->execute()) {
+                $notification_count++;
+            }
+            $message_stmt->close();
         }
         
-        // Store notification in the database for tracking
+        // Store notification tracking - always log as 'approved'
         $store_notification_stmt = $conn->prepare("INSERT INTO course_notifications (course_id, company_id, notification_type, meeting_datetime, meeting_link, additional_notes, notify_status, sent_count, created_at) 
-                                                  VALUES (?, ?, 'online_meeting', ?, ?, ?, ?, ?, NOW())");
-        $store_notification_stmt->bind_param("isssssi", $course_id, $company_id, $meeting_datetime, $meeting_link, $additional_notes, $notify_status, $notification_count);
+                                                  VALUES (?, ?, 'online_meeting', ?, ?, ?, 'approved', ?, NOW())");
+        $store_notification_stmt->bind_param("issssi", $course_id, $company_id, $meeting_datetime, $meeting_link, $additional_notes, $notification_count);
         $store_notification_stmt->execute();
         $store_notification_stmt->close();
         
         $applicants_stmt->close();
         
         if ($notification_count > 0) {
-            $success_message = "Online meeting notification sent successfully to {$notification_count} student(s)!";
+            $success_message = "Meeting notification sent successfully to {$notification_count} approved student(s)!";
         } else {
-            $error_message = "No students found to notify or error sending notifications.";
+            $error_message = "No approved students found. Please approve applications first before sending meeting links.";
         }
     }
 }
@@ -186,6 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message'])) {
     }
     $student_stmt->close();
 }
+
 // Fetch course details if course_id is provided
 $course = null;
 if ($course_id > 0) {
@@ -204,13 +198,13 @@ if ($course_id > 0) {
 
 // Redirect if no valid course is selected
 if ($course_id <= 0 || !$course) {
-    header('Location: ?page=manage-internships');
+    header('Location: ?page=manage-courses');
     exit();
 }
 
 // Fetch applications for the specific course
 $applications = [];
-$stmt = $conn->prepare("SELECT ca.*, c.course_title, c.course_category, s.id as student_id
+$stmt = $conn->prepare("SELECT ca.*, c.course_title, c.course_category, c.course_type, s.id as student_id
                        FROM course_applications ca 
                        INNER JOIN course c ON ca.course_id = c.id 
                        LEFT JOIN students s ON ca.email = s.email
@@ -370,8 +364,7 @@ $conn->close();
             font-weight: 600;
         }
 
-        .online-badge {
-            background: linear-gradient(135deg, var(--info) 0%, #5dade2 100%);
+        .course-type-badge {
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -381,6 +374,13 @@ $conn->close();
             align-items: center;
             gap: 0.5rem;
             margin-left: 1rem;
+        }
+
+        .course-type-live { 
+            background: linear-gradient(135deg, var(--info) 0%, #5dade2 100%); 
+        }
+        .course-type-self-paced { 
+            background: linear-gradient(135deg, var(--success) 0%, #2ecc71 100%); 
         }
 
         .course-info-grid {
@@ -456,7 +456,7 @@ $conn->close();
             font-weight: 500;
         }
 
-        /* Online Meeting Notification Section */
+        /* Online Meeting Notification Section - Only for Live Courses */
         .online-notification-section {
             background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
             border-radius: 15px;
@@ -698,41 +698,41 @@ $conn->close();
             color: #721c24;
         }
 
-      .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-}
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
 
-.modal-content {
-    background-color: white;
-    margin: 3% auto;
-    padding: 2.5rem;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 700px;
-    box-shadow: var(--shadow-medium);
-    max-height: 90vh;
-    overflow-y: auto;
-}
+        .modal-content {
+            background-color: white;
+            margin: 3% auto;
+            padding: 2.5rem;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: var(--shadow-medium);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
 
-.modal-title {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--primary);
-}
+        .modal-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
 
         .close {
             font-size: 2rem;
@@ -867,7 +867,7 @@ $conn->close();
                 gap: 0.25rem;
             }
 
-            .online-badge {
+            .course-type-badge {
                 margin-left: 0;
                 margin-top: 0.5rem;
             }
@@ -878,13 +878,13 @@ $conn->close();
     <div class="page-container">
         <div class="page-header">
             <div class="breadcrumb">
-                <a href="?page= manage-courses"><i class="fas fa-arrow-left"></i> Back to Courses</a>
+                <a href="?page=manage-courses"><i class="fas fa-arrow-left"></i> Back to Courses</a>
                 <span>/</span>
                 <span>Applications</span>
             </div>
             
             <h1 class="page-title">
-                <i class="fas fa-user-graduate"></i>
+                <i class="fas fa-users"></i>
                 Course Applications
             </h1>
         </div>
@@ -906,27 +906,27 @@ $conn->close();
                 <div>
                     <h2 class="course-title">
                         <?php echo htmlspecialchars($course['course_title']); ?>
-                        <?php if (strtolower($course['mode']) === 'online'): ?>
-                            <span class="online-badge">
-                                <i class="fas fa-video"></i>
-                                Online Course
-                            </span>
-                        <?php endif; ?>
+                        <span class="course-type-badge course-type-<?php echo $course['course_type'] === 'live' ? 'live' : 'self-paced'; ?>">
+                            <i class="fas <?php echo $course['course_type'] === 'live' ? 'fa-video' : 'fa-play-circle'; ?>"></i>
+                            <?php echo $course['course_type'] === 'live' ? 'Live Sessions' : 'Self-Paced'; ?>
+                        </span>
                     </h2>
                     <span class="course-category"><?php echo htmlspecialchars($course['course_category']); ?></span>
                 </div>
             </div>
             
             <div class="course-info-grid">
+                <?php if ($course['course_type'] === 'live'): ?>
                 <div class="info-item">
                     <div class="info-icon">
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="info-content">
                         <h4>Start Date</h4>
-                        <p><?php echo date('M d, Y', strtotime($course['start_date'])); ?></p>
+                        <p><?php echo $course['start_date'] ? date('M d, Y', strtotime($course['start_date'])) : 'Not set'; ?></p>
                     </div>
                 </div>
+                <?php endif; ?>
                 
                 <div class="info-item">
                     <div class="info-icon">
@@ -940,11 +940,11 @@ $conn->close();
                 
                 <div class="info-item">
                     <div class="info-icon">
-                        <i class="fas fa-desktop"></i>
+                        <i class="fas fa-globe"></i>
                     </div>
                     <div class="info-content">
                         <h4>Mode</h4>
-                        <p><?php echo ucfirst(htmlspecialchars($course['mode'])); ?></p>
+                        <p>Online</p>
                     </div>
                 </div>
                 
@@ -960,71 +960,102 @@ $conn->close();
             </div>
         </div>
 
-        <?php if (strtolower($course['mode']) === 'online'): ?>
-        <!-- Online Meeting Notification Section -->
-        <div class="online-notification-section">
-            <div class="notification-header">
-                <div class="notification-icon">
-                    <i class="fas fa-video"></i>
-                </div>
-                <div class="notification-title">
-                    <h3>Send Online Meeting Details</h3>
-                    <p>Notify students about upcoming online sessions with meeting links and details</p>
+        <?php if ($course['course_type'] === 'live'): ?>
+      <!-- Online Meeting Notification Form - Approved Students Only -->
+<div class="online-notification-section">
+    <div class="notification-header">
+        <div class="notification-icon">
+            <i class="fas fa-video"></i>
+        </div>
+        <div class="notification-title">
+            <h3>Send Live Session Meeting Link</h3>
+            <p>Securely share meeting details with approved students only</p>
+        </div>
+    </div>
+    
+    <form method="POST" class="notification-form">
+        <input type="hidden" name="send_online_notification" value="1">
+        
+        <!-- Security Notice -->
+        <div style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #f39c12;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-shield-alt" style="color: #f39c12; font-size: 1.5rem;"></i>
+                <div>
+                    <strong style="color: #856404;">Security Notice</strong>
+                    <p style="color: #856404; margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                        Meeting links are automatically sent to <strong>approved students only</strong> to protect your live sessions.
+                    </p>
                 </div>
             </div>
-            
-            <form method="POST" class="notification-form">
-                <input type="hidden" name="send_online_notification" value="1">
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Course Name</label>
-                        <input type="text" class="form-control" value="<?php echo htmlspecialchars($course['course_title']); ?>" readonly>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Meeting Date & Time <span style="color: var(--danger);">*</span></label>
-                        <input type="datetime-local" name="meeting_datetime" class="form-control" required 
-                               min="<?php echo date('Y-m-d\TH:i', strtotime('+1 hour')); ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Meeting Link (Google Meet/Zoom/Teams) <span style="color: var(--danger);">*</span></label>
-                        <input type="url" name="meeting_link" class="form-control" 
-                               placeholder="https://meet.google.com/xxx-xxxx-xxx" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Notify Students</label>
-                        <select name="notify_status" class="form-select">
-                            <option value="all">All Applicants (<?php echo $stats['total']; ?>)</option>
-                            <option value="approved" <?php echo $stats['approved'] == 0 ? 'disabled' : ''; ?>>
-                                Approved Only (<?php echo $stats['approved']; ?>)
-                            </option>
-                            <option value="pending" <?php echo $stats['pending'] == 0 ? 'disabled' : ''; ?>>
-                                Pending Only (<?php echo $stats['pending']; ?>)
-                            </option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Additional Notes (Optional)</label>
-                    <textarea name="additional_notes" class="form-control" rows="4" 
-                              placeholder="Any additional information for students (requirements, preparation, etc.)"></textarea>
-                </div>
-                
-                <div style="text-align: center;">
-                    <button type="submit" class="btn btn-info" style="padding: 1rem 2rem; font-size: 1rem;">
-                        <i class="fas fa-paper-plane"></i> Send Meeting Notification
-                    </button>
-                </div>
-            </form>
         </div>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Course Name</label>
+                <input type="text" class="form-control" value="<?php echo htmlspecialchars($course['course_title']); ?>" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Meeting Date & Time <span style="color: var(--danger);">*</span></label>
+                <input type="datetime-local" name="meeting_datetime" class="form-control" required 
+                       min="<?php echo date('Y-m-d\TH:i', strtotime('+1 hour')); ?>">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Meeting Link (Google Meet/Zoom/Teams) <span style="color: var(--danger);">*</span></label>
+                <input type="url" name="meeting_link" class="form-control" 
+                       placeholder="https://meet.google.com/xxx-xxxx-xxx" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Recipients</label>
+                <div style="background: var(--slate-50); padding: 1rem; border-radius: 8px; border: 2px solid var(--success);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <i class="fas fa-user-check" style="color: var(--success); margin-right: 0.5rem;"></i>
+                            <strong style="color: var(--slate-900);">Approved Students Only</strong>
+                        </div>
+                        <span class="status-badge approved" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                            <?php echo $stats['approved']; ?> Students
+                        </span>
+                    </div>
+                    <p style="color: var(--slate-600); margin: 0.5rem 0 0 0; font-size: 0.85rem;">
+                        <i class="fas fa-lock"></i> This cannot be changed for security reasons
+                    </p>
+                </div>
+                <!-- Hidden input to ensure server-side enforcement -->
+                <input type="hidden" name="notify_status" value="approved">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Additional Notes (Optional)</label>
+            <textarea name="additional_notes" class="form-control" rows="4" 
+                      placeholder="Any additional information for students (requirements, preparation, etc.)"></textarea>
+        </div>
+        
+        <?php if ($stats['approved'] > 0): ?>
+            <div style="text-align: center;">
+                <button type="submit" class="btn btn-info" style="padding: 1rem 2rem; font-size: 1rem;">
+                    <i class="fas fa-paper-plane"></i> Send Meeting Notification to <?php echo $stats['approved']; ?> Approved Student(s)
+                </button>
+            </div>
+        <?php else: ?>
+            <div style="background: var(--slate-50); padding: 2rem; border-radius: 8px; text-align: center; border: 2px dashed var(--slate-300);">
+                <i class="fas fa-user-clock" style="font-size: 3rem; color: var(--slate-400); margin-bottom: 1rem;"></i>
+                <h4 style="color: var(--slate-700); margin-bottom: 0.5rem;">No Approved Students Yet</h4>
+                <p style="color: var(--slate-600); margin-bottom: 1.5rem;">
+                    You need to approve student applications before sending meeting links.
+                </p>
+                <a href="#applications-list" class="btn btn-primary">
+                    <i class="fas fa-check-double"></i> Review Applications
+                </a>
+            </div>
         <?php endif; ?>
-
-        <?php if (!empty($notifications) && strtolower($course['mode']) === 'online'): ?>
-        <!-- Notification History -->
+    </form>
+</div>
+        <?php if (!empty($notifications)): ?>
+        <!-- Notification History - Only for Live Courses -->
         <div class="notification-history">
             <div class="history-header">
                 <i class="fas fa-history" style="color: var(--info); font-size: 1.2rem;"></i>
@@ -1051,6 +1082,7 @@ $conn->close();
                 </div>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
         <?php endif; ?>
 
         <div class="stats-overview">
@@ -1312,7 +1344,7 @@ $conn->close();
                 }, index * 100);
             });
 
-            // Set minimum datetime to current time + 1 hour
+            // Set minimum datetime to current time + 1 hour (only for live courses)
             const datetimeInput = document.querySelector('input[name="meeting_datetime"]');
             if (datetimeInput) {
                 const now = new Date();
@@ -1321,7 +1353,7 @@ $conn->close();
                 datetimeInput.setAttribute('min', minDateTime);
             }
 
-            // Form validation for online notification
+            // Form validation for online notification (only for live courses)
             const notificationForm = document.querySelector('form[name="send_online_notification"]');
             if (notificationForm) {
                 notificationForm.addEventListener('submit', function(e) {

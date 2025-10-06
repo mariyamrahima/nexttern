@@ -20,68 +20,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Sanitize and validate input data
             $course_title = trim($_POST['course_title'] ?? '');
             $course_category = trim($_POST['course_category'] ?? '');
+            $course_type = $_POST['course_type'] ?? 'self_paced'; 
             $duration = trim($_POST['duration'] ?? '');
             $difficulty_level = $_POST['difficulty_level'] ?? '';
-            $mode = $_POST['mode'] ?? '';
             $course_description = trim($_POST['course_description'] ?? '');
             $what_you_will_learn = trim($_POST['what_you_will_learn'] ?? '');
             $program_structure = trim($_POST['program_structure'] ?? '');
             $skills_taught = trim($_POST['skills_taught'] ?? '');
             $prerequisites = trim($_POST['prerequisites'] ?? '');
             $students_trained = (int)($_POST['students_trained'] ?? 0);
-            $job_placement_rate = (float)($_POST['job_placement_rate'] ?? 0.00);
             $student_rating = (float)($_POST['student_rating'] ?? 0.00);
             $enrollment_deadline = $_POST['enrollment_deadline'] ?? null;
             $start_date = $_POST['start_date'] ?? null;
             $certificate_provided = isset($_POST['certificate_provided']) ? 1 : 0;
-            $job_placement_support = isset($_POST['job_placement_support']) ? 1 : 0;
             $course_format = trim($_POST['course_format'] ?? '');
+            $meeting_link = trim($_POST['meeting_link'] ?? '');
+            $course_link = trim($_POST['course_link'] ?? '');
             $course_status = 'Active';
             $featured = isset($_POST['featured']) ? 1 : 0;
             $max_students = (int)($_POST['max_students'] ?? 0);
-            $course_price_type = $_POST['course_price_type'] ?? '';
-            $price_amount = (float)($_POST['price_amount'] ?? 0.00);
             
             // Basic validation
             if (empty($course_title)) throw new Exception('Course title is required');
             if (empty($course_description)) throw new Exception('Course description is required');
-            if (empty($enrollment_deadline)) throw new Exception('Enrollment deadline is required');
-            if (empty($start_date)) throw new Exception('Start date is required');
             
-            // Validate dates
-            if (strtotime($enrollment_deadline) <= time()) {
-                throw new Exception('Enrollment deadline must be in the future');
-            }
-            if (strtotime($start_date) <= strtotime($enrollment_deadline)) {
-                throw new Exception('Start date must be after enrollment deadline');
+            // Validate course type specific fields
+            if ($course_type === 'live') {
+                if (empty($meeting_link)) {
+                    throw new Exception('Meeting link is required for live courses');
+                }
+                if (empty($enrollment_deadline)) {
+                    throw new Exception('Application deadline is required for live courses');
+                }
+                if (empty($start_date)) {
+                    throw new Exception('Start date is required for live courses');
+                }
+                
+                // Validate dates for live courses
+                if (strtotime($enrollment_deadline) <= time()) {
+                    throw new Exception('Application deadline must be in the future');
+                }
+                if (strtotime($start_date) <= strtotime($enrollment_deadline)) {
+                    throw new Exception('Start date must be after application deadline');
+                }
+           // Clear self-paced fields
+                $course_link = '';
+            } else {
+                // Self-paced: clear live fields and validate course link
+                $meeting_link = '';
+                $enrollment_deadline = null;
+                $start_date = null;
+                
+                if (empty($course_link)) {
+                    throw new Exception('Course content link (playlist/notes) is required for self-paced courses');
+                }
             }
             
-            // Insert into database
+          // Insert into database - UPDATED SQL
             $sql = "INSERT INTO course (
-                company_id, company_name, course_title, course_category, duration, 
-                difficulty_level, mode, course_description, what_you_will_learn, 
+                company_id, company_name, course_title, course_category, course_type, duration, 
+                difficulty_level, course_description, what_you_will_learn, 
                 program_structure, skills_taught, prerequisites, students_trained, 
-                job_placement_rate, student_rating, enrollment_deadline, start_date, 
-                certificate_provided, job_placement_support, course_format, course_status, 
-                featured, max_students, course_price_type, price_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                student_rating, enrollment_deadline, start_date, 
+                certificate_provided, course_format, meeting_link, course_link, course_status, 
+                featured, max_students
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $conn->prepare($sql);
             if (!$stmt) throw new Exception('Database preparation failed: ' . $conn->error);
             
             $stmt->bind_param(
-                "ssssssssssssissssiissiisd",
+                "sssssssssssssisssssssii",
                 $_SESSION['company_id'], $_SESSION['company_name'], $course_title,
-                $course_category, $duration, $difficulty_level, $mode, $course_description,
+                $course_category, $course_type, $duration, $difficulty_level, $course_description,
                 $what_you_will_learn, $program_structure, $skills_taught, $prerequisites,
-                $students_trained, $job_placement_rate, $student_rating,
+                $students_trained, $student_rating,
                 $enrollment_deadline, $start_date, $certificate_provided,
-                $job_placement_support, $course_format, $course_status,
-                $featured, $max_students, $course_price_type, $price_amount
+                $course_format, $meeting_link, $course_link, $course_status,
+                $featured, $max_students
             );
             
             if ($stmt->execute()) {
-                $success_message = 'Course posted successfully! Students can now apply for your course.';
+                if ($course_type === 'self_paced') {
+                    $success_message = 'Self-paced course posted successfully! Students can enroll instantly.';
+                } else {
+                    $success_message = 'Live course posted successfully! Students can apply and you will review their applications.';
+                }
                 $_POST = [];
             } else {
                 throw new Exception('Failed to save course: ' . $stmt->error);
@@ -110,6 +134,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     --primary-dark: #023d32;
     --success: #27ae60;
     --danger: #e74c3c;
+    --info: #3498db;
     --text-primary: #2c3e50;
     --text-secondary: #7f8c8d;
     --text-muted: #95a5a6;
@@ -121,14 +146,18 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
     --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}.page-container {
+}
+
+.page-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: transparent;
     min-height: 100vh;
-}.page-header {
+}
+
+.page-header {
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(10px);
     border-radius: 16px;
@@ -188,6 +217,20 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     box-shadow: var(--shadow-md);
 }
 
+.free-badge {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: var(--white);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+    transition: var(--transition);
+}
+
 .alert {
     padding: 1.25rem 1.5rem;
     border-radius: 12px;
@@ -219,6 +262,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     border-radius: 16px;
     overflow: hidden;
 }
+
 .form-section {
     padding: 2.5rem;
     background: rgba(255, 255, 255, 0.6);
@@ -230,6 +274,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     box-shadow: var(--shadow-md);
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
 .form-section:nth-child(even) {
     background: rgba(255, 255, 255, 0.5);
 }
@@ -329,7 +374,9 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     width: 20px;
     height: 20px;
     cursor: pointer;
-}.form-actions {
+}
+
+.form-actions {
     padding: 2.5rem;
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
@@ -342,6 +389,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     margin-left: 0;
     margin-right: 0;
 }
+
 .btn-primary, .btn-secondary {
     padding: 1rem 2rem;
     border-radius: 12px;
@@ -367,6 +415,12 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     box-shadow: var(--shadow-lg);
 }
 
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .btn-secondary {
     background: var(--white);
     color: var(--text-primary);
@@ -380,8 +434,11 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
 
 @media (max-width: 768px) {
     .page-container { padding: 1rem; }
-    .form-row { grid-template-columns: 1fr; }
-    .form-actions { flex-direction: column; }
+    .page-header { padding: 1.5rem; }
+    .page-title { font-size: 1.8rem; }
+    .form-section { padding: 1.5rem; }
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+    .form-actions { flex-direction: column; padding: 1.5rem; }
     .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
 }
 </style>
@@ -391,12 +448,17 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
         <h1 class="page-title">
             <i class="fas fa-plus-circle"></i> Post New Course
         </h1>
-        <p class="page-subtitle">Create and publish comprehensive learning opportunities for students worldwide.</p>
-        <span class="company-badge">
-            <i class="fas fa-building"></i>
-            <strong><?php echo htmlspecialchars($_SESSION['company_name']); ?></strong>
-            (ID: <?php echo htmlspecialchars($_SESSION['company_id']); ?>)
-        </span>
+        <p class="page-subtitle">Create and publish free online learning opportunities for students worldwide.</p>
+        <div>
+            <span class="company-badge">
+                <i class="fas fa-building"></i>
+                <strong><?php echo htmlspecialchars($_SESSION['company_name']); ?></strong>
+                (ID: <?php echo htmlspecialchars($_SESSION['company_id']); ?>)
+            </span>
+            <span class="free-badge" id="courseTypeBadge">
+                <i class="fas fa-gift"></i> Free Self-Paced Course
+            </span>
+        </div>
     </div>
 
     <?php if ($success_message): ?>
@@ -444,11 +506,26 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="course_type" class="form-label required">Course Type</label>
+                <select id="course_type" name="course_type" class="form-select" required onchange="toggleCourseTypeFields()">
+                    <option value="self_paced" <?php echo ($_POST['course_type'] ?? 'self_paced') === 'self_paced' ? 'selected' : ''; ?>>
+                        Self-Paced (Auto-Enroll)
+                    </option>
+                    <option value="live" <?php echo ($_POST['course_type'] ?? '') === 'live' ? 'selected' : ''; ?>>
+                        Live Sessions (Approval Required)
+                    </option>
+                </select>
+                <small class="form-help">
+                    <strong>Self-paced:</strong> Students enroll instantly, learn at their own pace | <strong>Live:</strong> Students apply, you review and approve
+                </small>
+            </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="duration" class="form-label">Duration</label>
                     <input type="text" id="duration" name="duration" class="form-input" 
-                           placeholder="e.g., 12 weeks" value="<?php echo htmlspecialchars($_POST['duration'] ?? ''); ?>">
+                           placeholder="e.g., 12 weeks, Self-paced" value="<?php echo htmlspecialchars($_POST['duration'] ?? ''); ?>">
                 </div>
                 
                 <div class="form-group">
@@ -462,22 +539,30 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="mode" class="form-label">Mode</label>
-                    <select id="mode" name="mode" class="form-select">
-                        <option value="">Select mode</option>
-                        <option value="Online">Online</option>
-                        <option value="Offline">Offline</option>
-                        <option value="Hybrid">Hybrid</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="course_format" class="form-label">Format</label>
-                    <input type="text" id="course_format" name="course_format" class="form-input" 
-                           placeholder="e.g., Live + Recorded" value="<?php echo htmlspecialchars($_POST['course_format'] ?? ''); ?>">
-                </div>
+            <div class="form-group">
+                <label for="course_format" class="form-label">Format</label>
+                <input type="text" id="course_format" name="course_format" class="form-input" 
+                       placeholder="e.g., Video Lectures, Interactive Coding, Quizzes" value="<?php echo htmlspecialchars($_POST['course_format'] ?? ''); ?>">
+            </div>
+
+<div class="form-group" id="courseLinkGroup" style="display: block;">
+    <label for="course_link" class="form-label required" id="courseLinkLabel">Course Content Link (Playlist/Notes)</label>
+    <input type="url" id="course_link" name="course_link" class="form-input" 
+           placeholder="https://youtube.com/playlist?list=... or your course link"
+           value="<?php echo htmlspecialchars($_POST['course_link'] ?? ''); ?>">
+    <small class="form-help">
+        Provide YouTube playlist, Google Drive folder, or any link to your course materials. This will be sent to enrolled students.
+    </small>
+</div>
+
+            <div class="form-group" id="meetingLinkGroup" style="display: none;">
+                <label for="meeting_link" class="form-label" id="meetingLinkLabel">Meeting Link (for Live Courses)</label>
+                <input type="url" id="meeting_link" name="meeting_link" class="form-input" 
+                       placeholder="https://meet.google.com/xxx-xxxx-xxx or https://zoom.us/j/xxxxx"
+                       value="<?php echo htmlspecialchars($_POST['meeting_link'] ?? ''); ?>">
+                <small class="form-help">
+                    Provide Google Meet, Zoom, or Teams link. This will be sent to approved students before the course starts.
+                </small>
             </div>
         </div>
 
@@ -489,39 +574,41 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
             <div class="form-group">
                 <label for="course_description" class="form-label required">Description</label>
                 <textarea id="course_description" name="course_description" class="form-textarea" 
-                          placeholder="Comprehensive course overview..." rows="5" required><?php echo htmlspecialchars($_POST['course_description'] ?? ''); ?></textarea>
+                          placeholder="Provide a comprehensive overview of the course..." rows="5" required><?php echo htmlspecialchars($_POST['course_description'] ?? ''); ?></textarea>
             </div>
 
             <div class="form-group">
                 <label for="what_you_will_learn" class="form-label">What You'll Learn</label>
                 <textarea id="what_you_will_learn" name="what_you_will_learn" class="form-textarea" rows="4"
-                          placeholder="Topic 1: Description|Topic 2: Description|"><?php echo htmlspecialchars($_POST['what_you_will_learn'] ?? ''); ?></textarea>
-                <small class="form-help">Format: "Title: Description|Title: Description|"</small>
+                          placeholder="Topic 1: Description|Topic 2: Description|Topic 3: Description|"><?php echo htmlspecialchars($_POST['what_you_will_learn'] ?? ''); ?></textarea>
+                <small class="form-help">Format: "Title: Description|Title: Description|" (separated by | pipe character)</small>
             </div>
 
             <div class="form-group">
                 <label for="program_structure" class="form-label">Program Structure</label>
                 <textarea id="program_structure" name="program_structure" class="form-textarea" rows="4"
-                          placeholder="Week 1-3: Topics|Week 4-6: Topics|"><?php echo htmlspecialchars($_POST['program_structure'] ?? ''); ?></textarea>
+                          placeholder="Week 1-3: Topics covered|Week 4-6: Topics covered|Week 7-9: Project work|"><?php echo htmlspecialchars($_POST['program_structure'] ?? ''); ?></textarea>
+                <small class="form-help">Outline the course timeline and modules</small>
             </div>
 
-           <div class="form-group">
-    <label for="skills_taught" class="form-label">Skills Taught</label>
-    <textarea id="skills_taught" name="skills_taught" class="form-textarea" rows="3"
-              placeholder="HTML, CSS, JavaScript, React, Node.js, MySQL"><?php echo htmlspecialchars($_POST['skills_taught'] ?? ''); ?></textarea>
-    <small class="form-help">Enter skills separated by commas (e.g., HTML, CSS, JavaScript)</small>
-</div>
+            <div class="form-group">
+                <label for="skills_taught" class="form-label">Skills Taught</label>
+                <textarea id="skills_taught" name="skills_taught" class="form-textarea" rows="3"
+                          placeholder="HTML, CSS, JavaScript, React, Node.js, MySQL, Git"><?php echo htmlspecialchars($_POST['skills_taught'] ?? ''); ?></textarea>
+                <small class="form-help">Enter skills separated by commas</small>
+            </div>
 
             <div class="form-group">
                 <label for="prerequisites" class="form-label">Prerequisites</label>
                 <textarea id="prerequisites" name="prerequisites" class="form-textarea" rows="3"
-                          placeholder="Requirement: Description|Requirement: Description|"><?php echo htmlspecialchars($_POST['prerequisites'] ?? ''); ?></textarea>
+                          placeholder="Basic Programming Knowledge: Understanding of variables and loops|Computer Setup: Access to a computer with internet|"><?php echo htmlspecialchars($_POST['prerequisites'] ?? ''); ?></textarea>
+                <small class="form-help">What students should know before starting</small>
             </div>
         </div>
 
-        <div class="form-section">
+        <div class="form-section" id="scheduleSection">
             <h3 class="section-title">
-                <i class="fas fa-chart-bar"></i> Statistics & Schedule
+                <i class="fas fa-chart-bar"></i> Statistics & <span id="scheduleTitle">Course Info</span>
             </h3>
             
             <div class="form-row">
@@ -529,95 +616,74 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
                     <label for="students_trained" class="form-label">Students Trained</label>
                     <input type="number" id="students_trained" name="students_trained" class="form-input" 
                            min="0" placeholder="500" value="<?php echo $_POST['students_trained'] ?? ''; ?>">
+                    <small class="form-help">Total students you've trained (optional)</small>
                 </div>
                 
-                <div class="form-group">
-                    <label for="job_placement_rate" class="form-label">Placement Rate (%)</label>
-                    <input type="number" id="job_placement_rate" name="job_placement_rate" class="form-input" 
-                           min="0" max="100" step="0.1" placeholder="85.5" value="<?php echo $_POST['job_placement_rate'] ?? ''; ?>">
-                </div>
-            </div>
-
-            <div class="form-row">
                 <div class="form-group">
                     <label for="student_rating" class="form-label">Rating (1-5)</label>
                     <input type="number" id="student_rating" name="student_rating" class="form-input" 
                            min="1" max="5" step="0.1" placeholder="4.5" value="<?php echo $_POST['student_rating'] ?? ''; ?>">
-                </div>
-                
-                <div class="form-group">
-                    <label for="max_students" class="form-label">Max Students</label>
-                    <input type="number" id="max_students" name="max_students" class="form-input" 
-                           min="1" placeholder="25" value="<?php echo $_POST['max_students'] ?? ''; ?>">
+                    <small class="form-help">Average course rating (optional)</small>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="enrollment_deadline" class="form-label required">Enrollment Deadline</label>
-                    <input type="date" id="enrollment_deadline" name="enrollment_deadline" class="form-input" required
-                           value="<?php echo $_POST['enrollment_deadline'] ?? ''; ?>">
-                </div>
-                
-                <div class="form-group">
-                    <label for="start_date" class="form-label required">Start Date</label>
-                    <input type="date" id="start_date" name="start_date" class="form-input" required
-                           value="<?php echo $_POST['start_date'] ?? ''; ?>">
+            <div class="form-group">
+                <label for="max_students" class="form-label">Max Students</label>
+                <input type="number" id="max_students" name="max_students" class="form-input" 
+                       min="1" placeholder="25 for live, unlimited for self-paced" value="<?php echo $_POST['max_students'] ?? ''; ?>">
+                <small class="form-help">Maximum number of students (leave blank for unlimited)</small>
+            </div>
+
+            <!-- Live Course Schedule Fields (Hidden by default) -->
+            <div id="liveScheduleFields" style="display: none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="enrollment_deadline" class="form-label required">Application Deadline</label>
+                        <input type="date" id="enrollment_deadline" name="enrollment_deadline" class="form-input"
+                               value="<?php echo $_POST['enrollment_deadline'] ?? ''; ?>">
+                        <small class="form-help">Last date for students to apply</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="start_date" class="form-label required">Course Start Date</label>
+                        <input type="date" id="start_date" name="start_date" class="form-input"
+                               value="<?php echo $_POST['start_date'] ?? ''; ?>">
+                        <small class="form-help">When live sessions begin</small>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="form-section">
             <h3 class="section-title">
-                <i class="fas fa-money-bill-wave"></i> Pricing & Features
+                <i class="fas fa-star"></i> Additional Features
             </h3>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="course_price_type" class="form-label">Pricing</label>
-                    <select id="course_price_type" name="course_price_type" class="form-select">
-                        <option value="">Select pricing</option>
-                        <option value="Free">Free</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Subscription">Subscription</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="price_amount" class="form-label">Price (₹)</label>
-                    <input type="number" id="price_amount" name="price_amount" class="form-input" 
-                           min="0" step="0.01" placeholder="15000.00" value="<?php echo $_POST['price_amount'] ?? ''; ?>">
-                </div>
-            </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="certificate_provided" name="certificate_provided">
+                        <input type="checkbox" id="certificate_provided" name="certificate_provided" 
+                               <?php echo isset($_POST['certificate_provided']) ? 'checked' : ''; ?>>
                         Certificate Provided
                     </label>
+                    <small class="form-help">Students receive a certificate upon completion</small>
                 </div>
                 
                 <div class="form-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="job_placement_support" name="job_placement_support">
-                        Job Placement Support
+                        <input type="checkbox" id="featured" name="featured"
+                               <?php echo isset($_POST['featured']) ? 'checked' : ''; ?>>
+                        Feature this course
                     </label>
+                    <small class="form-help">Display prominently on course listings</small>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="featured" name="featured">
-                    Feature this course
-                </label>
             </div>
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn-primary">
+            <button type="submit" class="btn-primary" id="submitBtn">
                 <i class="fas fa-plus-circle"></i>
-                Post Course
+                Post Free Course
             </button>
             <a href="?page=home" class="btn-secondary">
                 <i class="fas fa-arrow-left"></i>
@@ -630,11 +696,14 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('courseForm');
+    const courseTypeSelect = document.getElementById('course_type');
     const today = new Date().toISOString().split('T')[0];
     
+    // Set minimum dates
     document.getElementById('enrollment_deadline').min = today;
     document.getElementById('start_date').min = today;
     
+    // Date validation for live courses
     document.getElementById('enrollment_deadline').addEventListener('change', function() {
         if (this.value) {
             const nextDay = new Date(this.value);
@@ -643,22 +712,102 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    document.getElementById('course_price_type').addEventListener('change', function() {
-        const priceAmount = document.getElementById('price_amount');
-        if (this.value === 'Free') {
-            priceAmount.value = '0';
-            priceAmount.disabled = true;
-        } else {
-            priceAmount.disabled = false;
-        }
-    });
+    // Initialize course type display on page load
+    toggleCourseTypeFields();
     
-    form.addEventListener('submit', function() {
-        const btn = form.querySelector('.btn-primary');
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        const courseType = courseTypeSelect.value;
+        const meetingLink = document.getElementById('meeting_link').value.trim();
+        const enrollmentDeadline = document.getElementById('enrollment_deadline').value;
+        const startDate = document.getElementById('start_date').value;
+        
+        // Validate live course required fields
+        if (courseType === 'live') {
+            if (!meetingLink) {
+                e.preventDefault();
+                alert('Meeting link is required for live courses');
+                document.getElementById('meeting_link').focus();
+                return false;
+            }
+            if (!enrollmentDeadline || !startDate) {
+                e.preventDefault();
+                alert('Application deadline and start date are required for live courses');
+                return false;
+            }
+        }
+        
+        // Disable submit button and show loading state
+        const btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
     });
 });
+function toggleCourseTypeFields() {
+    const courseType = document.getElementById('course_type').value;
+    const meetingLinkGroup = document.getElementById('meetingLinkGroup');
+    const courseLinkGroup = document.getElementById('courseLinkGroup');
+    const courseLinkInput = document.getElementById('course_link');
+    const courseLinkLabel = document.getElementById('courseLinkLabel');
+    const meetingLinkInput = document.getElementById('meeting_link');
+    const meetingLinkLabel = document.getElementById('meetingLinkLabel');
+    
+    // ADD THESE LINES - Get schedule section elements
+    const liveScheduleFields = document.getElementById('liveScheduleFields');
+    const enrollmentDeadlineInput = document.getElementById('enrollment_deadline');
+    const startDateInput = document.getElementById('start_date');
+    const courseTypeBadge = document.getElementById('courseTypeBadge');
+    const scheduleTitle = document.getElementById('scheduleTitle');
+    
+    if (courseType === 'live') {
+        // Show live course fields
+        meetingLinkGroup.style.display = 'block';
+        courseLinkGroup.style.display = 'none';
+        liveScheduleFields.style.display = 'block'; // SHOW SCHEDULE
+        
+        // Set required fields
+        meetingLinkInput.required = true;
+        courseLinkInput.required = false;
+        enrollmentDeadlineInput.required = true;
+        startDateInput.required = true;
+        
+        // Clear self-paced fields
+        courseLinkInput.value = '';
+        
+        // Update labels
+        meetingLinkLabel.classList.add('required');
+        courseLinkLabel.classList.remove('required');
+        
+        // Update badge and title
+        courseTypeBadge.innerHTML = '<i class="fas fa-video"></i> Free Live Course';
+        scheduleTitle.textContent = 'Schedule & Statistics';
+        
+    } else {
+        // Show self-paced fields
+        meetingLinkGroup.style.display = 'none';
+        courseLinkGroup.style.display = 'block';
+        liveScheduleFields.style.display = 'none'; // HIDE SCHEDULE
+        
+        // Set required fields
+        meetingLinkInput.required = false;
+        courseLinkInput.required = true;
+        enrollmentDeadlineInput.required = false;
+        startDateInput.required = false;
+        
+        // Clear live fields
+        meetingLinkInput.value = '';
+        enrollmentDeadlineInput.value = '';
+        startDateInput.value = '';
+        
+        // Update labels
+        meetingLinkLabel.classList.remove('required');
+        courseLinkLabel.classList.add('required');
+        
+        // Update badge and title
+        courseTypeBadge.innerHTML = '<i class="fas fa-gift"></i> Free Self-Paced Course';
+        scheduleTitle.textContent = 'Course Info';
+    }
+}
 </script>
 </body>
 </html>

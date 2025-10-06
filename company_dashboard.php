@@ -1147,7 +1147,9 @@ case 'messages':
                     echo '<div class="error-message">Applications page not found.</div>';
                 }
                 break;
-
+case 'selfpaced_enrolled':  // ADD THIS LINE
+        include 'selfpaced_enrolled.php';  // ADD THIS LINE
+        break;  
             default:
                 ?>
                 <div class="welcome-container">

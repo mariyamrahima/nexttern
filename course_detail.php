@@ -222,13 +222,13 @@ function redirectToDashboard($userRole) {
     }
 }
 
-// Handle AJAX form submission for course applications (ONLY FOR STUDENTS)
+// Handle AJAX form submission for course enrollment
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['is_ajax'])) {
     header('Content-Type: application/json');
 
     $sessionData = validateUserSession();
     if (!$sessionData['isLoggedIn'] || $sessionData['userRole'] !== 'student') {
-        echo json_encode(['status' => 'error', 'message' => "Only students can apply for courses."]);
+        echo json_encode(['status' => 'error', 'message' => "Only students can enroll in courses."]);
         exit();
     }
 
@@ -244,65 +244,218 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['is_ajax'])) {
     }
 
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : null;
-    $name = isset($_POST['name']) ? trim($conn->real_escape_string($_POST['name'])) : '';
-    $email = isset($_POST['email']) ? trim($conn->real_escape_string($_POST['email'])) : '';
-    $phone = isset($_POST['phone']) ? trim($conn->real_escape_string($_POST['phone'])) : '';
-    $learning_objective = isset($_POST['learning_objective']) ? trim($_POST['learning_objective']) : '';
-    $motivation = isset($_POST['motivation']) ? trim($conn->real_escape_string($_POST['motivation'])) : '';
+    $action_type = isset($_POST['action_type']) ? $_POST['action_type'] : '';
     $user_id = $sessionData['userId'];
+    $user_email = $sessionData['userEmail'];
 
-    if (empty($course_id) || empty($name) || empty($email) || empty($learning_objective)) {
-        echo json_encode(['status' => 'error', 'message' => "Please fill in all required fields."]);
+    // Get course details
+    $course_stmt = $conn->prepare("SELECT course_type FROM course WHERE id = ?");
+    $course_stmt->bind_param("i", $course_id);
+    $course_stmt->execute();
+    $course_result = $course_stmt->get_result();
+    
+    if ($course_result->num_rows === 0) {
+        echo json_encode(['status' => 'error', 'message' => "Course not found."]);
+        $course_stmt->close();
         $conn->close();
         exit();
     }
-
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        echo json_encode(['status' => 'error', 'message' => "Please enter a valid email address."]);
-        $conn->close();
-        exit();
-    }
-
-    $valid_objectives = [
-        'job_preparation', 'interview_skills', 'certification', 'skill_enhancement',
-        'career_switch', 'academic_project', 'personal_interest', 'startup_preparation'
-    ];
-
-    if (!in_array($learning_objective, $valid_objectives)) {
-        echo json_encode(['status' => 'error', 'message' => "Invalid learning objective selected."]);
-        $conn->close();
-        exit();
-    }
-
-    $check_sql = "SELECT id FROM course_applications WHERE course_id = ? AND email = ?";
+    
+    $course = $course_result->fetch_assoc();
+    $course_type = $course['course_type'];
+    $course_stmt->close();
+// Handle Self-Paced Course Enrollment
+if ($action_type === 'self_paced' && $course_type === 'self_paced') {
+    // Check if already enrolled
+    $check_sql = "SELECT id FROM course_applications WHERE course_id = ? AND student_id = ?";
     $check_stmt = $conn->prepare($check_sql);
-    $check_stmt->bind_param("is", $course_id, $email);
+    $check_stmt->bind_param("is", $course_id, $user_id);
     $check_stmt->execute();
     $check_result = $check_stmt->get_result();
     
     if ($check_result->num_rows > 0) {
-        echo json_encode(['status' => 'error', 'message' => "You have already applied for this course."]);
+        echo json_encode(['status' => 'info', 'message' => "You are already enrolled in this course. Check your messages for course materials."]);
         $check_stmt->close();
         $conn->close();
         exit();
     }
     $check_stmt->close();
 
-    $sql = "INSERT INTO course_applications (
-        student_id, course_id, applicant_name, email, phone, learning_objective, 
-        cover_letter, application_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sisssss", $user_id, $course_id, $name, $email, $phone, $learning_objective, $motivation);
+    // GET FULL COURSE DETAILS - THIS IS CRITICAL!
+    $course_details_stmt = $conn->prepare("SELECT * FROM course WHERE id = ?");
+    $course_details_stmt->bind_param("i", $course_id);
+    $course_details_stmt->execute();
+    $course_details_result = $course_details_stmt->get_result();
+    $full_course = $course_details_result->fetch_assoc();
+    $course_details_stmt->close();
 
-    if ($stmt->execute()) {
-        echo json_encode(['status' => 'success', 'message' => "Successfully applied for the course!"]);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => "Error processing application: " . $stmt->error]);
+    if (!$full_course || empty($full_course['course_link'])) {
+        echo json_encode(['status' => 'error', 'message' => "Course materials are not available yet. Please contact support."]);
+        $conn->close();
+        exit();
     }
 
+    // Enroll student (auto-approved for self-paced)
+    $sql = "INSERT INTO course_applications (
+        student_id, course_id, applicant_name, email, application_status
+    ) VALUES (?, ?, ?, ?, 'approved')";
+    
+    $stmt = $conn->prepare($sql);
+    $name = $sessionData['userName'];
+    $stmt->bind_param("siss", $user_id, $course_id, $name, $user_email);
+
+    if ($stmt->execute()) {
+        // NOW SEND THE MESSAGE WITH COURSE LINK
+        $subject = "Welcome to: " . $full_course['course_title'];
+        
+        $message = "Congratulations! You have successfully enrolled in the course.\n\n";
+        $message .= "====================================\n";
+        $message .= "COURSE DETAILS\n";
+        $message .= "====================================\n";
+        $message .= "Course Title: " . $full_course['course_title'] . "\n";
+        $message .= "Provider: " . $full_course['company_name'] . "\n";
+        $message .= "Category: " . ($full_course['course_category'] ?? 'General') . "\n";
+        
+        if (!empty($full_course['difficulty_level'])) {
+            $message .= "Level: " . $full_course['difficulty_level'] . "\n";
+        }
+        
+        if (!empty($full_course['duration'])) {
+            $message .= "Duration: " . $full_course['duration'] . "\n";
+        }
+        
+        $message .= "\n====================================\n";
+        $message .= "ACCESS YOUR COURSE MATERIALS\n";
+        $message .= "====================================\n\n";
+        $message .= "Click or copy the link below to access your course:\n\n";
+        $message .= $full_course['course_link'] . "\n\n";
+        $message .= "====================================\n\n";
+        
+        $message .= "ABOUT THIS COURSE\n";
+        $message .= $full_course['course_description'] . "\n\n";
+        
+        if (!empty($full_course['what_you_will_learn'])) {
+            $message .= "What You'll Learn:\n";
+            $message .= str_replace('|', "\n- ", "- " . $full_course['what_you_will_learn']) . "\n\n";
+        }
+        
+        if (!empty($full_course['skills_taught'])) {
+            $message .= "Skills Covered:\n";
+            $message .= "- " . str_replace(',', "\n- ", $full_course['skills_taught']) . "\n\n";
+        }
+        
+        if (!empty($full_course['prerequisites'])) {
+            $message .= "Prerequisites:\n";
+            $message .= str_replace('|', "\n- ", "- " . $full_course['prerequisites']) . "\n\n";
+        }
+        
+        $message .= "LEARNING TIPS\n";
+        $message .= "- This is a self-paced course - learn at your own speed\n";
+        $message .= "- Set aside dedicated time for learning each day\n";
+        $message .= "- Take notes and practice what you learn\n";
+        $message .= "- Complete exercises and projects for hands-on experience\n";
+        
+        if ($full_course['certificate_provided']) {
+            $message .= "- Certificate will be provided upon course completion\n";
+        }
+        
+        $message .= "\nNEED HELP?\n";
+        $message .= "If you have any questions, contact: " . $full_course['company_name'] . "\n\n";
+        $message .= "Happy Learning!\n";
+        $message .= "- Nexttern Team";
+        
+        // INSERT MESSAGE INTO student_messages table
+        $sender_type = 'company';
+        $receiver_type = 'student';
+       
+        $msg_stmt = $conn->prepare("INSERT INTO student_messages 
+                                     (sender_type, receiver_type, receiver_id, subject, message, is_read, created_at) 
+                                     VALUES (?, ?, ?, ?, ?, 0, NOW())");
+        $msg_stmt->bind_param("sssss", $sender_type, $receiver_type, $user_id, $subject, $message);
+        
+        if (!$msg_stmt->execute()) {
+            // Log error but don't fail enrollment
+            error_log("Failed to send enrollment message: " . $msg_stmt->error);
+        }
+        $msg_stmt->close();
+        
+        echo json_encode([
+            'status' => 'success', 
+            'message' => "Enrollment successful! Check your messages for the course access link and materials.",
+            'course_type' => 'self_paced'
+        ]);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => "Error processing enrollment: " . $stmt->error]);
+    }
     $stmt->close();
+}
+    // Handle Live Course Application
+    else if ($action_type === 'live' && $course_type === 'live') {
+        $name = isset($_POST['name']) ? trim($conn->real_escape_string($_POST['name'])) : '';
+        $email = isset($_POST['email']) ? trim($conn->real_escape_string($_POST['email'])) : '';
+        $phone = isset($_POST['phone']) ? trim($conn->real_escape_string($_POST['phone'])) : '';
+        $learning_objective = isset($_POST['learning_objective']) ? trim($_POST['learning_objective']) : '';
+        $motivation = isset($_POST['motivation']) ? trim($conn->real_escape_string($_POST['motivation'])) : '';
+
+        if (empty($course_id) || empty($name) || empty($email) || empty($learning_objective)) {
+            echo json_encode(['status' => 'error', 'message' => "Please fill in all required fields."]);
+            $conn->close();
+            exit();
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['status' => 'error', 'message' => "Please enter a valid email address."]);
+            $conn->close();
+            exit();
+        }
+
+        $valid_objectives = [
+            'job_preparation', 'interview_skills', 'certification', 'skill_enhancement',
+            'career_switch', 'academic_project', 'personal_interest', 'startup_preparation'
+        ];
+
+        if (!in_array($learning_objective, $valid_objectives)) {
+            echo json_encode(['status' => 'error', 'message' => "Invalid learning objective selected."]);
+            $conn->close();
+            exit();
+        }
+
+        $check_sql = "SELECT id FROM course_applications WHERE course_id = ? AND email = ?";
+        $check_stmt = $conn->prepare($check_sql);
+        $check_stmt->bind_param("is", $course_id, $email);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
+        
+        if ($check_result->num_rows > 0) {
+            echo json_encode(['status' => 'error', 'message' => "You have already applied for this course."]);
+            $check_stmt->close();
+            $conn->close();
+            exit();
+        }
+        $check_stmt->close();
+
+        $sql = "INSERT INTO course_applications (
+            student_id, course_id, applicant_name, email, phone, learning_objective, 
+            cover_letter, application_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sisssss", $user_id, $course_id, $name, $email, $phone, $learning_objective, $motivation);
+
+        if ($stmt->execute()) {
+            echo json_encode([
+                'status' => 'success', 
+                'message' => "Application submitted successfully! The company will review and contact you soon.",
+                'course_type' => 'live'
+            ]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => "Error processing application: " . $stmt->error]);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(['status' => 'error', 'message' => "Invalid course type or action."]);
+    }
+
     $conn->close();
     exit();
 }
@@ -339,17 +492,9 @@ if ($course_id) {
     $error_message = "No course ID specified.";
 }
 
-function formatPrice($priceType, $priceAmount) {
-    if ($priceType === 'free' || $priceType === 'Free' || $priceAmount == '0.00') {
-        return 'Free';
-    }
-    return '₹' . number_format($priceAmount, 0);
-}
-
 function getEnrollmentStats($courseData) {
     return [
         'students_trained' => $courseData['students_trained'] ?: '5,000+',
-        'job_placement_rate' => $courseData['job_placement_rate'] ? $courseData['job_placement_rate'] . '%' : '73%',
         'student_rating' => $courseData['student_rating'] ? $courseData['student_rating'] . '/5' : '4.5/5',
         'enrollment_deadline' => $courseData['enrollment_deadline'] ? date('M j, Y', strtotime($courseData['enrollment_deadline'])) : 'Sep 30, 2025'
     ];
@@ -592,111 +737,109 @@ $conn->close()
             gap: 1rem;
         }
 
-      
-/* Enhanced Profile Navigation with Photo Support */
-.nav-profile {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
+        /* Enhanced Profile Navigation with Photo Support */
+        .nav-profile {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
-.profile-trigger {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 1rem;
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur));
-    border: 1px solid var(--glass-border);
-    border-radius: 25px;
-    cursor: pointer;
-    transition: var(--transition);
-    text-decoration: none;
-    color: var(--primary);
-    font-weight: 500;
-    box-shadow: var(--shadow-light);
-    border: none;
-    position: relative;
-}
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            box-shadow: var(--shadow-light);
+            border: none;
+            position: relative;
+        }
 
-.profile-trigger:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
-    background: rgba(255, 255, 255, 0.4);
-}
+        .profile-trigger:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            background: rgba(255, 255, 255, 0.4);
+        }
 
-.profile-avatar-container {
-    position: relative;
-}
+        .profile-avatar-container {
+            position: relative;
+        }
 
-.profile-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--primary-light);
-    transition: var(--transition);
-}
+        .profile-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-light);
+            transition: var(--transition);
+        }
 
-.profile-avatar.default {
-    background: var(--gradient-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 1rem;
-    font-family: 'Poppins', sans-serif;
-}
+        .profile-avatar.default {
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+        }
 
-.profile-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.1rem;
-}
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.1rem;
+        }
 
-.profile-name {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    color: var(--primary-dark);
-    font-size: 0.9rem;
-    line-height: 1.2;
-}
+        .profile-name {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.9rem;
+            line-height: 1.2;
+        }
 
-.profile-id {
-    font-family: 'Roboto', sans-serif;
-    font-weight: 400;
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    line-height: 1;
-}
+        .profile-id {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            line-height: 1;
+        }
 
-.message-badge {
-    background: var(--danger);
-    color: white;
-    border-radius: 50%;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.7rem;
-    font-weight: bold;
-    min-width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulse 2s infinite;
-    position: absolute;
-    top: -5px;
-    right: -5px;
-}
+        .message-badge {
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
 
         /* Standard Buttons */
         .btn {
@@ -774,9 +917,7 @@ $conn->close()
         .breadcrumb a {
             color: var(--text-secondary);
             text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
+        }.breadcrumb a:hover {
             color: var(--primary);
         }
 
@@ -985,78 +1126,6 @@ $conn->close()
             line-height: 1.6;
         }
 
-        /* Skills Taught Section */
-        .skills-section {
-            margin-top: 3rem;
-        }
-
-        .skills-categories {
-            display: grid;
-            gap: 2rem;
-        }
-
-        .skills-category {
-            background: var(--bg-light);
-            border-radius: 12px;
-            padding: 2rem;
-        }
-
-        .skills-category h4 {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .skills-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 1rem;
-        }
-
-        .skill-card {
-            background: var(--white);
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: var(--shadow);
-            transition: transform 0.2s ease;
-            border: 2px solid transparent;
-        }
-
-        .skill-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--primary);
-        }
-
-        .skill-card.technical {
-            border-left: 4px solid var(--primary);
-        }
-
-        .skill-card.professional {
-            border-left: 4px solid var(--accent);
-        }
-
-        .skill-card i {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--primary);
-        }
-
-        .skill-card.professional i {
-            color: var(--accent);
-        }
-
-        .skill-name {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-        }
-
         /* Skills Taught Section (Simple Cards) */
         .skills-taught-section {
             margin-top: 3rem;
@@ -1179,7 +1248,9 @@ $conn->close()
             color: var(--white);
             font-size: 1.25rem;
         }
-.sidebar {
+
+        /* Sidebar */
+        .sidebar {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
@@ -1187,6 +1258,7 @@ $conn->close()
             top: 100px;
             align-self: flex-start;
         }
+
         .sidebar-card {
             background: var(--white);
             border-radius: 12px;
@@ -1440,10 +1512,6 @@ $conn->close()
                 height: 45px;
             }
 
-            .skills-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            }
-
             .skills-taught-grid {
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
@@ -1476,7 +1544,6 @@ $conn->close()
             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
                 <li><a href="course.php" class="nav-link">Internships</a></li>
-        
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
                 <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>
@@ -1536,17 +1603,19 @@ $conn->close()
                 </div>
 
                 <div class="course-tags">
+                    <?php if ($course_data['course_type']): ?>
+                    <div class="tag" style="background: rgba(78, 205, 196, 0.1); color: var(--accent);">
+                        <i class="fas fa-<?php echo $course_data['course_type'] === 'self_paced' ? 'user-clock' : 'video'; ?>"></i>
+                        <?php echo $course_data['course_type'] === 'self_paced' ? 'Self-Paced' : 'Live Sessions'; ?>
+                    </div>
+                    <?php endif; ?>
+                    
                     <?php if ($course_data['duration']): ?>
                     <div class="tag tag-duration">
                         <i class="fas fa-clock"></i>
                         <?php echo htmlspecialchars($course_data['duration']); ?>
                     </div>
                     <?php endif; ?>
-                    
-                    <div class="tag tag-price">
-                        <i class="fas fa-money-bill"></i>
-                        <?php echo formatPrice($course_data['course_price_type'], $course_data['price_amount']); ?>
-                    </div>
                     
                     <?php if ($course_data['max_students'] > 0): ?>
                     <div class="tag tag-spots">
@@ -1571,6 +1640,7 @@ $conn->close()
             <!-- Stats Section -->
             <?php $stats = getEnrollmentStats($course_data); ?>
             <div class="stats-section">
+                <?php if ($course_data['enrollment_deadline']): ?>
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-calendar-alt"></i>
@@ -1578,6 +1648,7 @@ $conn->close()
                     <div class="stat-value"><?php echo $stats['enrollment_deadline']; ?></div>
                     <div class="stat-label">Enrollment Deadline</div>
                 </div>
+                <?php endif; ?>
                 
                 <div class="stat-card">
                     <div class="stat-icon">
@@ -1589,18 +1660,18 @@ $conn->close()
                 
                 <div class="stat-card">
                     <div class="stat-icon">
-                        <i class="fas fa-briefcase"></i>
-                    </div>
-                    <div class="stat-value"><?php echo $stats['job_placement_rate']; ?></div>
-                    <div class="stat-label">Job Placement Rate</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon">
                         <i class="fas fa-star"></i>
                     </div>
                     <div class="stat-value"><?php echo $stats['student_rating']; ?></div>
                     <div class="stat-label">Student Rating</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-<?php echo $course_data['course_type'] === 'self_paced' ? 'infinity' : 'video'; ?>"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $course_data['course_type'] === 'self_paced' ? 'Anytime' : 'Live'; ?></div>
+                    <div class="stat-label"><?php echo $course_data['course_type'] === 'self_paced' ? 'Start Learning' : 'Sessions'; ?></div>
                 </div>
             </div>
 
@@ -1631,8 +1702,6 @@ $conn->close()
                     </section>
                     <?php endif; ?>
 
-                  
-
                     <?php 
                     $program_phases = parseProgramStructure($course_data['program_structure']);
                     if (!empty($program_phases)): 
@@ -1657,7 +1726,7 @@ $conn->close()
                         </div>
                     </section>
                     <?php else: ?>
- <!-- Default Program Structure -->
+                    <!-- Default Program Structure -->
                     <section class="program-structure">
                         <h2 class="section-title">
                             <i class="fas fa-list-check"></i>
@@ -1699,6 +1768,7 @@ $conn->close()
                         </div>
                     </section>
                     <?php endif; ?>
+
                     <?php 
                     $prerequisites = parsePrerequisites($course_data['prerequisites']);
                     if (!empty($prerequisites)): 
@@ -1728,7 +1798,8 @@ $conn->close()
                         </div>
                     </section>
                     <?php endif; ?>
-                   <?php 
+
+                    <?php 
                     // Simple comma-separated skills section
                     if (!empty($course_data['skills_taught'])): 
                         $skills_list = array_filter(array_map('trim', explode(',', $course_data['skills_taught'])));
@@ -1754,214 +1825,267 @@ $conn->close()
                         endif;
                     endif; 
                     ?>
-                    </div>
-                <!-- Sidebar -->
-<div class="sidebar">
-    <?php if ($isLoggedIn && $user_role === 'student'): ?>
-    <!-- Application Form - ONLY FOR STUDENTS -->
-    <div class="sidebar-card application-form">
-        <h3>Apply for This Course</h3>
-        <p class="application-subtitle">Start your journey in <?php echo htmlspecialchars($course_data['course_category'] ?? 'Technology'); ?> today</p>
-        
-        <div id="message_area"></div>
-        
-        <form id="enrollmentForm">
-            <input type="hidden" name="course_id" value="<?php echo htmlspecialchars($course_data['id']); ?>">
-            
-            <div class="form-group">
-                <label class="form-label required" for="name">Full Name</label>
-                <input type="text" id="name" name="name" class="form-input" 
-                       value="<?php echo htmlspecialchars($user_name); ?>" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label required" for="email">Email Address</label>
-                <input type="email" id="email" name="email" class="form-input" 
-                       value="<?php echo htmlspecialchars($user_email); ?>" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="phone">Phone Number</label>
-                <input type="tel" id="phone" name="phone" class="form-input" 
-                       value="<?php echo htmlspecialchars($user_phone); ?>">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label required" for="learning_objective">Learning Objective</label>
-                <select id="learning_objective" name="learning_objective" class="form-select" required>
-                    <option value="">Select your primary goal</option>
-                    <option value="job_preparation">Job Preparation</option>
-                    <option value="interview_skills">Interview Skills</option>
-                    <option value="certification">Professional Certification</option>
-                    <option value="skill_enhancement">Skill Enhancement</option>
-                    <option value="career_switch">Career Switch</option>
-                    <option value="academic_project">Academic Project</option>
-                    <option value="personal_interest">Personal Interest</option>
-                    <option value="startup_preparation">Startup Preparation</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="motivation">Why are you interested?</label>
-                <textarea id="motivation" name="motivation" class="form-textarea" 
-                          placeholder="Tell us about your motivation and what you hope to achieve from this course..."></textarea>
-            </div>
-            
-            <button type="submit" id="submit_button" class="btn-submit">
-                <i class="fas fa-rocket"></i>
-                Submit Application
-            </button>
-        </form>
-    </div>
-    
-    <?php elseif ($isLoggedIn && ($user_role === 'admin' || $user_role === 'company')): ?>
-    <!-- Admin/Company View - No Application Form -->
-    <div class="sidebar-card">
-        <div style="text-align: center; padding: 2rem;">
-            <div style="width: 80px; height: 80px; background: var(--gradient-primary); 
-                 border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-                 margin: 0 auto 1.5rem; color: white; font-size: 2rem;">
-                <i class="fas fa-<?php echo $user_role === 'admin' ? 'shield-alt' : 'building'; ?>"></i>
-            </div>
-            <h3 style="margin-bottom: 1rem; color: var(--primary);">
-                <?php echo ucfirst($user_role); ?> Access
-            </h3>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-                <?php if ($user_role === 'admin'): ?>
-                    You're viewing this course as an administrator. Students can enroll through the application form.
-                <?php else: ?>
-                    You're viewing this course as a company representative. Students can enroll through the application form.
-                <?php endif; ?>
-            </p>
-            <a href="<?php echo $user_role === 'admin' ? 'index.php?page=home' : 'company_dashboard.php'; ?>" 
-               class="btn-submit" style="text-decoration: none; background: var(--primary);">
-                <i class="fas fa-arrow-left"></i>
-                Back to Dashboard
-            </a>
-        </div>
-    </div>
-    
-    <?php else: ?>
-    <!-- Login Required - For Non-Logged In Users -->
-    <div class="sidebar-card">
-        <div class="login-required">
-            <div class="login-icon">
-                <i class="fas fa-graduation-cap"></i>
-            </div>
-            <h3 style="margin-bottom: 1rem;">Ready to Start Learning?</h3>
-            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-                Join thousands of students mastering new skills through our professional courses.
-            </p>
-            <a href="login.html" class="btn-login">
-                <i class="fas fa-sign-in-alt"></i>
-                Login to Enroll
-            </a>
-            <br>
-            <a href="registerstudent.html" class="btn-register">
-                New here? Create your free account
-            </a>
-        </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- Quick Facts - Show for Everyone -->
-    <div class="sidebar-card quick-facts">
-        <h3>
-            <i class="fas fa-info-circle"></i>
-            Quick Facts
-        </h3>
-        
-        <?php if ($course_data['start_date']): ?>
-        <div class="fact-item">
-            <span class="fact-label">
-                <i class="fas fa-calendar-start"></i>
-                Start Date:
-            </span>
-            <span class="fact-value"><?php echo date('M j, Y', strtotime($course_data['start_date'])); ?></span>
-        </div>
-        <?php endif; ?>
-        
-        <?php if ($course_data['duration']): ?>
-        <div class="fact-item">
-            <span class="fact-label">
-                <i class="fas fa-clock"></i>
-                Duration:
-            </span>
-            <span class="fact-value"><?php echo htmlspecialchars($course_data['duration']); ?></span>
-        </div>
-        <?php endif; ?>
-        
-        <?php if ($course_data['mode']): ?>
-        <div class="fact-item">
-            <span class="fact-label">
-                <i class="fas fa-desktop"></i>
-                Format:
-            </span>
-            <span class="fact-value"><?php echo htmlspecialchars(ucfirst($course_data['mode'])); ?> <?php echo $course_data['course_format'] ? '+ ' . htmlspecialchars($course_data['course_format']) : '+ Live Sessions'; ?></span>
-        </div>
-        <?php endif; ?>
-        
-        <?php if ($course_data['certificate_provided']): ?>
-        <div class="fact-item">
-            <span class="fact-label">
-                <i class="fas fa-certificate"></i>
-                Certificate:
-            </span>
-            <span class="fact-value">Industry Recognized</span>
-        </div>
-        <?php endif; ?>
-        
-        <?php if ($course_data['job_placement_support']): ?>
-        <div class="fact-item">
-            <span class="fact-label">
-                <i class="fas fa-handshake"></i>
-                Job Support:
-            </span>
-            <span class="fact-value">Placement Assistance</span>
-        </div>
-        <?php endif; ?>
-    </div>
-</div>
-            </div>
-            <?php else: ?>
-                <div class="alert alert-error" style="text-align: center; padding: 2rem; margin-top: 2rem;">
-                    <i class="fas fa-exclamation-circle"></i>
-                    Course not found or has been removed.
                 </div>
-            <?php endif; ?>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <?php if ($isLoggedIn && $user_role === 'student'): ?>
+                        <?php if ($course_data['course_type'] === 'self_paced'): ?>
+                        <!-- Self-Paced Course Enrollment -->
+                        <div class="sidebar-card application-form">
+                            <h3>Start Learning Now</h3>
+                            <p class="application-subtitle">Instant access to self-paced course materials</p>
+                            
+                            <div id="message_area"></div>
+                            
+                            <form id="enrollmentForm">
+                                <input type="hidden" name="course_id" value="<?php echo htmlspecialchars($course_data['id']); ?>">
+                                <input type="hidden" name="action_type" value="self_paced">
+                                
+                                <div style="background: var(--bg-light); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                        <i class="fas fa-info-circle" style="color: var(--info); font-size: 1.5rem;"></i>
+                                        <div>
+                                            <h4 style="margin: 0; color: var(--text-primary); font-size: 0.95rem;">Self-Paced Learning</h4>
+                                            <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); font-size: 0.85rem;">Learn at your own pace, anytime</p>
+                                        </div>
+                                    </div>
+                                    <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                        <li style="margin-bottom: 0.5rem;">Instant course access</li>
+                                        <li style="margin-bottom: 0.5rem;">Video playlists sent to email</li>
+                                        <li style="margin-bottom: 0.5rem;">Study materials included</li>
+                                        <li>Lifetime access to content</li>
+                                    </ul>
+                                </div>
+                                
+                                <button type="submit" id="submit_button" class="btn-submit">
+                                    <i class="fas fa-play-circle"></i>
+                                    Start Learning Now
+                                </button>
+                                
+                                <p style="text-align: center; margin-top: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
+                                    <i class="fas fa-envelope"></i> Course links will be sent to <strong><?php echo htmlspecialchars($user_email); ?></strong>
+                                </p>
+                            </form>
+                        </div>
+                        
+                        <?php else: ?>
+                        <!-- Live Course Application Form -->
+                        <div class="sidebar-card application-form">
+                            <h3>Apply for This Course</h3>
+                            <p class="application-subtitle">Join our upcoming live sessions</p>
+                            
+                            <div id="message_area"></div>
+                            
+                            <form id="enrollmentForm">
+                                <input type="hidden" name="course_id" value="<?php echo htmlspecialchars($course_data['id']); ?>">
+                                <input type="hidden" name="action_type" value="live">
+                                
+                                <div class="form-group">
+                                    <label class="form-label required" for="name">Full Name</label>
+                                    <input type="text" id="name" name="name" class="form-input" 
+                                           value="<?php echo htmlspecialchars($user_name); ?>" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label required" for="email">Email Address</label>
+                                    <input type="email" id="email" name="email" class="form-input" 
+                                           value="<?php echo htmlspecialchars($user_email); ?>" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label" for="phone">Phone Number</label>
+                                    <input type="tel" id="phone" name="phone" class="form-input" 
+                                           value="<?php echo htmlspecialchars($user_phone); ?>">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label required" for="learning_objective">Learning Objective</label>
+                                    <select id="learning_objective" name="learning_objective" class="form-select" required>
+                                        <option value="">Select your primary goal</option>
+                                        <option value="job_preparation">Job Preparation</option>
+                                        <option value="interview_skills">Interview Skills</option>
+                                        <option value="certification">Professional Certification</option>
+                                        <option value="skill_enhancement">Skill Enhancement</option>
+                                        <option value="career_switch">Career Switch</option>
+                                        <option value="academic_project">Academic Project</option>
+                                        <option value="personal_interest">Personal Interest</option>
+                                        <option value="startup_preparation">Startup Preparation</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label" for="motivation">Why are you interested?</label>
+                                    <textarea id="motivation" name="motivation" class="form-textarea" 
+                                              placeholder="Tell us about your motivation and what you hope to achieve from this course..."></textarea>
+                                </div>
+                                
+                                <button type="submit" id="submit_button" class="btn-submit">
+                                    <i class="fas fa-rocket"></i>
+                                    Submit Application
+                                </button>
+                            </form>
+                        </div>
+                        <?php endif; ?>
+                    
+                    <?php elseif ($isLoggedIn && ($user_role === 'admin' || $user_role === 'company')): ?>
+                    <!-- Admin/Company View - No Application Form -->
+                    <div class="sidebar-card">
+                        <div style="text-align: center; padding: 2rem;">
+                            <div style="width: 80px; height: 80px; background: var(--gradient-primary); 
+                                 border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                                 margin: 0 auto 1.5rem; color: white; font-size: 2rem;">
+                                <i class="fas fa-<?php echo $user_role === 'admin' ? 'shield-alt' : 'building'; ?>"></i>
+                            </div>
+                            <h3 style="margin-bottom: 1rem; color: var(--primary);">
+                                <?php echo ucfirst($user_role); ?> Access
+                            </h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                                <?php if ($user_role === 'admin'): ?>
+                                    You're viewing this course as an administrator. Students can enroll through the application form.
+                                <?php else: ?>
+                                    You're viewing this course as a company representative. Students can enroll through the application form.
+                                <?php endif; ?>
+                            </p>
+                            <a href="<?php echo $user_role === 'admin' ? 'index.php?page=home' : 'company_dashboard.php'; ?>" 
+                               class="btn-submit" style="text-decoration: none; background: var(--primary);">
+                                <i class="fas fa-arrow-left"></i>
+                                Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <?php else: ?>
+                    <!-- Login Required - For Non-Logged In Users -->
+                    <div class="sidebar-card">
+                        <div class="login-required">
+                            <div class="login-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <h3 style="margin-bottom: 1rem;">Ready to Start Learning?</h3>
+                            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+                                Join thousands of students mastering new skills through our professional courses.
+                            </p>
+                            <a href="login.html" class="btn-login">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Login to Enroll
+                            </a>
+                            <br>
+                            <a href="registerstudent.html" class="btn-register">
+                                New here? Create your free account
+                            </a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Quick Facts - Show for Everyone -->
+                    <div class="sidebar-card quick-facts">
+                        <h3>
+                            <i class="fas fa-info-circle"></i>
+                            Quick Facts
+                        </h3>
+                        
+                        <?php if ($course_data['course_type']): ?>
+                        <div class="fact-item">
+                            <span class="fact-label">
+                                <i class="fas fa-graduation-cap"></i>
+                                Course Type:
+                            </span>
+                            <span class="fact-value"><?php echo $course_data['course_type'] === 'self_paced' ? 'Self-Paced' : 'Live Sessions'; ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($course_data['start_date'] && $course_data['course_type'] === 'live'): ?>
+                        <div class="fact-item">
+                            <span class="fact-label">
+                                <i class="fas fa-calendar-start"></i>
+                                Start Date:
+                            </span>
+                            <span class="fact-value"><?php echo date('M j, Y', strtotime($course_data['start_date'])); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($course_data['duration']): ?>
+                        <div class="fact-item">
+                            <span class="fact-label">
+                                <i class="fas fa-clock"></i>
+                                Duration:
+                            </span>
+                            <span class="fact-value"><?php echo htmlspecialchars($course_data['duration']); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($course_data['course_format']): ?>
+                        <div class="fact-item">
+                            <span class="fact-label">
+                                <i class="fas fa-desktop"></i>
+                                Format:
+                            </span>
+                            <span class="fact-value"><?php echo htmlspecialchars(ucfirst($course_data['course_format'])); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($course_data['certificate_provided']): ?>
+                        <div class="fact-item">
+                            <span class="fact-label">
+                                <i class="fas fa-certificate"></i>
+                                Certificate:
+                            </span>
+                            <span class="fact-value">Industry Recognized</span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($course_data['course_type'] === 'self_paced'): ?>
+                        <div class="fact-item">
+                            <span class="fact-label">
+                                <i class="fas fa-infinity"></i>
+                                Access:
+                            </span>
+                            <span class="fact-value">Lifetime Access</span>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-error" style="text-align: center; padding: 2rem; margin-top: 2rem;">
+                <i class="fas fa-exclamation-circle"></i>
+                Course not found or has been removed.
+            </div>
+        <?php endif; ?>
     </div>
-
-
-
-            
-        
-            
 
     <script>
-        <?php if ($isLoggedIn): ?>
-        // Enhanced Form Submission with duplicate prevention
+        <?php if ($isLoggedIn && $user_role === 'student'): ?>
+        // Enhanced Form Submission with course type handling
         document.getElementById('enrollmentForm').addEventListener('submit', function(event) {
             event.preventDefault();
             
             const submitButton = document.getElementById('submit_button');
             const messageArea = document.getElementById('message_area');
             const form = this;
+            const actionType = form.querySelector('input[name="action_type"]').value;
 
             // Check if form is already being submitted
             if (submitButton.disabled) {
                 return;
             }
 
-            // Validate required fields
-            const requiredFields = ['name', 'email', 'learning_objective'];
+            // Validate required fields based on course type
+            let requiredFields = [];
+            if (actionType === 'live') {
+                requiredFields = ['name', 'email', 'learning_objective'];
+            }
+            // No validation needed for self_paced, it's automatic
+            
             let hasErrors = false;
             
             requiredFields.forEach(fieldName => {
                 const field = document.getElementById(fieldName);
-                if (!field.value.trim()) {
+                if (field && !field.value.trim()) {
                     hasErrors = true;
                     field.style.borderColor = 'var(--danger)';
-                } else {
+                } else if (field) {
                     field.style.borderColor = 'var(--border)';
                 }
             });
@@ -1979,7 +2103,11 @@ $conn->close()
 
             // Disable button and show loading state
             submitButton.disabled = true;
-            submitButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing Application...`;
+            if (actionType === 'self_paced') {
+                submitButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing Enrollment...`;
+            } else {
+                submitButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Submitting Application...`;
+            }
             messageArea.innerHTML = '';
 
             const formData = new FormData(form);
@@ -2004,23 +2132,56 @@ $conn->close()
                         </div>
                     `;
                     
-                    // Replace form with success message
-                    form.innerHTML = `
-                        <div class="application-success">
-                            <div class="success-icon">
-                                <i class="fas fa-check-circle"></i>
+                    // Different success messages based on course type
+                    if (data.course_type === 'self_paced') {
+                        form.innerHTML = `
+                            <div class="application-success">
+                                <div class="success-icon">
+                                    <i class="fas fa-envelope-open-text"></i>
+                                </div>
+                                <h3 style="margin-bottom: 1rem; color: var(--success);">Check Your Email!</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                    We've sent course playlist links and learning materials to <strong><?php echo htmlspecialchars($user_email); ?></strong>
+                                </p>
+                                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                                    <i class="fas fa-info-circle"></i> Check your inbox (and spam folder) for course access details.
+                                </p>
+                                <a href="course.php" class="btn-submit" style="background: var(--primary); text-decoration: none;">
+                                    <i class="fas fa-search"></i>
+                                    Explore More Courses
+                                </a>
                             </div>
-                            <h3 style="margin-bottom: 1rem; color: var(--success);">Application Submitted!</h3>
-                            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                                Thank you for applying. The company will review your application and contact you soon.
-                            </p>
-                            <a href="course.php" class="btn-submit" style="background: var(--success); text-decoration: none;">
-                                <i class="fas fa-search"></i>
-                                Browse More Courses
-                            </a>
+                        `;
+                    } else {
+                        form.innerHTML = `
+                            <div class="application-success">
+                                <div class="success-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <h3 style="margin-bottom: 1rem; color: var(--success);">Application Submitted!</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                    Your application is under review. The company will contact you soon via email or phone.
+                                </p>
+                                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                                    <i class="fas fa-clock"></i> Expected response time: 2-3 business days
+                                </p>
+                                <a href="course.php" class="btn-submit" style="background: var(--success); text-decoration: none;">
+                                    <i class="fas fa-search"></i>
+                                    Browse More Courses
+                                </a>
+                            </div>
+                        `;
+                    }
+                    
+                } else if (data.status === 'info') {
+                    messageArea.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-info-circle"></i>
+                            ${data.message}
                         </div>
                     `;
-                    
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = `<i class="fas fa-check"></i> Already Enrolled`;
                 } else {
                     messageArea.innerHTML = `
                         <div class="alert alert-error">
@@ -2029,7 +2190,11 @@ $conn->close()
                         </div>
                     `;
                     submitButton.disabled = false;
-                    submitButton.innerHTML = `<i class="fas fa-rocket"></i> Submit Application`;
+                    if (actionType === 'self_paced') {
+                        submitButton.innerHTML = `<i class="fas fa-play-circle"></i> Start Learning Now`;
+                    } else {
+                        submitButton.innerHTML = `<i class="fas fa-rocket"></i> Submit Application`;
+                    }
                 }
                 
                 // Scroll to message
@@ -2044,30 +2209,39 @@ $conn->close()
                     </div>
                 `;
                 submitButton.disabled = false;
-                submitButton.innerHTML = `<i class="fas fa-rocket"></i> Submit Application`;
+                if (actionType === 'self_paced') {
+                    submitButton.innerHTML = `<i class="fas fa-play-circle"></i> Start Learning Now`;
+                } else {
+                    submitButton.innerHTML = `<i class="fas fa-rocket"></i> Submit Application`;
+                }
                 
                 messageArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
             });
         });
 
-        // Real-time validation for required fields
-        const requiredFields = ['name', 'email', 'learning_objective'];
-        requiredFields.forEach(fieldName => {
-            const field = document.getElementById(fieldName);
-            field.addEventListener('blur', function() {
-                if (!this.value.trim()) {
-                    this.style.borderColor = 'var(--danger)';
-                } else {
-                    this.style.borderColor = 'var(--border)';
+        // Real-time validation for required fields (only for live courses)
+        const actionType = document.querySelector('input[name="action_type"]');
+        if (actionType && actionType.value === 'live') {
+            const requiredFields = ['name', 'email', 'learning_objective'];
+            requiredFields.forEach(fieldName => {
+                const field = document.getElementById(fieldName);
+                if (field) {
+                    field.addEventListener('blur', function() {
+                        if (!this.value.trim()) {
+                            this.style.borderColor = 'var(--danger)';
+                        } else {
+                            this.style.borderColor = 'var(--border)';
+                        }
+                    });
+                    
+                    field.addEventListener('input', function() {
+                        if (this.value.trim()) {
+                            this.style.borderColor = 'var(--border)';
+                        }
+                    });
                 }
             });
-            
-            field.addEventListener('input', function() {
-                if (this.value.trim()) {
-                    this.style.borderColor = 'var(--border)';
-                }
-            });
-        });
+        }
         <?php endif; ?>
 
         // Mobile menu toggle function
@@ -2135,14 +2309,14 @@ $conn->close()
             });
 
             // Add hover effects to skill cards
-            const skillCards = document.querySelectorAll('.skill-card');
+            const skillCards = document.querySelectorAll('.skill-taught-card');
             skillCards.forEach(card => {
                 card.addEventListener('mouseenter', function() {
                     this.style.transform = 'translateY(-5px) scale(1.02)';
                 });
                 
                 card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(-2px) scale(1)';
+                    this.style.transform = 'translateY(-3px) scale(1)';
                 });
             });
         });

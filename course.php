@@ -155,7 +155,6 @@ if ($isLoggedIn && $user_id) {
         } elseif ($user_role === 'admin') {
             $unread_count = 0;
         } elseif ($user_role === 'company') {
-            // Companies don't have messages in this system yet
             $unread_count = 0;
         } else {
             $unread_stmt = $user_conn->prepare("SELECT COUNT(*) as unread_count FROM user_messages WHERE receiver_id = ? AND is_read = FALSE");
@@ -188,8 +187,8 @@ if ($conn->connect_error) {
 
 // Dynamic filtering logic
 $course_filter = isset($_GET['course']) ? $conn->real_escape_string($_GET['course']) : '';
-$mode_filter = isset($_GET['mode']) ? $conn->real_escape_string($_GET['mode']) : '';
 $duration_filter = isset($_GET['duration']) ? $conn->real_escape_string($_GET['duration']) : '';
+$type_filter = isset($_GET['type']) ? $conn->real_escape_string($_GET['type']) : '';
 
 $where_clauses = [];
 $params = [];
@@ -207,16 +206,19 @@ if (!empty($duration_filter)) {
     $types .= 's';
 }
 
-if (!empty($mode_filter)) {
-    $where_clauses[] = "mode = ?";
-    $params[] = $mode_filter;
+if (!empty($type_filter)) {
+    $where_clauses[] = "course_type = ?";
+    $params[] = $type_filter;
     $types .= 's';
 }
 
-// Updated SQL query to fetch ONLY from Course table 
-$sql = "SELECT id,company_name, course_title, course_category, duration, difficulty_level, mode, 
-               max_students, course_description, skills_taught, course_price_type, 
-               price_amount, certificate_provided, featured, created_at, course_status
+// Updated SQL query to match new table structure
+$sql = "SELECT id, company_id, company_name, course_title, course_category, course_type, 
+               duration, difficulty_level, course_description, what_you_will_learn, 
+               program_structure, skills_taught, prerequisites, students_trained, 
+               student_rating, enrollment_deadline, start_date, certificate_provided, 
+               course_format, meeting_link, course_status, featured, max_students, 
+               created_at, updated_at
         FROM course 
         WHERE course_status = 'Active'";
 
@@ -271,9 +273,12 @@ $available_durations = [
     'Self-Paced' => 'Self-Paced'
 ];
 
-$available_modes = ['online', 'offline', 'hybrid'];
+$course_types = [
+    'self_paced' => 'Self-Paced',
+    'live' => 'Live Sessions'
+];
 
-// Define course categories with descriptions - Fixed for better organization
+// Define course categories with descriptions
 $course_categories_detailed = [
     'Full Stack Development' => [
         'categories' => ['Programming', 'Engineering'],
@@ -304,7 +309,7 @@ $course_categories_detailed = [
 
 // Organize courses by categories
 $categorized_courses = [];
-$max_courses_per_category = 6; // Increased to show more courses per section
+$max_courses_per_category = 6;
 
 foreach ($course_categories_detailed as $category_name => $category_info) {
     $categorized_courses[$category_name] = [
@@ -322,7 +327,8 @@ foreach ($course_categories_detailed as $category_name => $category_info) {
         }
     }
 }
-// Fixed renderCourseCard function with proper blur logic
+
+// Updated renderCourseCard function with new database fields
 function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur) {
     // For non-logged users, don't render cards beyond the limit
     if (!$isLoggedIn && $card_index > $cards_before_blur) {
@@ -332,9 +338,15 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     $card_html = '<div class="internship-card" id="card-' . htmlspecialchars($course['id']) . '" 
                        onclick="' . ($isLoggedIn ? 'redirectToDetail(' . $course['id'] . ')' : 'showLoginModal(\'view\', ' . $course['id'] . ')') . '">
                     
-                    <!-- Mode Badge -->
-                    <div class="mode-badge mode-' . htmlspecialchars($course['mode'] ?? 'online') . '">
-                        ' . ucfirst(htmlspecialchars($course['mode'] ?? 'online')) . '
+                    <!-- Course Type Badge -->
+                    <div class="mode-badge mode-' . strtolower($course['course_type']) . '">
+                        <i class="fas fa-' . ($course['course_type'] === 'live' ? 'video' : 'book-open') . '"></i> 
+                        ' . ucfirst($course['course_type']) . '
+                    </div>
+                    
+                    <!-- Free Badge -->
+                    <div class="price-badge price-free">
+                        <i class="fas fa-gift"></i> Free
                     </div>
                     
                     <!-- Featured/New Badge -->
@@ -379,6 +391,23 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                         </div>';
     }
     
+    if ($course['certificate_provided']) {
+        $card_html .= '
+                        <div class="meta-item">
+                            <i class="fas fa-certificate"></i>
+                            Certificate
+                        </div>';
+    }
+    
+    // Add rating if available
+    if (!empty($course['student_rating']) && $course['student_rating'] > 0) {
+        $card_html .= '
+                        <div class="meta-item">
+                            <i class="fas fa-star"></i>
+                            ' . number_format($course['student_rating'], 1) . '/5
+                        </div>';
+    }
+    
     $card_html .= '
                     </div>
 
@@ -403,26 +432,13 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     $card_html .= '
                     <!-- Card Footer -->
                     <div class="card-footer">
-                        <div class="price-info">
-                            <div class="price-amount">';
-    
-    if ($course['course_price_type'] === 'free' || $course['price_amount'] == 0) {
-        $card_html .= 'Free';
-    } else {
-        $card_html .= '₹' . number_format($course['price_amount'], 0);
-    }
-    
-    $card_html .= '</div>';
-    
-    if ($course['certificate_provided']) {
-        $card_html .= '<div class="price-type">Certificate Included</div>';
-    }
-    
-    $card_html .= '
+                        <div class="footer-info">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>Free ' . ucfirst($course['course_type']) . ' Course</span>
                         </div>
                         
                         <button class="apply-btn" onclick="event.stopPropagation(); ' . ($isLoggedIn ? 'redirectToDetail(' . $course['id'] . ')' : 'showLoginModal(\'apply\', ' . $course['id'] . ')') . ';">
-                            ' . ($course['course_price_type'] === 'free' ? 'Enroll Free' : 'Enroll Now') . '
+                            Enroll Free
                         </button>
                     </div>
                 </div>';
@@ -435,7 +451,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexttern - Course Opportunities</title>
+    <title>Nexttern - Free Online Courses</title>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" as="style">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style">
@@ -464,7 +480,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             --shadow-md: 0 4px 12px rgba(3, 89, 70, 0.08);
             --shadow-lg: 0 8px 25px rgba(3, 89, 70, 0.12);
             --shadow-xl: 0 12px 48px rgba(3, 89, 70, 0.15);
-            --transition: all 0.2s ease; /* Reduced from 0.3s */
+            --transition: all 0.2s ease;
             --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #7dd3d8 100%);
             --border-radius: 12px;
@@ -568,7 +584,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             align-items: center;
             gap: 1rem;
         }
-/* Enhanced Profile Navigation with Photo Support - Match About Us Page */
+
 .nav-profile {
     position: relative;
     display: flex;
@@ -675,6 +691,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     50% { transform: scale(1.1); }
     100% { transform: scale(1); }
 }
+
         /* Standard Login Button */
         .btn {
             padding: 0.75rem 1.5rem;
@@ -892,103 +909,22 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
         .search-btn:hover {
             background: var(--primary-dark);
         }
+
         /* Search Results Specific Styling */
-.search-results-section {
-    margin-bottom: 3rem;
-    opacity: 1;
-    transform: translateY(0);
-}
+        .search-results-section {
+            margin-bottom: 3rem;
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-.search-results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
+        .search-results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
 
-/* Ensure consistent card heights in search results */
-.search-results-grid .internship-card {
-    display: flex;
-    flex-direction: column;
-    height: 100%; /* Make all cards same height */
-    min-height: 350px; /* Ensure minimum height */
-}
-
-/* Make card content flex to push footer to bottom */
-.search-results-grid .internship-card .card-footer {
-    margin-top: auto; /* Push footer to bottom */
-}
-
-/* Fix grid alignment issues */
-.internships-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    align-items: start; /* Align items to start instead of stretch */
-}
-
-/* Ensure all cards have consistent structure */
-.internship-card {
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-white);
-    border-radius: var(--border-radius-lg);
-    padding: 1.8rem;
-    padding-top: 3rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-light);
-    transition: var(--transition);
-    cursor: pointer;
-    position: relative;
-    height: fit-content;
-    min-height: 320px;
-}
-
-/* Fix for card content distribution */
-.internship-card .card-description {
-    flex-grow: 1; /* Allow description to grow */
-    margin-bottom: 1rem;
-}
-
-.internship-card .card-footer {
-    margin-top: auto; /* Always push to bottom */
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-light);
-}
-
-/* Search results header styling */
-.search-results-section .category-title {
-    color: var(--primary);
-}
-
-.search-results-section .category-title i {
-    color: var(--accent);
-}
-
-/* Responsive fixes */
-@media (max-width: 768px) {
-    .search-results-grid,
-    .internships-grid {
-        grid-template-columns: 1fr;
-        gap: 1.2rem;
-    }
-    
-    .search-results-grid .internship-card,
-    .internship-card {
-        min-height: 300px;
-    }
-}
-
-@media (max-width: 480px) {
-    .search-results-grid .internship-card,
-    .internship-card {
-        min-height: 280px;
-        padding: 1.5rem;
-    }
-}
-
-        /* Filter Section - Optimized */
+        /* Filter Section - Optimized - ADDED COURSE TYPE FILTER */
         .filter-section {
             background: var(--bg-white);
             border-radius: var(--border-radius-lg);
@@ -1115,13 +1051,14 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
+            align-items: start;
         }
 
         .internship-card {
             background: var(--bg-white);
             border-radius: var(--border-radius-lg);
             padding: 1.8rem;
-            padding-top: 3rem; /* Extra padding for badges */
+            padding-top: 3.5rem;
             box-shadow: var(--shadow-md);
             border: 1px solid var(--border-light);
             transition: var(--transition);
@@ -1129,6 +1066,8 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             position: relative;
             height: fit-content;
             min-height: 320px;
+            display: flex;
+            flex-direction: column;
         }
 
         .internship-card:hover {
@@ -1181,10 +1120,6 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             color: white;
         }
 
-        .save-btn.saved i {
-            color: white;
-        }
-
         .course-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -1205,8 +1140,9 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             letter-spacing: 0.5px;
         }
 
-        /* Mode and Status Badges - Compact uniform sizing */
+        /* UPDATED: Badges for Course Type & Free - compact uniform sizing */
         .mode-badge,
+        .price-badge,
         .status-badge {
             position: absolute;
             top: 0.8rem;
@@ -1215,11 +1151,11 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             font-size: 0.75rem;
             font-weight: 600;
             z-index: 2;
-            text-align: center;
             height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 0.3rem;
             white-space: nowrap;
         }
 
@@ -1227,19 +1163,37 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             left: 1rem;
         }
 
+        .mode-badge.mode-self_paced {
+            background: rgba(52, 152, 219, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .mode-badge.mode-live {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+
+        .price-badge {
+            left: 8.5rem;
+            background: rgba(243, 156, 18, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+
         .status-badge {
             right: 1rem;
         }
 
-        /* When both badges are present, adjust positioning */
-        .internship-card:has(.mode-badge):has(.status-badge) .status-badge {
-            top: 0.8rem;
-            right: 1rem;
+        .status-featured {
+            background: linear-gradient(135deg, var(--warning) 0%, #ff9500 100%);
+            color: white;
         }
 
-        .internship-card:has(.mode-badge):has(.status-badge) .mode-badge {
-            top: 0.8rem;
-            left: 1rem;
+        .status-new {
+            background: linear-gradient(135deg, var(--success) 0%, #2ecc71 100%);
+            color: white;
         }
 
         /* Card Meta - Optimized */
@@ -1277,6 +1231,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            flex-grow: 1;
         }
 
         /* Skills Tags */
@@ -1297,7 +1252,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             border: 1px solid rgba(3, 89, 70, 0.15);
         }
 
-        /* Card Footer */
+        /* UPDATED: Card Footer - Simplified for free courses */
         .card-footer {
             display: flex;
             justify-content: space-between;
@@ -1307,21 +1262,17 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             margin-top: auto;
         }
 
-        .price-info {
+        .footer-info {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--success);
+            font-weight: 600;
+            font-size: 0.9rem;
         }
 
-        .price-amount {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .price-type {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 500;
+        .footer-info i {
+            color: var(--accent);
         }
 
         .apply-btn {
@@ -1341,56 +1292,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             box-shadow: var(--shadow-md);
         }
 
-        /* Mode and Status Badges */
-        .mode-badge,
-        .status-badge {
-            border-radius: 999px;
-            padding: 0.2rem 0.8rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            z-index: 2;
-        }
-
-        .status-badge {
-            right: 1rem;
-        }
-
-        .mode-badge {
-            right: 4rem;
-        }
-
-        .status-featured {
-            background: linear-gradient(135deg, var(--warning) 0%, #ff9500 100%);
-            color: white;
-        }
-
-        .status-new {
-            background: linear-gradient(135deg, var(--success) 0%, #2ecc71 100%);
-            color: white;
-        }
-
-        .mode-online {
-            background: rgba(46, 204, 113, 0.1);
-            color: var(--success);
-            border: 1px solid rgba(46, 204, 113, 0.3);
-        }
-
-        .mode-offline {
-            background: rgba(52, 152, 219, 0.1);
-            color: var(--info);
-            border: 1px solid rgba(52, 152, 219, 0.3);
-        }
-
-        .mode-hybrid {
-            background: rgba(155, 89, 182, 0.1);
-            color: #9b59b6;
-            border: 1px solid rgba(155, 89, 182, 0.3);
-        }
-
-        /* Course Categories Section - Fixed */
+        /* Course Categories Section */
         .course-categories {
             margin-bottom: 3rem;
         }
@@ -1443,7 +1345,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             line-height: 1.5;
         }
 
-        /* Fixed Content Blur Overlay */
+        /* Content Blur Overlay */
         .blur-section {
             position: relative;
             margin-bottom: 2rem;
@@ -1523,35 +1425,6 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             background: rgba(255, 255, 255, 0.1);
             border-color: white;
             transform: translateY(-2px);
-        }
-        
-        /* Hidden content for non-logged users */
-        .hidden-content {
-            display: none;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .blur-overlay {
-                padding: 3rem 1.5rem;
-                margin: 1.5rem 0;
-            }
-            
-            .blur-overlay-content h3 {
-                font-size: 1.6rem;
-            }
-            
-            .blur-overlay-content p {
-                font-size: 1rem;
-            }
-            
-            .blur-overlay-actions {
-                flex-direction: column;
-            }
-            
-            .blur-overlay-btn {
-                width: 100%;
-            }
         }
 
         /* No Results */
@@ -1878,7 +1751,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                 grid-template-columns: 1fr;
             }
 
-            .internships-grid {
+            .internships-grid, .search-results-grid {
                 grid-template-columns: 1fr;
                 gap: 1.2rem;
             }
@@ -1910,6 +1783,22 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             .footer-links {
                 grid-template-columns: repeat(2, 1fr);
             }
+
+            .blur-overlay {
+                padding: 3rem 1.5rem;
+            }
+
+            .blur-overlay-content h3 {
+                font-size: 1.6rem;
+            }
+
+            .blur-overlay-actions {
+                flex-direction: column;
+            }
+
+            .blur-overlay-btn {
+                width: 100%;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1926,19 +1815,6 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                 padding: 1.3rem;
             }
 
-            .blur-message {
-                margin: 1rem;
-                padding: 1.3rem;
-            }
-
-            .blur-actions {
-                flex-direction: column;
-            }
-
-            .blur-btn {
-                width: 100%;
-            }
-
             .nav-container {
                 padding: 0 1rem;
             }
@@ -1950,6 +1826,18 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             .internship-card {
                 padding: 1.5rem;
                 min-height: 300px;
+            }
+
+            .mode-badge {
+                left: 0.8rem;
+                font-size: 0.7rem;
+                padding: 0.25rem 0.6rem;
+            }
+
+            .price-badge {
+                left: 7rem;
+                font-size: 0.7rem;
+                padding: 0.25rem 0.6rem;
             }
         }
     </style>
@@ -1970,8 +1858,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             
             <ul class="nav-menu">
                 <li><a href="index.php" class="nav-link">Home</a></li>
-                <li><a href="course.php" class="nav-link active">Internships</a></li>
-                
+                <li><a href="course.php" class="nav-link active">Courses</a></li>
                 <li><a href="aboutus.php" class="nav-link">About</a></li>
                 <li><a href="contactus.php" class="nav-link">Contact</a></li>
             </ul>
@@ -1982,15 +1869,12 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                         <button class="profile-trigger" onclick="redirectToDashboard('<?php echo $user_role; ?>')">
                             <div class="profile-avatar-container">
                                 <?php if ($user_role === 'company'): ?>
-                                    <!-- Company Avatar: Show first letter of company name -->
                                     <div class="company-initial">
                                         <?php echo strtoupper(substr($user_name, 0, 1)); ?>
                                     </div>
                                 <?php elseif (!empty($user_profile_picture) && file_exists($user_profile_picture)): ?>
-                                    <!-- Student/User Avatar: Show profile picture -->
                                     <img src="<?php echo htmlspecialchars($user_profile_picture); ?>?v=<?php echo time(); ?>" alt="Profile" class="profile-avatar">
                                 <?php else: ?>
-                                    <!-- Default Avatar: Show first letter -->
                                     <div class="profile-avatar default">
                                         <?php echo strtoupper(substr($user_name ?: 'U', 0, 1)); ?>
                                     </div>
@@ -2015,8 +1899,8 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <h1>Course Opportunities</h1>
-            <p>Master new skills with industry-leading courses and certifications</p>
+            <h1>Free Online Courses</h1>
+            <p>Master new skills with industry-leading free online courses and certifications</p>
             <?php if ($isLoggedIn): ?>
                 <div class="enhanced-welcome">
                     <h2>Welcome back, <?php echo htmlspecialchars($user_name ?: 'Student'); ?>!</h2>
@@ -2024,10 +1908,6 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                         <div class="welcome-detail">
                             <i class="fas fa-graduation-cap"></i>
                             <span>Role: <?php echo ucfirst(htmlspecialchars($user_role ?: 'Student')); ?></span>
-                        </div>
-                        <div class="welcome-detail">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>Joined: <?php echo !empty($user_joined) ? date('M Y', strtotime($user_joined)) : 'Recently'; ?></span>
                         </div>
                         <?php if ($unread_count > 0): ?>
                         <div class="welcome-detail">
@@ -2037,7 +1917,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                         <?php endif; ?>
                     </div>
                     <div class="welcome-message">
-                        Explore all available courses below - full access enabled!
+                        Explore all available free online courses below - full access enabled!
                     </div>
                 </div>
             <?php endif; ?>
@@ -2080,7 +1960,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             </div>
         </section>
 
-        <!-- Filter Section -->
+        <!-- Filter Section - ADDED COURSE TYPE FILTER -->
         <section class="filter-section">
             <h2>Find Your Perfect Course</h2>
             <form class="filter-form" method="GET" action="">
@@ -2098,13 +1978,13 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                 </div>
 
                 <div class="filter-group">
-                    <label for="mode">Mode</label>
-                    <select id="mode" name="mode">
-                        <option value="">All Modes</option>
-                        <?php foreach ($available_modes as $mode): ?>
-                            <option value="<?php echo htmlspecialchars($mode); ?>" 
-                                    <?php echo ($_GET['mode'] ?? '') === $mode ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars(ucfirst($mode)); ?>
+                    <label for="type">Course Type</label>
+                    <select id="type" name="type">
+                        <option value="">All Types</option>
+                        <?php foreach ($course_types as $value => $label): ?>
+                            <option value="<?php echo htmlspecialchars($value); ?>" 
+                                    <?php echo ($_GET['type'] ?? '') === $value ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($label); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -2130,7 +2010,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             </form>
         </section>
 
-     <main class="main-content">
+        <main class="main-content">
             <div class="results-info">
                 <div class="results-count">
                     <?php 
@@ -2139,7 +2019,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                     } else {
                         echo count($courses_data);
                     }
-                    ?> course<?php echo count($courses_data) !== 1 ? 's' : ''; ?> <?php echo !$isLoggedIn ? 'preview' : 'available'; ?>
+                    ?> free course<?php echo count($courses_data) !== 1 ? 's' : ''; ?> <?php echo !$isLoggedIn ? 'preview' : 'available'; ?>
                 </div>
                 <?php if ($isLoggedIn): ?>
                     <div class="enhanced-access-badge">
@@ -2154,17 +2034,15 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                     <p>Try adjusting your filters to discover more learning opportunities</p>
                 </div>
             <?php else: ?>
-                <!-- Course Categories Section with Fixed Blur Logic -->
                 <div class="course-categories">
                     <?php 
                     $total_card_index = 0;
-                    $cards_before_blur = 6; // Show exactly 6 cards before blur
+                    $cards_before_blur = 6;
                     $blur_shown = false;
                     
                     foreach ($categorized_courses as $category_name => $category_data): 
                         if (empty($category_data['courses'])) continue;
                         
-                        // Check if we have any visible cards in this category
                         $visible_courses = [];
                         foreach ($category_data['courses'] as $course) {
                             $total_card_index++;
@@ -2173,7 +2051,6 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                             }
                         }
                         
-                        // Only show category if it has visible courses
                         if (empty($visible_courses)) continue;
                     ?>
                         <section class="category-section">
@@ -2198,7 +2075,6 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                             </div>
                         </section>
                     <?php 
-                        // Show blur overlay after exactly 6 cards for non-logged users
                         if (!$isLoggedIn && !$blur_shown && $total_card_index >= $cards_before_blur && count($courses_data) > $cards_before_blur): 
                             $blur_shown = true;
                         ?>
@@ -2206,8 +2082,8 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                                 <div class="blur-overlay">
                                     <div class="blur-overlay-content">
                                         <i class="fas fa-graduation-cap"></i>
-                                        <h3>Unlock All <?php echo count($courses_data); ?> Courses</h3>
-                                        <p>You've previewed <?php echo $cards_before_blur; ?> courses. Join our learning platform to access all <?php echo count($courses_data); ?> courses, track your progress, and advance your career!</p>
+                                        <h3>Unlock All <?php echo count($courses_data); ?> Free Courses</h3>
+                                        <p>You've previewed <?php echo $cards_before_blur; ?> courses. Join our learning platform to access all <?php echo count($courses_data); ?> free online courses and advance your career!</p>
                                         <div class="blur-overlay-actions">
                                             <a href="login.html" class="blur-overlay-btn blur-overlay-btn-primary">Login Now</a>
                                             <a href="registerstudent.html" class="blur-overlay-btn blur-overlay-btn-secondary">Sign Up Free</a>
@@ -2215,11 +2091,10 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                                     </div>
                                 </div>
                             </div>
-                            <?php break; // Stop rendering after blur overlay ?>
+                            <?php break; ?>
                         <?php endif; ?>
                     <?php endforeach; ?>
                     
-                    <!-- Remaining courses section - only for logged in users -->
                     <?php if ($isLoggedIn): ?>
                         <?php
                         $categorized_course_ids = [];
@@ -2242,7 +2117,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                                         Other Specializations
                                     </h2>
                                     <p class="category-subtitle">
-                                        Explore more specialized courses and unique learning opportunities
+                                        Explore more specialized free online courses
                                     </p>
                                 </div>
                                 
@@ -2260,6 +2135,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
             <?php endif; ?>
         </main>
     </div>
+
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
@@ -2308,7 +2184,7 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
                     <h4>Nexttern</h4>
                     <ul>
                         <li><a href="aboutus.php">About Us</a></li>
-                        <li><a href="contactus.php">FAQS</a></li>
+                        <li><a href="contactus.php">FAQs</a></li>
                     </ul>
                 </div>
             </div>
@@ -2327,26 +2203,19 @@ function renderCourseCard($course, $isLoggedIn, $card_index, $cards_before_blur)
     </footer>
 
     <script>
-  // Pass PHP variables to JavaScript (keep existing variables)
 const isUserLoggedIn = <?php echo json_encode($isLoggedIn); ?>;
 const userData = <?php echo json_encode([
     'id' => $user_id,
     'name' => $user_name,
     'email' => $user_email,
     'role' => $user_role,
-    'profile_picture' => $user_profile_picture,
-    'phone' => $user_phone,
-    'location' => $user_location,
-    'joined' => $user_joined,
-    'dob' => $user_dob
+    'profile_picture' => $user_profile_picture
 ]); ?>;
 const unreadMessagesCount = <?php echo json_encode($unread_count); ?>;
 
-// Store original card data for reset functionality
 let originalCardData = [];
 const CARDS_BEFORE_BLUR = 6;
 
-// Core Navigation Functions (unchanged)
 function toggleMobileMenu() {
     const navMenu = document.querySelector('.nav-menu');
     if (navMenu) {
@@ -2358,26 +2227,26 @@ function redirectToDetail(courseId) {
     window.location.href = 'course_detail.php?id=' + courseId;
 }
 
- function redirectToDashboard(userRole) {
-            const dashboards = {
-                'admin': 'admin_dashboard.php',
-                'company': 'company_dashboard.php',
-                'student': 'student_dashboard.php'
-            };
-            window.location.href = dashboards[userRole] || 'student_dashboard.php';
-        }
-// Modal Functions (unchanged)
+function redirectToDashboard(userRole) {
+    const dashboards = {
+        'admin': 'admin_dashboard.php',
+        'company': 'company_dashboard.php',
+        'student': 'student_dashboard.php'
+    };
+    window.location.href = dashboards[userRole] || 'student_dashboard.php';
+}
+
 function showLoginModal(action, courseId) {
     const modal = document.getElementById('loginModal');
     const modalTitle = document.getElementById('modalTitle');
     const modalMessage = document.getElementById('modalMessage');
     
     if (action === 'apply') {
-        modalTitle.textContent = 'Login to Apply';
-        modalMessage.textContent = 'You need to login to apply for this course. Join thousands of students already learning!';
+        modalTitle.textContent = 'Login to Enroll';
+        modalMessage.textContent = 'You need to login to enroll in this free course. Join thousands of students already learning!';
     } else if (action === 'view') {
         modalTitle.textContent = 'Login to View More';
-        modalMessage.textContent = 'Login to view all available courses. Unlock your learning potential!';
+        modalMessage.textContent = 'Login to view all available free courses. Unlock your learning potential!';
     } else if (action === 'save') {
         modalTitle.textContent = 'Login to Save Courses';
         modalMessage.textContent = 'Login to save your favorite courses and access them anytime from your dashboard!';
@@ -2408,7 +2277,6 @@ function closeLoginModal() {
     }, 200);
 }
 
-// Initialize original card data
 function initializeCardData() {
     const cards = document.querySelectorAll('.internship-card');
     originalCardData = [];
@@ -2424,7 +2292,7 @@ function initializeCardData() {
         });
     });
 }
-// Fixed search function that maintains proper grid layout
+
 function performSearch() {
     const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
     if (!searchTerm) {
@@ -2434,15 +2302,13 @@ function performSearch() {
     
     let totalVisibleCount = 0;
     let totalMatchCount = 0;
-    let matchedCards = []; // Store all matched cards
+    let matchedCards = [];
     
-    // Hide blur overlay during search
     const blurOverlay = document.querySelector('.blur-overlay');
     if (blurOverlay) {
         blurOverlay.style.display = 'none';
     }
     
-    // First, collect all matching cards
     const categorySections = document.querySelectorAll('.category-section');
     categorySections.forEach(categorySection => {
         const cards = categorySection.querySelectorAll('.internship-card');
@@ -2468,11 +2334,9 @@ function performSearch() {
             }
         });
         
-        // Hide all category sections initially
         categorySection.style.display = 'none';
     });
     
-    // Create or get search results section
     let searchResultsSection = document.querySelector('.search-results-section');
     if (!searchResultsSection) {
         searchResultsSection = document.createElement('section');
@@ -2484,13 +2348,12 @@ function performSearch() {
                     Search Results
                 </h2>
                 <p class="category-subtitle">
-                    Courses matching your search criteria
+                    Free courses matching your search criteria
                 </p>
             </div>
             <div class="internships-grid search-results-grid"></div>
         `;
         
-        // Insert before first category section
         const firstCategory = document.querySelector('.category-section');
         if (firstCategory) {
             firstCategory.parentNode.insertBefore(searchResultsSection, firstCategory);
@@ -2498,44 +2361,32 @@ function performSearch() {
     }
     
     const searchGrid = searchResultsSection.querySelector('.search-results-grid');
-    searchGrid.innerHTML = ''; // Clear previous results
+    searchGrid.innerHTML = '';
     
-    // Add matched cards to search results grid
     matchedCards.forEach((matchData, index) => {
         if (isUserLoggedIn || totalVisibleCount < CARDS_BEFORE_BLUR) {
-            // Clone the card to avoid moving it from original position
             const clonedCard = matchData.card.cloneNode(true);
-            
-            // Update click handlers for cloned card
             updateClonedCardHandlers(clonedCard);
-            
             searchGrid.appendChild(clonedCard);
             totalVisibleCount++;
         }
     });
     
-    // Show search results section if there are results
     if (totalVisibleCount > 0) {
         searchResultsSection.style.display = 'block';
     } else {
         searchResultsSection.style.display = 'none';
     }
     
-    // Update results count
     updateResultsCount(totalVisibleCount, totalMatchCount);
-    
-    // Handle no results
     handleNoResults(totalVisibleCount);
     
-    // Show blur message if there are more matches but user is not logged in
     if (!isUserLoggedIn && totalMatchCount > CARDS_BEFORE_BLUR && totalVisibleCount === CARDS_BEFORE_BLUR) {
         showSearchBlurMessage(totalMatchCount);
     }
 }
 
-// Helper function to update event handlers on cloned cards
 function updateClonedCardHandlers(clonedCard) {
-    // Update main card click handler
     const cardId = clonedCard.id.replace('card-', '');
     clonedCard.onclick = function() {
         if (isUserLoggedIn) {
@@ -2545,7 +2396,6 @@ function updateClonedCardHandlers(clonedCard) {
         }
     };
     
-    // Update save button handler
     const saveBtn = clonedCard.querySelector('.save-btn');
     if (saveBtn) {
         saveBtn.onclick = function(event) {
@@ -2554,7 +2404,6 @@ function updateClonedCardHandlers(clonedCard) {
         };
     }
     
-    // Update apply button handler
     const applyBtn = clonedCard.querySelector('.apply-btn');
     if (applyBtn) {
         applyBtn.onclick = function(event) {
@@ -2568,21 +2417,17 @@ function updateClonedCardHandlers(clonedCard) {
     }
 }
 
-// Updated reset function
 function resetCourseDisplay() {
-    // Hide search results section
     const searchResultsSection = document.querySelector('.search-results-section');
     if (searchResultsSection) {
         searchResultsSection.style.display = 'none';
     }
     
-    // Show all original category sections
     const categorySections = document.querySelectorAll('.category-section:not(.search-results-section)');
     categorySections.forEach(section => {
         section.style.display = 'block';
     });
     
-    // Reset all cards to original state
     originalCardData.forEach(cardData => {
         if (cardData.isVisibleToUser) {
             cardData.element.style.display = 'flex';
@@ -2591,7 +2436,6 @@ function resetCourseDisplay() {
         }
     });
     
-    // Show blur overlay for non-logged users if needed
     if (!isUserLoggedIn && originalCardData.length > CARDS_BEFORE_BLUR) {
         const blurOverlay = document.querySelector('.blur-overlay');
         if (blurOverlay) {
@@ -2599,37 +2443,33 @@ function resetCourseDisplay() {
         }
     }
     
-    // Update results count to original
     const totalCards = originalCardData.length;
     updateResultsCount(
         isUserLoggedIn ? totalCards : Math.min(totalCards, CARDS_BEFORE_BLUR), 
         totalCards
     );
     
-    // Remove no results message
     const noResults = document.querySelector('.no-results');
     if (noResults) {
         noResults.remove();
     }
     
-    // Remove search blur message
     const searchBlurMessage = document.querySelector('.search-blur-message');
     if (searchBlurMessage) {
         searchBlurMessage.remove();
     }
 }
 
-
 function updateResultsCount(visibleCount, totalCount) {
     const resultsCount = document.querySelector('.results-count');
     if (resultsCount) {
         if (isUserLoggedIn) {
-            resultsCount.textContent = `${visibleCount} course${visibleCount !== 1 ? 's' : ''} ${totalCount ? 'found' : 'available'}`;
+            resultsCount.textContent = `${visibleCount} free course${visibleCount !== 1 ? 's' : ''} ${totalCount ? 'found' : 'available'}`;
         } else {
             if (totalCount > visibleCount) {
-                resultsCount.textContent = `${visibleCount} of ${totalCount} courses found (preview)`;
+                resultsCount.textContent = `${visibleCount} of ${totalCount} free courses found (preview)`;
             } else {
-                resultsCount.textContent = `${visibleCount} course${visibleCount !== 1 ? 's' : ''} found`;
+                resultsCount.textContent = `${visibleCount} free course${visibleCount !== 1 ? 's' : ''} found`;
             }
         }
     }
@@ -2648,7 +2488,7 @@ function handleNoResults(visibleCount) {
                 <div style="text-align: center; padding: 3rem;">
                     <i class="fas fa-search" style="font-size: 2.5rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
                     <h3>No courses found</h3>
-                    <p>Try different keywords or browse our course categories</p>
+                    <p>Try different keywords or browse our free course categories</p>
                     <button onclick="document.getElementById('search-input').value=''; resetCourseDisplay();" 
                             class="btn btn-primary" style="margin-top: 1rem;">
                         <i class="fas fa-times"></i> Clear Search
@@ -2677,8 +2517,8 @@ function showSearchBlurMessage(totalMatches) {
         <div class="blur-overlay">
             <div class="blur-overlay-content">
                 <i class="fas fa-search"></i>
-                <h3>More Results Available!</h3>
-                <p>Found ${totalMatches} matching courses! You're viewing ${CARDS_BEFORE_BLUR} results. Login to see all ${totalMatches} matching courses.</p>
+                <h3>More Free Courses Available!</h3>
+                <p>Found ${totalMatches} matching free courses! You're viewing ${CARDS_BEFORE_BLUR} results. Login to see all ${totalMatches} matching free courses.</p>
                 <div class="blur-overlay-actions">
                     <a href="login.html" class="blur-overlay-btn blur-overlay-btn-primary">Login to See All</a>
                     <a href="registerstudent.html" class="blur-overlay-btn blur-overlay-btn-secondary">Sign Up Free</a>
@@ -2690,7 +2530,6 @@ function showSearchBlurMessage(totalMatches) {
     courseCategories.appendChild(blurMessage);
 }
 
-// Save Course Functions (unchanged)
 function toggleSaveCourse(courseId) {
     if (!isUserLoggedIn) {
         showLoginModal('save', courseId);
@@ -2702,10 +2541,8 @@ function toggleSaveCourse(courseId) {
     
     if (isSaved) {
         saveBtn.classList.remove('saved');
-        saveBtn.innerHTML = '<i class="fas fa-bookmark"></i>';
     } else {
         saveBtn.classList.add('saved');
-        saveBtn.innerHTML = '<i class="fas fa-bookmark"></i>';
     }
     
     const formData = new FormData();
@@ -2738,7 +2575,6 @@ function toggleSaveCourse(courseId) {
             saveBtn.classList.remove('saved');
         }
         showNotification('Network error occurred', 'error');
-        console.error('Error:', error);
     });
 }
 
@@ -2795,7 +2631,6 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Auto-hide navbar (unchanged)
 let lastScrollTop = 0;
 const navbar = document.querySelector('.navbar');
 
@@ -2822,51 +2657,34 @@ function throttle(func, limit) {
     }
 }
 
-// FIXED: Single DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Content Loaded - Initializing search functionality');
-    
-    // Initialize card data for search functionality
     initializeCardData();
     
-    // Initialize search functionality
     const searchInput = document.getElementById('search-input');
     const searchBtn = document.querySelector('.search-btn');
     
     if (searchInput) {
-        console.log('Search input found - attaching event listeners');
-        
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                console.log('Enter key pressed - performing search');
                 performSearch();
             }
         });
         
         searchInput.addEventListener('input', function() {
             if (this.value.trim() === '') {
-                console.log('Search input cleared - resetting display');
                 resetCourseDisplay();
             }
         });
-    } else {
-        console.error('Search input not found');
     }
     
     if (searchBtn) {
-        console.log('Search button found - attaching click listener');
         searchBtn.addEventListener('click', function() {
-            console.log('Search button clicked - performing search');
             performSearch();
         });
-    } else {
-        console.error('Search button not found');
     }
     
-    // Initialize scroll handling
     window.addEventListener('scroll', throttle(handleScroll, 16));
     
-    // Initialize modal close handlers
     document.addEventListener('click', e => {
         const loginModal = document.getElementById('loginModal');
         if (e.target === loginModal) closeLoginModal();
@@ -2876,13 +2694,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') closeLoginModal();
     });
     
-    // Initialize user access
     if (isUserLoggedIn) {
-        console.log('User logged in - full access granted');
         loadSavedCoursesStatus();
     }
     
-    // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
@@ -2892,10 +2707,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
-    console.log('All event listeners initialized successfully');
 });
-        
     </script>
 </body>
 </html>
